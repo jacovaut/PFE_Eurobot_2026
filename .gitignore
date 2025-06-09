@@ -1,0 +1,34 @@
+# VS Code
+.vscode/
+.vscode-server/
+
+# ROS build artifacts
+ws/build/
+ws/install/
+ws/log/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# OS / system stuff
+.DS_Store
+Thumbs.db
+
+# Git / GPG
+.gnupg/
+.gitconfig
+.github
+
+# .NET
+.dotnet/
+
+# Caches
+.cache/
+
+# Logs
+*.log
+
+# Ignore any temporary files
+*.swp
+*~
