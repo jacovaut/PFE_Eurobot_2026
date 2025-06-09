@@ -1,0 +1,7 @@
+[user]
+	email = jacovaut@gmail.com
+	name = Jacob
+[gui]
+	recentrepo = C:/Users/jacov/GameDevComp
+[credential]
+	helper = "!f() { /home/PFE/.vscode-server/bin/258e40fedc6cb8edf399a463ce3a9d32e7e1f6f3/node /tmp/vscode-remote-containers-ab92e0da-151b-4895-b7ec-1fd0a5219477.js git-credential-helper $*; }; f"

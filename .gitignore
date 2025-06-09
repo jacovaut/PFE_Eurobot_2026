@@ -17,7 +17,6 @@ Thumbs.db
 
 # Git / GPG
 .gnupg/
-.gitconfig
 .github
 
 # .NET
