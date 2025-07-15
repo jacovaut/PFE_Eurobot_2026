@@ -14,15 +14,15 @@ read -r response
 case "$response" in
     1)
         DOCKERFILE="Dockerfile_gazebo"
-        STR="gazebo"
+        STR="pfe-gazebo"
         ;;
     2)
         DOCKERFILE="Dockerfile_robot"
-        STR="robot"
+        STR="pfe-robot"
         ;;
     3)
         DOCKERFILE="Dockerfile_remote"
-        STR="remote"
+        STR="pfe-remote"
         ;;
     *)
         echo "invalid response"

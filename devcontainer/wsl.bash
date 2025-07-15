@@ -14,7 +14,7 @@ docker build -t "$IMAGE_NAME" -f "$1" .
 
 # Step 2: Run the container with GPU and X11/WSLg support
 echo "Running container..."
-sudo docker run -it --rm\
+sudo docker run -itd --rm\
     --gpus all \
     --net=host \
     --ipc=host \
@@ -32,7 +32,7 @@ sudo docker run -it --rm\
     --name "$CONTAINER_NAME" \
     "$IMAGE_NAME" \
     bash -c " \
-        echo 'source /opt/ros/humble/setup.bash' >> /home/pfe/.bashrc && \
+        echo 'source /opt/ros/jazzy/setup.bash' >> /home/pfe/.bashrc && \
         echo 'source /home/pfe/PFE_EUROBOT_2026/ws/install/setup.bash' >> /home/pfe/.bashrc && \
         sudo apt update && \
         exec bash"

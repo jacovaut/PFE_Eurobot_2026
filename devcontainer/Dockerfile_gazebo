@@ -26,8 +26,6 @@ RUN apt-get update && apt-get upgrade -y && \
     ros-jazzy-rviz2 \
     ros-jazzy-navigation2 \
     ros-jazzy-nav2-bringup \
-    ros-jazzy-gazebo-ros-pkgs \
-    ros-jazzy-gazebo-ros \
     ros-jazzy-xacro \
     ros-jazzy-joint-state-publisher \
     && apt-get clean && rm -rf /var/lib/apt/lists/*

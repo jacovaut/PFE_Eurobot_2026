@@ -49,7 +49,7 @@ docker run -itd --rm \
   --user "$USER" \
   "$IMAGE_NAME" \
   bash -c "\
-    echo 'source /opt/ros/humble/setup.bash' >> /home/$USER/.bashrc && \
+    echo 'source /opt/ros/jazzy/setup.bash' >> /home/$USER/.bashrc && \
     echo 'source $WORKSPACE_CONTAINER/ws/install/setup.bash' >> /home/$USER/.bashrc && \
     sudo apt update && \
     exec bash

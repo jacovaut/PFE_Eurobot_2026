@@ -87,6 +87,7 @@ For premade packages, use sudo apt install ros-jazzy-PACKAGE_NAME or git submodu
 
 ## TO DO
 - [x] Configure Docker
+- [x] README
 - [ ] Add pio project
 - [x] Configure Ros2 ws
 - Packages
