@@ -1,0 +1,92 @@
+# PFE_Eurobot_2026
+
+Toute le code pour le projet.
+
+Svp créer un nouveau folder pour cahque partie et indiquer son utilité dans le tableau.
+
+
+| Dir                | Purpose       |
+| ------------------ |:------------------:|
+| ws                 | main ros2 colcon workspace |
+| devcontainer       | Code for docker containers |
+| pio                | ESP32 Code      |
+
+## Git
+- ALLWAYS sync before you start working
+- Push as soon as possible to avoid conflicts
+- Use comprehensive commit messages
+- Don't be dumb
+
+
+### First time setup
+- To get code : `git clone https://github.com/jacovaut/PFE_Eurobot_2026.git`
+- Username and email : 
+```bash
+git config --global user.name "Your Name"
+git config --global user.email "youremail@yourdomain.com"
+```
+
+## Docker
+to start a container :
+- If on windows, use wsl
+- Navigate to devcontainer
+- `sudo chmod +x ./Start-container.bash`
+- `sudo ./Start-contaier.bash`
+
+
+## Ros2
+
+Example Ros2 workspace structure :
+```
+ws
+├───build (ignore)
+├───install (Running files are in here)
+├───log
+└───src (Code)
+    ├───package_1 (Example packages (use git submodules))
+    ├───package_2
+    └───pfe (main code)
+        ├───config (.yaml config files)
+        ├───description (robot description and rviz files)
+        │   ├───rviz
+        │   └───urdf
+        ├───launch (all launch files)
+        ├───maps
+        ├───resource
+        ├───test
+        ├───pfe (custom nodes)
+        └───worlds (gazebo worlds)
+```
+The build, install and log should be in ignored by git.
+
+For premade packages, use sudo apt install ros-jazzy-PACKAGE_NAME or git submodules
+
+
+- To build the workspace
+    - cd ~/PFE_EUROBOT_2026/ws
+    - colcon build --symlink-install
+- To build a specific package
+    - cd ~/PFE_EUROBOT_2026/ws
+    - colcon build --symlink-install --packages-select PACKAGE
+### Ros2 packages
+
+|Package|Apt/Submodule|
+|---|----|
+|nav2|apt|
+|Gazebo|apt|
+|rviz|apt|
+|xacro|apt|
+|joint state publisher|apt|
+|teleop twist keyboard|apt|
+
+
+
+## TO DO
+- [x] Configure Docker
+- [ ] Add pio project
+- [x] Configure Ros2 ws
+- Packages
+    - [ ] nav2
+    - [ ] Robot localization
+    - [ ] Lidar
+    - [ ] joy

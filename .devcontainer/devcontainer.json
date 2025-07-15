@@ -1,0 +1,38 @@
+{
+  "name": "ROS 2 Devcontainer",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "remoteUser": "PFE",
+
+  "workspaceMount": "source=${localWorkspaceFolder},target=/home/PFE/PFE_Eurobot_2026,type=bind",
+  "workspaceFolder": "/home/PFE/PFE_Eurobot_2026",
+
+  "runArgs": [
+    "--net=host",
+    "--ipc=host",
+    "--pid=host",
+    "-e", "WAYLAND_DISPLAY=${env:WAYLAND_DISPLAY}",
+    "-e", "XDG_RUNTIME_DIR=${env:XDG_RUNTIME_DIR}",
+    "-v", "${env:XDG_RUNTIME_DIR}/${env:WAYLAND_DISPLAY}:/tmp/wayland.sock"
+  ],
+
+  "containerEnv": {
+    "WAYLAND_DISPLAY": "/tmp/wayland.sock",
+    "XDG_RUNTIME_DIR": "${env:XDG_RUNTIME_DIR}",
+    "ROS_DOMAIN_ID": "42",
+    "ROS_AUTOMATIC_DISCOVERY_RANGE": "LOCALHOST"
+  },
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-iot.vscode-ros",
+        "ms-vscode.cpptools",
+        "twxs.cmake"
+      ]
+    }
+  },
+
+  "postCreateCommand": "echo 'source /opt/ros/jazzy/setup.bash' >> /home/PFE/.bashrc"
+}
