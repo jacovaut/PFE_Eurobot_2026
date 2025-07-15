@@ -1,17 +1,13 @@
-<<<<<<< HEAD
 # VS Code
 .vscode/
 .vscode-server/
 
 # ROS build artifacts
-=======
 # ROS 2 colcon build artifacts
->>>>>>> bf23c98 (added .gitignore)
 ws/build/
 ws/install/
 ws/log/
 
-<<<<<<< HEAD
 # Python cache
 __pycache__/
 *.pyc
@@ -36,12 +32,7 @@ Thumbs.db
 # Ignore any temporary files
 *.swp
 *~
-=======
 # ROS-specific ignores
 *.pyc
 __pycache__/
 *.log
-
-# Optional: ignore vscode/devcontainer if not needed
-.vscode/
->>>>>>> bf23c98 (added .gitignore)
