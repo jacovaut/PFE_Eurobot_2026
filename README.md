@@ -4,6 +4,12 @@ Toute le code pour le projet.
 
 Svp créer un nouveau folder pour cahque partie et indiquer son utilité dans le tableau.
 
+![alt text][logo1]
+![alt text][logo2]
+
+[logo1]: https://github.com/jacovaut/PFE_Eurobot_2026/tree/main/Logos/Logo_genie.png ""
+[logo2]: https://github.com/jacovaut/PFE_Eurobot_2026/tree/main/Logos/Logo_grum.png ""
+
 
 | Dir                | Purpose       |
 | ------------------ |:------------------:|
