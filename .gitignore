@@ -1,0 +1,12 @@
+# ROS 2 colcon build artifacts
+ws/build/
+ws/install/
+ws/log/
+
+# ROS-specific ignores
+*.pyc
+__pycache__/
+*.log
+
+# Optional: ignore vscode/devcontainer if not needed
+.vscode/
