@@ -1,7 +1,10 @@
 # PFE_Eurobot_2026
-<img src="Logos/Logo_grum.png" alt="Logo" height="200" style="margin-right: 50px;" />
-<img src="Logos/Logo_genie.png" alt="Logo" height="200" />
-
+<table>
+  <tr>
+    <td><img src="Logos/Logo_grum.png" alt="Grum Logo" height="200"></td>
+    <td><img src="Logos/Logo_genie.png" alt="Genie Logo" height="200"></td>
+  </tr>
+</table>
 
 ### Tout le code pour le projet.
 
