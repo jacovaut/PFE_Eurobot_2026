@@ -8,7 +8,7 @@
 
 ### Tout le code pour le projet.
 
-Svp créer un nouveau folder pour cahque partie et indiquer son utilité dans le tableau.
+Svp créer un nouveau folder pour chaque partie et indiquer son utilité dans le tableau.
 
 
 | Dir                | Purpose       |
@@ -67,7 +67,7 @@ ws
         ├───pfe (custom nodes)
         └───worlds (gazebo worlds)
 ```
-The build, install and log should be in ignored by git.
+The build, install and log folders should be in ignored by git.
 
 For premade packages, use sudo apt install ros-jazzy-PACKAGE_NAME or git submodules
 
