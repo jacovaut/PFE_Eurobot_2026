@@ -12,10 +12,14 @@ Svp créer un nouveau folder pour cahque partie et indiquer son utilité dans le
 | pio                | ESP32 Code      |
 
 ## Git
-- ALLWAYS sync before you start working
-- Push as soon as possible to avoid conflicts
 - Use comprehensive commit messages
 - Don't be dumb
+
+### To add a new feature
+- `git checkout -b feature/some-new-feature`
+- work and commit
+- `git push origin feature/some-new-feature`
+- Pull request in main
 
 
 ### First time setup
