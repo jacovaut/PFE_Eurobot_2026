@@ -39,7 +39,8 @@ code .
 - Select jacovaut/PFE_Eurobot_2026
 - click on open
 
-Congrats, you now have all the code! To see how to start the docker container, please see the Docker section. To build and run the code, please see the Ros2 section
+Congrats, you now have all the code! To see how to start the docker container, please see the Docker section. To build and run the code, please see the Ros2 section. To use git, please refer to the next section.
+
 *** Your Github credentials are only valid in vscode. Run all git commands in a vscode terminal ***
 
 
