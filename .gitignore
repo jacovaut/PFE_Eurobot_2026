@@ -8,10 +8,6 @@ ws/build/
 ws/install/
 ws/log/
 
-# Python cache
-__pycache__/
-*.pyc
-
 # OS / system stuff
 .DS_Store
 Thumbs.db
