@@ -17,7 +17,33 @@ Svp créer un nouveau folder pour chaque partie et indiquer son utilité dans le
 | devcontainer       | Code for docker containers |
 | pio                | ESP32 Code      |
 
-## Git
+## First time setup
+### Software
+- Download vscode
+  - Install remote explorer (vscode extension by microsoft)
+  - Install Dev Containers  (vscode extension by microsoft)
+- Download Docker desktop
+- Download WSL2
+
+### Github login and pull code
+- Open terminal
+- Type :
+```
+wsl
+cd
+code .
+```
+- `ctr` + `shift` + `p`
+- Type `Git: Clone`
+- Log in to Github
+- Select jacovaut/PFE_Eurobot_2026
+- click on open
+
+Congrats, you now have all the code! To see how to start the docker container, please see the Docker section. To build and run the code, please see the Ros2 section
+*** Your Github credentials are only valid in vscode. Run all git commands in a vscode terminal ***
+
+
+## How to use Git
 - Use comprehensive commit messages
 - Don't be dumb
 
@@ -26,22 +52,6 @@ Svp créer un nouveau folder pour chaque partie et indiquer son utilité dans le
 - work and commit
 - `git push origin feature/some-new-feature`
 - Pull request in main
-
-
-### First time setup
-- generate key
-```
-ssh-keygen -t ed25519 -C "your_email@example.com"
-eval "$(ssh-agent -s)"
-ssh-add ~/.ssh/id_ed25519
-cat ~/.ssh/id_ed25519.pub
-```
-- To get code : `git@github.com:jacovaut/PFE_Eurobot_2026.git`
-- Username and email : 
-```bash
-git config --global user.name "Your Name"
-git config --global user.email "youremail@yourdomain.com"
-```
 
 ## Docker
 to start a container :
