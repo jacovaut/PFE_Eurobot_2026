@@ -29,7 +29,14 @@ Svp créer un nouveau folder pour chaque partie et indiquer son utilité dans le
 
 
 ### First time setup
-- To get code : `git clone https://github.com/jacovaut/PFE_Eurobot_2026.git`
+- generate key
+```
+ssh-keygen -t ed25519 -C "your_email@example.com"
+eval "$(ssh-agent -s)"
+ssh-add ~/.ssh/id_ed25519
+cat ~/.ssh/id_ed25519.pub
+```
+- To get code : `git@github.com:jacovaut/PFE_Eurobot_2026.git`
 - Username and email : 
 ```bash
 git config --global user.name "Your Name"
