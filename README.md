@@ -56,7 +56,7 @@ Congrats, you now have all the code! To see how to start the docker container, p
 
 ## Docker
 to start a container :
-- If on windows, use wsl
+- If on windows, use wsl and launch Docker Desktop
 - Navigate to devcontainer
 - `sudo chmod +x ./Start-container.bash`
 - `sudo ./Start-contaier.bash`
@@ -106,18 +106,65 @@ For premade packages, use sudo apt install ros-jazzy-PACKAGE_NAME or git submodu
 |xacro|apt|
 |joint state publisher|apt|
 |teleop twist keyboard|apt|
+|lidar (idk what lidar?)|submodule?|
 
+## Misc
+- If sudo apt install fails, try
+```
+sudo apt update
+sudo apt install <Program>
+```
+- To use dedicated graphics card in WSL (Current shell)
+```
+export MESA_D3D12_DEFAULT_ADAPTER_NAME="NVIDIA GeForce RTX 3060 Laptop GPU"
+```
+- To use dedicated graphics card in WSL (All shells)
+```
+echo 'export MESA_D3D12_DEFAULT_ADAPTER_NAME="NVIDIA GeForce RTX 3060 Laptop GPU"' >> ~/.bashrc
+source ~/.bashrc
+```
 
+## Terminal tools
+```
+cd <Directory> (Go to folder)
+ls <Directory> (List all files and folder in current directory)
+sudo <Command> (Execute command as admin)
+nano <File_Name> (Command line text editor)
+mkdir <Name> (Create folder)
+cat <File_Name> (Print text in file)
+cp <File_Path1> <File_Path2> (Copy file from File_Path1 and paste to File_Path2)
+mv <File_Path1> <File_Path2> (Move File from File_Path1 to File_Path2)
+code <File_Path / Folder_Path> (Open file or folder in vscode)
+```
 
 ## TO DO
-- [x] Configure Docker
-- [x] README
-- [ ] Add pio project
-- [x] Configure Ros2 ws
-- Packages
+- Init
+  - [x] Configure Docker
+  - [x] README
+  - [ ] Add pio project
+  - [x] Configure Ros2 ws
+- Ros2 Packages install
+  - [ ] nav2
+  - [ ] Robot localization
+  - [ ] Lidar
+  - [ ] joy
+- Ros2 Setup
+  - [ ] Config files
     - [ ] nav2
-    - [ ] Robot localization
+    - [ ] lidar
+  - [ ] launch files
+    - [ ] Core
     - [ ] Lidar
-    - [ ] joy
+    - [ ] Navigation
+  - [ ] URDF
+  - [ ] maps
+- ESP32 Motor
+  - [ ] Drive motor
+  - [ ] Comunication
+  - [ ] Kinematics
+- ESP32 Odom
+  - [ ] Read Counter Clicks
+  - [ ] Comunication
+  - [ ] Inverse kinematics
 
 ![logo](Logos/stock-photo-fractals-background-owl-portrait-animal-1703663572%20(1).jpg)
