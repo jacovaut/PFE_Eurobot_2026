@@ -18,6 +18,11 @@ Svp créer un nouveau folder pour chaque partie et indiquer son utilité dans le
 | Other       | other files |
 
 ## First time setup
+### WSL, ROS, and Libs
+- Download Ubuntu 22.04
+- Download ROS2 Jazzy
+- Download all apt packages (listed below)
+
 ### Software
 - Download vscode
   - Install remote explorer (vscode extension by microsoft)
