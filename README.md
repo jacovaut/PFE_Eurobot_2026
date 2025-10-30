@@ -14,15 +14,14 @@ Svp créer un nouveau folder pour chaque partie et indiquer son utilité dans le
 | Dir                | Purpose       |
 | ------------------ |:------------------:|
 | ws                 | main ros2 colcon workspace |
-| devcontainer       | Code for docker containers |
 | pio                | ESP32 Code      |
+| Other       | other files |
 
 ## First time setup
 ### Software
 - Download vscode
   - Install remote explorer (vscode extension by microsoft)
   - Install Dev Containers  (vscode extension by microsoft)
-- Download Docker desktop
 - Download WSL2
 
 ### Github login and pull code
@@ -39,7 +38,7 @@ code .
 - Select jacovaut/PFE_Eurobot_2026
 - click on open
 
-Congrats, you now have all the code! To see how to start the docker container, please see the Docker section. To build and run the code, please see the Ros2 section. To use git, please refer to the next section.
+Congrats, you now have all the code! To build and run the code, please see the Ros2 section. To use git, please refer to the next section.
 
 *** Your Github credentials are only valid in vscode. Run all git commands in a vscode terminal ***
 
@@ -53,13 +52,6 @@ Congrats, you now have all the code! To see how to start the docker container, p
 - work and commit
 - `git push origin feature/some-new-feature`
 - Pull request in main
-
-## Docker
-to start a container :
-- If on windows, use wsl and launch Docker Desktop
-- Navigate to devcontainer
-- `sudo chmod +x ./Start-container.bash`
-- `sudo ./Start-contaier.bash`
 
 
 ## Ros2
@@ -139,7 +131,6 @@ code <File_Path / Folder_Path> (Open file or folder in vscode)
 
 ## TO DO
 - Init
-  - [x] Configure Docker
   - [x] README
   - [ ] Add pio project
   - [x] Configure Ros2 ws
