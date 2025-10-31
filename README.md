@@ -58,6 +58,13 @@ Congrats, you now have all the code! To build and run the code, please see the R
 - `git push origin feature/some-new-feature`
 - Pull request in main
 
+### Submodules
+To add :
+- `git submodule add -b BRANCH https://github.com/...`
+
+To get :
+- `git submodule init && git submodule update`
+
 
 ## Ros2
 
@@ -103,6 +110,7 @@ For premade packages, use sudo apt install ros-jazzy-PACKAGE_NAME or git submodu
 |xacro|apt|
 |joint state publisher|apt|
 |teleop twist keyboard|apt|
+|micro_ros_setup|submodule|
 |lidar (idk what lidar?)|submodule?|
 
 ## Misc
@@ -119,6 +127,14 @@ export MESA_D3D12_DEFAULT_ADAPTER_NAME="NVIDIA GeForce RTX 3060 Laptop GPU"
 ```
 echo 'export MESA_D3D12_DEFAULT_ADAPTER_NAME="NVIDIA GeForce RTX 3060 Laptop GPU"' >> ~/.bashrc
 source ~/.bashrc
+```
+- Create Micro_ros agent
+```
+ros2 run micro_ros_setup create_agent_ws.sh
+```
+- Attach Micro_ros agent
+```
+ros2 run micro_ros_agent micro_ros_agent serial --dev /dev/ttyUSBX -v6
 ```
 
 ## Terminal tools
@@ -156,11 +172,11 @@ code <File_Path / Folder_Path> (Open file or folder in vscode)
   - [ ] maps
 - ESP32 Motor
   - [ ] Drive motor
-  - [ ] Comunication
+  - [x] Comunication
   - [ ] Inverse kinematics
 - ESP32 Odom
   - [ ] Read Counter Clicks
-  - [ ] Comunication
+  - [x] Comunication
   - [ ] Kinematics
 
 ![logo](Logos/stock-photo-fractals-background-owl-portrait-animal-1703663572%20(1).jpg)
