@@ -157,10 +157,10 @@ code <File_Path / Folder_Path> (Open file or folder in vscode)
 - ESP32 Motor
   - [ ] Drive motor
   - [ ] Comunication
-  - [ ] Kinematics
+  - [ ] Inverse kinematics
 - ESP32 Odom
   - [ ] Read Counter Clicks
   - [ ] Comunication
-  - [ ] Inverse kinematics
+  - [ ] Kinematics
 
 ![logo](Logos/stock-photo-fractals-background-owl-portrait-animal-1703663572%20(1).jpg)
