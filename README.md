@@ -132,6 +132,10 @@ source ~/.bashrc
 ```
 ros2 run micro_ros_setup create_agent_ws.sh
 ```
+- Build Micro_ros agent
+```
+ros2 run micro_ros_setup build_agent.sh
+```
 - Attach Micro_ros agent
 ```
 ros2 run micro_ros_agent micro_ros_agent serial --dev /dev/ttyUSBX -v6
