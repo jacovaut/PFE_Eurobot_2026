@@ -25,8 +25,8 @@ Svp créer un nouveau folder pour chaque partie et indiquer son utilité dans le
 
 ### Software
 - Download vscode
-  - Install remote explorer (vscode extension by microsoft)
-  - Install Dev Containers  (vscode extension by microsoft)
+  - Install Platform IO
+  - run `sudo apt install -y python3-venv` in project folder
 - Download WSL2
 
 ### Github login and pull code
@@ -137,7 +137,7 @@ code <File_Path / Folder_Path> (Open file or folder in vscode)
 ## TO DO
 - Init
   - [x] README
-  - [ ] Add pio project
+  - [x] Add pio project
   - [x] Configure Ros2 ws
 - Ros2 Packages install
   - [ ] nav2
