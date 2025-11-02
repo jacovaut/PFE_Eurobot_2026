@@ -1,0 +1,56 @@
+{
+	"folders": [
+		{
+			"name": "ROS 2",
+			"path": "ws", // your colcon workspace
+			"settings": {
+				"terminal.integrated.cwd": "ws",
+				"C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
+				"ros.distro": "humble"
+			}
+		},
+		{
+			"name": "PlatformIO",
+			"path": "pio",
+			"settings": {
+				"terminal.integrated.cwd": "pio",
+				"python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python"
+			}
+		},
+		{
+			"name": "Root",
+			"path": ".",
+			"settings": {
+				"files.exclude": {
+					"**/__pycache__": true,
+					"**/.pio": true,
+					"**/build": true,
+					"**/install": true,
+					"**/log": true
+				}
+			}
+		}
+	],
+	"settings": {
+		"git.detectSubmodules": false,
+		"editor.formatOnSave": true,
+		"files.associations": {
+			"*.launch.py": "python"
+		},
+		"terminal.integrated.env.linux": {
+			"ROS_DOMAIN_ID": "10",
+			"RMW_IMPLEMENTATION": "rmw_fastrtps_cpp"
+		},
+		"ros.distro": "humble",
+		"files.autoSave": "afterDelay"
+	},
+	"extensions": {
+		"recommendations": [
+			"ms-iot.vscode-ros",
+			"platformio.platformio-ide",
+			"ms-vscode.cpptools",
+			"twxs.cmake",
+			"ms-python.python"
+		]
+	}
+}
