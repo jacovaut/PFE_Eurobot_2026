@@ -8,7 +8,7 @@ from sklearn.cluster import DBSCAN
 
 class ClusterAnalyzerNode(Node):
     def __init__(self):
-        super().__init__('cluster_analyzer_node')
+        super().__init__('cluster_node')
 
         self.sub_blocks = self.create_subscription(
             String, 'detected_blocks', self.blocks_callback, 10
