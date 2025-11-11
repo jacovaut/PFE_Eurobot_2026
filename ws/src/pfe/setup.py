@@ -20,6 +20,9 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
+            'publisher_node = ros2_opencv.cameraPublisher:main',
+            'subscriber_node = ros2_opencv.subscriberImage:main'
+            'cluster_node = strategy.clusterAnalyze:main'
         ],
     },
 )
