@@ -42,7 +42,19 @@
 			"RMW_IMPLEMENTATION": "rmw_fastrtps_cpp"
 		},
 		"ros.distro": "humble",
-		"files.autoSave": "afterDelay"
+		"files.autoSave": "afterDelay",
+		"python.autoComplete.extraPaths": [
+			"/home/jacov/PFE_Eurobot_2026/ws/install/pfe/lib/python3.10/site-packages",
+			"/home/jacov/PFE_Eurobot_2026/ws/install/micro_ros_msgs/local/lib/python3.10/dist-packages",
+			"/opt/ros/humble/lib/python3.10/site-packages",
+			"/opt/ros/humble/local/lib/python3.10/dist-packages"
+		],
+		"python.analysis.extraPaths": [
+			"/home/jacov/PFE_Eurobot_2026/ws/install/pfe/lib/python3.10/site-packages",
+			"/home/jacov/PFE_Eurobot_2026/ws/install/micro_ros_msgs/local/lib/python3.10/dist-packages",
+			"/opt/ros/humble/lib/python3.10/site-packages",
+			"/opt/ros/humble/local/lib/python3.10/dist-packages"
+		]
 	},
 	"extensions": {
 		"recommendations": [
