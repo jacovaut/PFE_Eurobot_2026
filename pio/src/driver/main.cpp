@@ -23,27 +23,47 @@ void calculateWheelSpeeds(float vx, float vy, float w, float* wheelSpeeds);
 void setSpeeds(float new_vx, float new_vy, float new_w);
 
 void setup() {
+    pinMode(2, OUTPUT);
+    pinMode(27, OUTPUT);
+    pinMode(32, OUTPUT);
+    pinMode(19, OUTPUT);
+
+    digitalWrite(2, HIGH);
+    digitalWrite(27, HIGH);
+    digitalWrite(32, HIGH);
+    digitalWrite(19, HIGH);
+
     Serial.begin(115200);
 
     SPI.begin(18,14,5);
     engine.init();
     
-    motor1.begin(engine);
-    motor2.begin(engine);
+    // motor1.begin(engine);
+    // motor2.begin(engine);
     motor3.begin(engine);
-    motor4.begin(engine);
+    // motor4.begin(engine);
+
+    // motor1.setSpeedRPM(10);
+    // motor2.setSpeedRPM(10);
+    motor3.setSpeedRPM(10);
+    // motor4.setSpeedRPM(10);
+
+    // motor1.runForward();
+    // motor2.runForward();
+    motor3.runForward();
+    // motor4.runForward();
 }
 
 void loop()
 {
-    if(Serial.available()) {
-        String input = Serial.readString();
+    // if(Serial.available()) {
+    //     String input = Serial.readString();
         
-        Serial.print("Vx = ");
-        Serial.println(input.toFloat());
+    //     Serial.print("Vx = ");
+    //     Serial.println(input.toFloat());
 
-        setSpeeds(input.toFloat(), 0, 0);
-    }
+    //     setSpeeds(input.toFloat(), 0, 0);
+    // }
 }
 
 void setSpeeds(float new_vx, float new_vy, float new_w) {
