@@ -1,3 +1,5 @@
+// MotorDriver implementation file
+
 #include "MotorDriver.h"
 
 MotorDriver::MotorDriver(uint8_t stepPin, uint8_t dirPin, uint8_t csPin)
@@ -9,9 +11,13 @@ void MotorDriver::begin(FastAccelStepperEngine &engine) {
 
     sd.resetSettings();
     sd.clearStatus();
+
+    // *** Edit settings as needed
     sd.setDecayMode(HPSDDecayMode::AutoMixed);
-    sd.setCurrentMilliamps36v4(1500);
     sd.setStepMode(HPSDStepMode::MicroStep32);
+    // ***
+
+    sd.setCurrentMilliamps36v4(current);
     sd.enableDriver();
 
     pinMode(stepPin, OUTPUT);
@@ -25,7 +31,7 @@ void MotorDriver::begin(FastAccelStepperEngine &engine) {
 
     stepper->setDirectionPin(dirPin);
 
-    stepper->setAcceleration(200.0 * StepsPerRev / 60);
+    stepper->setAcceleration(Accel * StepsPerRev / 60);
 }
 
 void MotorDriver::setSpeedRPM(float rpm) {
@@ -39,4 +45,57 @@ void MotorDriver::runForward() {
 
 void MotorDriver::runBackward() {
     if (stepper) stepper->runBackward();
+}
+
+void MotorDriver::print_status() {
+    uint8_t status = sd.readStatus();
+
+    if (status & (1 << (uint8_t)HPSDStatusBit::OTS))
+    {
+        Serial.println("Motor overtemperature shutdown detected!");
+    }
+    if (status & (1 << (uint8_t)HPSDStatusBit::AOCP))
+    {
+        Serial.println("Motor Channel A overcurrent shutdown detected!");
+    }
+    if (status & (1 << (uint8_t)HPSDStatusBit::BOCP))
+    {
+        Serial.println("Motor Channel B overcurrent shutdown detected!");
+    }
+    if (status & (1 << (uint8_t)HPSDStatusBit::APDF))
+    {
+        Serial.println("Motor Channel A predriver fault detected!");
+    }
+    if (status & (1 << (uint8_t)HPSDStatusBit::BPDF))
+    {
+        Serial.println("Motor Channel B predriver fault detected!");
+    }
+    if (status & (1 << (uint8_t)HPSDStatusBit::UVLO))
+    {
+        Serial.println("Motor undervoltage lockout detected!");
+    }
+    if (status & (1 << (uint8_t)HPSDStatusBit::STD))
+    {
+        Serial.println("Motor stall detected!");
+    }
+    if (status & (1 << (uint8_t)HPSDStatusBit::STDLAT))
+    {
+        Serial.println("Motor latched stall detect!");
+    }
+    if (status == 0)
+    {
+        Serial.println("Motor status OK.");
+    }
+}
+
+void MotorDriver::clearStatus() {
+    sd.clearStatus();
+}
+
+void MotorDriver::step() {
+    for(unsigned int x = 0; x < 1000; x++)
+  {
+    sd.step();
+    delayMicroseconds(2000);
+  }
 }

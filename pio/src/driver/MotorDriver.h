@@ -1,3 +1,5 @@
+// MotorDriver header file
+
 #pragma once
 #include <SPI.h>
 #include <HighPowerStepperDriver.h>
@@ -11,12 +13,18 @@ public:
     void setSpeedRPM(float rpm);
     void runForward();
     void runBackward();
+    void clearStatus();
+    void print_status();
+    void step();
 
 private:
     uint8_t stepPin, dirPin, csPin;
     HighPowerStepperDriver sd;
     FastAccelStepper* stepper = nullptr;
 
-    static constexpr float MicroSteps = 32.0;
-    static constexpr float StepsPerRev = 200.0 * MicroSteps;
+    static constexpr int MicroSteps = 32;
+    static constexpr int StepsPerRev = 200 * MicroSteps;
+
+    static constexpr float Accel = 200.0; // RPM/s
+    static constexpr int current = 1500; // mA
 };
