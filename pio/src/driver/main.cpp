@@ -22,9 +22,10 @@
 //
 // not sure if needed and not implemented yet:
 //      - PID control on wheel speeds based on odometry feedback
-//      - acceleration/deceleration ramps
+//      - acceleration/deceleration ramps / configurable acceleration
 //      - max speed limits
-// 
+//      - move calculation of wheel speeds to MotorDriver class
+//      - Add wheel placement definition to MotorDriver class
 //
 // jacov2024
 
@@ -44,9 +45,9 @@ float vx = 0; // m/s
 float vy = 0; // m/s
 float w  = 0; // rad/s
 
-float lxy = 0.12 + 0.12; // lx (m) + ly (m) = 240mm
+const float lxy = 0.12 + 0.12; // lx (m) + ly (m) = 240mm
 
-float r = 0.05; //m   (100mm mecanum)
+const float r = 0.05; //m   (100mm mecanum)
 
 void calculateWheelSpeeds(float vx, float vy, float w, float* wheelSpeeds);
 void setSpeeds(float new_vx, float new_vy, float new_w);
@@ -99,6 +100,7 @@ void setup() {
 
 void loop()
 {
+    // Example: set different speeds using serial input
     // if(Serial.available()) {
     //     String input = Serial.readString();
         
@@ -109,38 +111,44 @@ void loop()
     // }
 }
 
+// set robot speeds in m/s and wheel angular velocity in rad/s
 void setSpeeds(float new_vx, float new_vy, float new_w) {
     vx = new_vx;
     vy = new_vy;
     w  = new_w;
 
+    // stop all motors if no movement
     if (vx == 0 && vy == 0 && w == 0) {
-        motor1.setSpeedRPM(0);
-        motor2.setSpeedRPM(0);
-        motor3.setSpeedRPM(0);
-        motor4.setSpeedRPM(0);
+        motor1.stop();
+        motor2.stop();
+        motor3.stop();
+        motor4.stop();
         return;
     }
 
-    float wheelSpeeds [4] = {0, 0, 0, 0}; // FL, FR, RL, RR
+    float wheelSpeeds [4] = {0, 0, 0, 0}; // FL(\), FR(/), RL(/), RR(\)
 
+    // get the wheel speeds in rad/s
     calculateWheelSpeeds(vx, vy, w, wheelSpeeds);
 
+    // set motor speeds in RPM ( rad/s * 60 / (2 * PI) = RPM )
     motor1.setSpeedRPM(wheelSpeeds[0] * 60 / (2 * PI));
     motor2.setSpeedRPM(wheelSpeeds[1] * 60 / (2 * PI));
     motor3.setSpeedRPM(wheelSpeeds[2] * 60 / (2 * PI));
     motor4.setSpeedRPM(wheelSpeeds[3] * 60 / (2 * PI));
 
+    // run motors
     motor1.runForward();
     motor2.runForward();
     motor3.runForward();
     motor4.runForward();
 
+    // debug print
     Serial.printf("Wheel Speeds (rad/s): FL: %.2f, FR: %.2f, RL: %.2f, RR: %.2f\n", 
                   wheelSpeeds[0], wheelSpeeds[1], wheelSpeeds[2], wheelSpeeds[3]);
 }
 
-void calculateWheelSpeeds(float vx, float vy, float w, float* wheelSpeeds) {
+void calculateWheelSpeeds(float vx, float vy, float w, float* wheelSpeeds) { // self explanatory
     wheelSpeeds[0] = (1/r) * ( vx - vy - w*lxy );
     wheelSpeeds[1] = (1/r) * ( vx + vy + w*lxy );
     wheelSpeeds[2] = (1/r) * ( vx + vy - w*lxy );

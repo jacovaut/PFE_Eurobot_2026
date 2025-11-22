@@ -13,6 +13,7 @@ public:
     void setSpeedRPM(float rpm);
     void runForward();
     void runBackward();
+    void stop();
     void clearStatus();
     void print_status();
     void step();

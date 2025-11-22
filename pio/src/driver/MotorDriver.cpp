@@ -47,6 +47,10 @@ void MotorDriver::runBackward() {
     if (stepper) stepper->runBackward();
 }
 
+void MotorDriver::stop() {
+    if (stepper) stepper->stopMove();
+}
+
 void MotorDriver::print_status() {
     uint8_t status = sd.readStatus();
 
