@@ -8,6 +8,9 @@
 //  - Publishes std_msgs/Int32 on topic "encoder_count" once per timer tick
 //  - Uses a simple timer-based publisher via rclc executor
 
+
+// TEST GIT
+
 #include <Arduino.h>
 #include <ESP32Encoder.h>
 #include <micro_ros_platformio.h>
