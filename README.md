@@ -162,7 +162,7 @@ code <File_Path / Folder_Path> (Open file or folder in vscode)
 - Ros2 Packages install
   - [ ] nav2
   - [ ] Robot localization
-  - [ ] Lidar
+  - [x] Lidar
   - [ ] joy
 - Ros2 Setup
   - [ ] Config files
