@@ -10,6 +10,7 @@ public:
     MotorDriver(uint8_t stepPin, uint8_t dirPin, uint8_t csPin);
 
     void begin(FastAccelStepperEngine &engine);
+    void Enabledriver(bool en);
     void setSpeedRPM(float rpm);
     void runForward();
     void runBackward();
