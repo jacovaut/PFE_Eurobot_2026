@@ -18,7 +18,6 @@ void MotorDriver::begin(FastAccelStepperEngine &engine) {
     // ***
 
     sd.setCurrentMilliamps36v4(current);
-    sd.enableDriver();
 
     pinMode(stepPin, OUTPUT);
     digitalWrite(stepPin, LOW);
@@ -32,6 +31,14 @@ void MotorDriver::begin(FastAccelStepperEngine &engine) {
     stepper->setDirectionPin(dirPin);
 
     stepper->setAcceleration(Accel * StepsPerRev / 60);
+}
+
+void MotorDriver::Enabledriver(bool en) {
+    if (en) {
+        sd.enableDriver();
+    } else {
+        sd.disableDriver();
+    }
 }
 
 void MotorDriver::setSpeedRPM(float rpm) {
