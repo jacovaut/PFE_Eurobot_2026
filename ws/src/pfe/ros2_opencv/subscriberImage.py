@@ -7,6 +7,10 @@ from std_msgs.msg import String
 import numpy as np
 import json
 import time
+from geometry_msgs.msg import PoseStamped
+from tf2_ros import TransformBroadcaster
+from geometry_msgs.msg import TransformStamped
+import tf_transformations
 
 
 # ===========================================================
@@ -23,6 +27,8 @@ class CaisseNoisette:
         self.angle_z = angle_z
         self.color = color
         self.last_seen = time.time()  # timestamp de dernière détection
+        self.tf_broadcaster = TransformBroadcaster(self)
+        self.pose_pub = self.create_publisher(PoseStamped, "aruco_pose", 10)
 
     def update(self, x, y, z, angle_z):
         """Met à jour la position de la caisse avec un lissage exponentiel."""
@@ -102,7 +108,42 @@ class SubscriberNodeClass(Node):
 
                 color = self.id_color_map[int(marker_id)]
                 rvec, tvec = rvecs[i][0], tvecs[i][0]
-                angle_z = np.degrees(rvec[2])
+                R, _ = cv2.Rodrigues(rvec)
+
+                T = np.eye(4)
+                T[:3, :3] = R
+
+                quat = tf_transformations.quaternion_from_matrix(T)
+                pose_msg = PoseStamped()
+                pose_msg.header.stamp = self.get_clock().now().to_msg()
+                pose_msg.header.frame_id = "camera_link"
+
+                pose_msg.pose.position.x = float(tvec[0])
+                pose_msg.pose.position.y = float(tvec[1])
+                pose_msg.pose.position.z = float(tvec[2])
+
+                pose_msg.pose.orientation.x = quat[0]
+                pose_msg.pose.orientation.y = quat[1]
+                pose_msg.pose.orientation.z = quat[2]
+                pose_msg.pose.orientation.w = quat[3]
+
+                self.pose_pub.publish(pose_msg)
+
+                t = TransformStamped()
+                t.header.stamp = self.get_clock().now().to_msg()
+                t.header.frame_id = "camera_link"
+                t.child_frame_id = f"aruco_{marker_id}"
+
+                t.transform.translation.x = float(tvec[0])
+                t.transform.translation.y = float(tvec[1])
+                t.transform.translation.z = float(tvec[2])
+
+                t.transform.rotation.x = quat[0]
+                t.transform.rotation.y = quat[1]
+                t.transform.rotation.z = quat[2]
+                t.transform.rotation.w = quat[3]
+
+                self.tf_broadcaster.sendTransform(t)
 
                 # Si déjà en mémoire → mise à jour avec lissage
                 if marker_id in self.memory:
