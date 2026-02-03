@@ -73,7 +73,7 @@ class SubscriberNodeClass(Node):
         # --- ArUco setup ---
         self.dictionary = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
         self.parameters = cv2.aruco.DetectorParameters_create()
-
+ 
         # --- Camera calibration ---
         self.camera_matrix = np.array([[600.0, 0.0, 320.0],
                                        [0.0, 600.0, 240.0],
