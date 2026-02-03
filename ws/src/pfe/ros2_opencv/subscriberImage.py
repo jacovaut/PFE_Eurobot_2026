@@ -69,7 +69,7 @@ class SubscriberNodeClass(Node):
         self.subscription = self.create_subscription(
             Image, 'topic_camera_image', self.listener_callbackFunction, 20)
         self.pub_blocks = self.create_publisher(String, 'detected_blocks', 10)
-
+ 
         # --- ArUco setup ---
         self.dictionary = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
         self.parameters = cv2.aruco.DetectorParameters_create()
