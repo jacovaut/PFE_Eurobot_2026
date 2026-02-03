@@ -85,21 +85,70 @@ void loop()
     bool minus = false;
     // Example: set different speeds using serial input
     if(Serial.available()) {
-        String input = Serial.readString();
 
-        if (input.startsWith("-")) {
-            minus = true;
+        char input = Serial.read();
+        if (input = 'e') {
+            motor1.Enabledriver(true);
+            motor2.Enabledriver(true);
+            motor3.Enabledriver(true);
+            motor4.Enabledriver(true);
         }
-        
-        Serial.print("Vx = ");
-        Serial.println(input.toFloat());
-
-        if (minus) {
+        else if (input = 'e') {
+            motor1.Enabledriver(false);
+            motor2.Enabledriver(false);
+            motor3.Enabledriver(false);
+            motor4.Enabledriver(false);
+        }
+        else if(input.startsWith("x")){
+            input.remove(0,1);
+            // Serial.print("Vx = ");
+            // Serial.println(input.toFloat());
+    
             setSpeed(input.toFloat(), 0, 0);
-            minus = false;
         }
-        else {
-        setSpeed(input.toFloat(), 0, 0);
+        else if(input.startsWith("y")){
+            input.remove(0,1);
+            // Serial.print("Vx = ");
+            // Serial.println(input.toFloat());
+    
+            setSpeed(0, input.toFloat(), 0);
+        }
+        else if(input.startsWith("w")){
+            input.remove(0,1);
+            // Serial.print("Vx = ");
+            // Serial.println(input.toFloat());
+    
+            setSpeed( 0, 0, input.toFloat());
+        }
+        else if(input.startsWith("t")){
+            input.remove(0,1);
+            // Serial.print("Vx = ");
+            // Serial.println(input.toFloat());
+    
+            long time = micros();
+            setSpeed( 0.3, 0, 0);
+            delay(1000);
+            setSpeed( 0, 0, 0);
+            Serial.print("Time taken (ms): ");
+            Serial.println(micros() - time);
+        }
+        else if(input.startsWith("b")){
+            input.remove(0,1);
+            // Serial.print("Vx = ");
+            // Serial.println(input.toFloat());
+    
+            long time = micros();
+            motor1.Enabledriver(true);
+            motor2.Enabledriver(true);
+            motor3.Enabledriver(true);
+            motor4.Enabledriver(true);
+            delay(1000);
+            motor1.Enabledriver(false);
+            motor2.Enabledriver(false);
+            motor3.Enabledriver(false);
+            motor4.Enabledriver(false);
+            Serial.print("Time taken (ms): ");
+            Serial.println(micros() - time);
         }
     }
 }
@@ -126,12 +175,7 @@ void setSpeed(float new_vx, float new_vy, float new_w) {
 
     for (int i = 0; i < 4; i++) {
         float speed = abs(wheelSpeeds[i]);
-        Serial.printf("Wheel %d speed (rad/s): %.2f\n", i, speed);
-
-        // limit wheel speeds to max 10 rad/s
-        if (speed > 10.0) {
-            speed = 10.0;
-        }
+        // Serial.printf("Wheel %d speed (rad/s): %.2f\n", i, speed);
 
         motors[i]->setSpeedRPM(speed * 60 / (2 * PI)); // set speed in RPM
 
@@ -142,10 +186,6 @@ void setSpeed(float new_vx, float new_vy, float new_w) {
             motors[i]->runForward();
         }
     }
-
-    // debug print
-    Serial.printf("Wheel Speeds (rad/s): FL: %.2f, FR: %.2f, RL: %.2f, RR: %.2f\n", 
-                  wheelSpeeds[0], wheelSpeeds[1], wheelSpeeds[2], wheelSpeeds[3]);
 }
 
 void calculateWheelSpeeds(float vx, float vy, float w, float* wheelSpeeds) { // self explanatory
