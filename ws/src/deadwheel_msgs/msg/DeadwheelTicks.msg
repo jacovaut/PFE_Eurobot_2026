@@ -1,4 +1,4 @@
 std_msgs/Header header
-int64_t t0
-int64_t t1
-int64_t t2
+int64 t0
+int64 t1
+int64 t2
