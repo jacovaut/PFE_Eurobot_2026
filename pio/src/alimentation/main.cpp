@@ -27,8 +27,7 @@ bool RobotActivated = false;
 
 
 int ReadCurrent();
-int ReadVoltage();
-
+int ReadVoltage()
 void setup()
 {
   // put your setup code here, to run once:
