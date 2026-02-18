@@ -1,4 +1,4 @@
-[submodule "ws/micro_ros_setup"]
-	path = ws/micro_ros_setup
+[submodule "micro_ros_jazzy"]
+	path = ws/src/micro_ros_setup
 	url = https://github.com/micro-ROS/micro_ros_setup.git
 	branch = jazzy
