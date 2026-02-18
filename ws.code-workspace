@@ -6,7 +6,7 @@
 			"settings": {
 				"terminal.integrated.cwd": "ws",
 				"C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
-				"ros.distro": "humble"
+				"ros.distro": "jazzy"
 			}
 		},
 		{
@@ -32,38 +32,6 @@
 		}
 	],
 	"settings": {
-		"git.detectSubmodules": false,
-		"editor.formatOnSave": true,
-		"files.associations": {
-			"*.launch.py": "python"
-		},
-		"terminal.integrated.env.linux": {
-			"ROS_DOMAIN_ID": "10",
-			"RMW_IMPLEMENTATION": "rmw_fastrtps_cpp"
-		},
-		"ros.distro": "humble",
-		"files.autoSave": "afterDelay",
-		"python.autoComplete.extraPaths": [
-			"/home/jacov/PFE_Eurobot_2026/ws/install/pfe/lib/python3.10/site-packages",
-			"/home/jacov/PFE_Eurobot_2026/ws/install/micro_ros_msgs/local/lib/python3.10/dist-packages",
-			"/opt/ros/humble/lib/python3.10/site-packages",
-			"/opt/ros/humble/local/lib/python3.10/dist-packages"
-		],
-		"python.analysis.extraPaths": [
-			"/home/jacov/PFE_Eurobot_2026/ws/install/pfe/lib/python3.10/site-packages",
-			"/home/jacov/PFE_Eurobot_2026/ws/install/micro_ros_msgs/local/lib/python3.10/dist-packages",
-			"/opt/ros/humble/lib/python3.10/site-packages",
-			"/opt/ros/humble/local/lib/python3.10/dist-packages"
-		],
-		"ROS2.distro": "humble"
-	},
-	"extensions": {
-		"recommendations": [
-			"ms-iot.vscode-ros",
-			"platformio.platformio-ide",
-			"ms-vscode.cpptools",
-			"twxs.cmake",
-			"ms-python.python"
-		]
+		"ros.distro": "jazzy"
 	}
 }

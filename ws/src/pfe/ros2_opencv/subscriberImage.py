@@ -4,14 +4,13 @@ from sensor_msgs.msg import Image
 from rclpy.node import Node
 from cv_bridge import CvBridge
 from std_msgs.msg import String
+from geometry_msgs.msg import TransformStamped
+from visualization_msgs.msg import Marker, MarkerArray
 import numpy as np
 import json
 import time
-from geometry_msgs.msg import PoseStamped
-from tf2_ros import TransformBroadcaster
-from geometry_msgs.msg import TransformStamped
 import tf_transformations
-
+from tf2_ros import TransformBroadcaster
 
 # ===========================================================
 # CLASSE : CaisseNoisette
@@ -19,20 +18,18 @@ import tf_transformations
 class CaisseNoisette:
     """Classe représentant une caisse de noisettes détectée par la caméra."""
 
-    def __init__(self, id, x, y, z, angle_z, color):
+    def __init__(self, id, index, x, y, z, angle_z, color):
         self.id = id
+        self.index = index  # unique per instance
         self.x = x
         self.y = y
         self.z = z
         self.angle_z = angle_z
         self.color = color
-        self.last_seen = time.time()  # timestamp de dernière détection
-        self.tf_broadcaster = TransformBroadcaster(self)
-        self.pose_pub = self.create_publisher(PoseStamped, "aruco_pose", 10)
+        self.last_seen = time.time()
 
     def update(self, x, y, z, angle_z):
-        """Met à jour la position de la caisse avec un lissage exponentiel."""
-        alpha = 0.3  # facteur de lissage
+        alpha = 0.3
         self.x = self.x * (1 - alpha) + x * alpha
         self.y = self.y * (1 - alpha) + y * alpha
         self.z = self.z * (1 - alpha) + z * alpha
@@ -40,9 +37,9 @@ class CaisseNoisette:
         self.last_seen = time.time()
 
     def to_dict(self):
-        """Retourne un dictionnaire pour publication JSON."""
         return {
             "id": self.id,
+            "index": self.index,
             "x": self.x,
             "y": self.y,
             "z": self.z,
@@ -52,12 +49,12 @@ class CaisseNoisette:
 
     def __repr__(self):
         return (f"CaisseNoisette({self.color}, "
+                f"id={self.id}, index={self.index}, "
                 f"x={self.x:.3f}, y={self.y:.3f}, z={self.z:.3f}, "
                 f"angle_z={self.angle_z:.1f}°)")
 
-
 # ===========================================================
-# CLASSE : SubscriberNodeClass (avec mémoire courte)
+# NODE
 # ===========================================================
 class SubscriberNodeClass(Node):
 
@@ -65,58 +62,76 @@ class SubscriberNodeClass(Node):
         super().__init__('subscriber_node')
         
         # --- ROS2 setup ---
-        self.bridgeObject = CvBridge()
+        self.bridge = CvBridge()
         self.subscription = self.create_subscription(
-            Image, 'topic_camera_image', self.listener_callbackFunction, 20)
+            Image, 'topic_camera_image', self.listener_callback, 20)
         self.pub_blocks = self.create_publisher(String, 'detected_blocks', 10)
- 
+        self.marker_pub = self.create_publisher(MarkerArray, 'aruco_markers', 10)
+        self.tf_broadcaster = TransformBroadcaster(self)
+
         # --- ArUco setup ---
         self.dictionary = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
         self.parameters = cv2.aruco.DetectorParameters_create()
- 
+        self.marker_length = 0.05  # meters
+
         # --- Camera calibration ---
         self.camera_matrix = np.array([[600.0, 0.0, 320.0],
                                        [0.0, 600.0, 240.0],
                                        [0.0, 0.0, 1.0]])
         self.dist_coeffs = np.zeros((5, 1))
-        self.marker_length = 0.05  # m
 
         # --- Map ID -> couleur ---
         self.id_color_map = {47: "jaune", 36: "bleu"}
 
         # --- Mémoire courte ---
-        self.memory = {}  # dict: marker_id -> CaisseNoisette
-        self.memory_timeout = 1.0  # secondes avant d'oublier un bloc
+        self.memory = {}  # key = (marker_id, index)
+        self.memory_timeout = 1.0  # seconds
 
-        self.get_logger().info('✅ Subscriber node with ArUco tracking + publishing started.')
+        self.get_logger().info('✅ Subscriber node with ArUco tracking + RViz markers started.')
 
-    def listener_callbackFunction(self, imageMessage):
-        frame = self.bridgeObject.imgmsg_to_cv2(imageMessage)
+    def listener_callback(self, image_msg):
+        frame = self.bridge.imgmsg_to_cv2(image_msg, desired_encoding='bgr8')
         corners, ids, _ = cv2.aruco.detectMarkers(frame, self.dictionary, parameters=self.parameters)
         current_time = time.time()
 
         if ids is not None and len(ids) > 0:
             cv2.aruco.drawDetectedMarkers(frame, corners, ids)
-
             rvecs, tvecs, _ = cv2.aruco.estimatePoseSingleMarkers(
                 corners, self.marker_length, self.camera_matrix, self.dist_coeffs
             )
 
             for i, marker_id in enumerate(ids.flatten()):
                 if int(marker_id) not in self.id_color_map:
-                    continue  # ignorer marqueurs non pertinents
+                    continue
 
                 color = self.id_color_map[int(marker_id)]
                 rvec, tvec = rvecs[i][0], tvecs[i][0]
-                R, _ = cv2.Rodrigues(rvec)
+                angle_z = np.degrees(rvec[2])
 
+                key = (marker_id, i)  # unique per instance
+
+                # --- Memory update ---
+                if key in self.memory:
+                    self.memory[key].update(float(tvec[0]), float(tvec[1]), float(tvec[2]), float(angle_z))
+                else:
+                    self.memory[key] = CaisseNoisette(
+                        id=int(marker_id),
+                        index=i,
+                        x=float(tvec[0]),
+                        y=float(tvec[1]),
+                        z=float(tvec[2]),
+                        angle_z=float(angle_z),
+                        color=color
+                    )
+
+                # --- TF ---
+                R, _ = cv2.Rodrigues(rvec)
                 T = np.eye(4)
                 T[:3, :3] = R
-
                 quat = tf_transformations.quaternion_from_matrix(T)
                 pose_msg = PoseStamped()
                 pose_msg.header.stamp = self.get_clock().now().to_msg()
-                pose_msg.header.frame_id = "arducam_joint-v1"
+                pose_msg.header.frame_id = "camera_link"
 
                 pose_msg.pose.position.x = float(tvec[0])
                 pose_msg.pose.position.y = float(tvec[1])
@@ -131,63 +146,72 @@ class SubscriberNodeClass(Node):
 
                 t = TransformStamped()
                 t.header.stamp = self.get_clock().now().to_msg()
-                t.header.frame_id = "arducam_joint-v1"
+                t.header.frame_id = "camera_link"
                 t.child_frame_id = f"aruco_{marker_id}"
 
                 t.transform.translation.x = float(tvec[0])
                 t.transform.translation.y = float(tvec[1])
                 t.transform.translation.z = float(tvec[2])
-
                 t.transform.rotation.x = quat[0]
                 t.transform.rotation.y = quat[1]
                 t.transform.rotation.z = quat[2]
                 t.transform.rotation.w = quat[3]
-
                 self.tf_broadcaster.sendTransform(t)
 
-                # Si déjà en mémoire → mise à jour avec lissage
-                if marker_id in self.memory:
-                    self.memory[marker_id].update(float(tvec[0]), float(tvec[1]), float(tvec[2]), float(angle_z))
-                else:
-                    # Nouveau bloc détecté
-                    self.memory[marker_id] = CaisseNoisette(
-                        id=int(marker_id),
-                        x=float(tvec[0]),
-                        y=float(tvec[1]),
-                        z=float(tvec[2]),
-                        angle_z=float(angle_z),
-                        color=color
-                    )
-
-                # Dessin des axes
+                # --- Draw axes for camera debug ---
                 cv2.drawFrameAxes(frame, self.camera_matrix, self.dist_coeffs, rvec, tvec, 0.03)
 
-        # --- Nettoyage mémoire (blocs disparus depuis trop longtemps) ---
-        to_delete = []
-        for id_, caisse in self.memory.items():
-            if current_time - caisse.last_seen > self.memory_timeout:
-                to_delete.append(id_)
-        for id_ in to_delete:
-            del self.memory[id_]
+        # --- Clean memory ---
+        to_delete = [k for k, c in self.memory.items() if current_time - c.last_seen > self.memory_timeout]
+        for k in to_delete:
+            del self.memory[k]
 
-        # --- Publication ROS2 ---
-        active_caisses = [c.to_dict() for c in self.memory.values()]
+        # --- MarkerArray for RViz ---
+        marker_array = MarkerArray()
+        for c in self.memory.values():
+            marker = Marker()
+            marker.header.frame_id = "arducam_link"
+            marker.header.stamp = self.get_clock().now().to_msg()
+            marker.id = c.id * 100 + c.index  # unique
+            marker.type = Marker.CUBE
+            marker.action = Marker.ADD
+
+            marker.pose.position.x = c.x
+            marker.pose.position.y = c.y
+            marker.pose.position.z = c.z
+
+            quat = tf_transformations.quaternion_from_euler(0, 0, c.angle_z)
+            marker.pose.orientation.x = quat[0]
+            marker.pose.orientation.y = quat[1]
+            marker.pose.orientation.z = quat[2]
+            marker.pose.orientation.w = quat[3]
+
+            marker.scale.x = 0.05
+            marker.scale.y = 0.05
+            marker.scale.z = 0.05
+
+            if c.color == "jaune":
+                marker.color.r = 1.0
+                marker.color.g = 1.0
+                marker.color.b = 0.0
+            elif c.color == "bleu":
+                marker.color.r = 0.0
+                marker.color.g = 0.0
+                marker.color.b = 1.0
+            marker.color.a = 0.9
+
+            marker_array.markers.append(marker)
+
+        self.marker_pub.publish(marker_array)
+
+        # --- JSON output ---
         msg = String()
-        msg.data = json.dumps(active_caisses)
+        msg.data = json.dumps([c.to_dict() for c in self.memory.values()])
         self.pub_blocks.publish(msg)
 
-        # --- Logging ---
-        if active_caisses:
-            self.get_logger().info(f"📦 {len(active_caisses)} bloc(s) actif(s):")
-            for c in active_caisses:
-                self.get_logger().info(f" → {c}")
-        else:
-            self.get_logger().info("Aucun bloc actif détecté.")
-
-        # --- Affichage vidéo ---
+        # --- Camera debug window ---
         cv2.imshow("Camera Video with Tracking", frame)
         cv2.waitKey(1)
-
 
 # ===========================================================
 # MAIN
@@ -199,7 +223,6 @@ def main(args=None):
     node.destroy_node()
     cv2.destroyAllWindows()
     rclpy.shutdown()
-
 
 if __name__ == '__main__':
     main()

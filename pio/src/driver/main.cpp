@@ -29,7 +29,6 @@
 //
 // jacov 2025
 
-#include "MicroRos.h"
 #include <Arduino.h>
 #include "MotorDriver.h"
 
@@ -86,7 +85,7 @@ void loop()
     // Example: set different speeds using serial input
     if(Serial.available()) {
 
-        char input = Serial.read();
+        String input = Serial.readString();
         if (input = 'e') {
             motor1.Enabledriver(true);
             motor2.Enabledriver(true);

@@ -19,7 +19,7 @@ Svp créer un nouveau folder pour chaque partie et indiquer son utilité dans le
 
 ## First time setup
 ### WSL, ROS, and Libs
-- Download Ubuntu 22.04
+- Download Ubuntu 24.04 (Raspberry PI 5 can't run on 22.04)
 - Download ROS2 Jazzy
 - Download all apt packages (listed below)
 
