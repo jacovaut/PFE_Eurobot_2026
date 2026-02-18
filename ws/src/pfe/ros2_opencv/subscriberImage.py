@@ -116,7 +116,7 @@ class SubscriberNodeClass(Node):
                 quat = tf_transformations.quaternion_from_matrix(T)
                 pose_msg = PoseStamped()
                 pose_msg.header.stamp = self.get_clock().now().to_msg()
-                pose_msg.header.frame_id = "camera_link"
+                pose_msg.header.frame_id = "arducam_joint-v1"
 
                 pose_msg.pose.position.x = float(tvec[0])
                 pose_msg.pose.position.y = float(tvec[1])
@@ -131,7 +131,7 @@ class SubscriberNodeClass(Node):
 
                 t = TransformStamped()
                 t.header.stamp = self.get_clock().now().to_msg()
-                t.header.frame_id = "camera_link"
+                t.header.frame_id = "arducam_joint-v1"
                 t.child_frame_id = f"aruco_{marker_id}"
 
                 t.transform.translation.x = float(tvec[0])

@@ -1,3 +1,5 @@
+from glob import glob
+import os
 from setuptools import find_packages, setup
 
 package_name = 'pfe'
@@ -10,6 +12,18 @@ setup(
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
+
+        # Install launch files
+        (os.path.join('share', package_name, 'launch'),
+            glob('launch/*.py')),
+
+        # Install urdf files
+        (os.path.join('share', package_name, 'urdf'),
+            glob('description/*.urdf*')),
+
+        # Install meshes
+        (os.path.join('share', package_name, 'meshes'),
+            glob('meshes/*.stl')),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -24,6 +38,7 @@ setup(
             'subscriber_node = ros2_opencv.subscriberImage:main',
             'aruco_node = ros2_opencv.aruco_marker_pose_estimation:main',
             'cluster_node = strategy.clusterAnalyze:main',
+            'nav_goal_node = ros2_opencv.aruco_nav_goal:main',
         ],
     },
 )
