@@ -1,59 +1,114 @@
-// alimentation/main.cpp
-// micro-ROS example: publish an encoder count from an ESP32 to a ROS2 topic
-// Hardware:
-//  - ESP32
-
 #include <Arduino.h>
 #include <micro_ros_platformio.h>
-#include <cmath>
 #include <rcl/rcl.h>
 #include <rclc/rclc.h>
 #include <rclc/executor.h>
 #include <rmw_microros/rmw_microros.h>
 
-//Ajoute les différences de position relatives à la position connue basée sur les encodeurs + trouve les vitesses 
-class alimentation{
-  private:
-    bool initialized = false;
-    double prevTime = 0.0;
+// Pin definitions
+#define MOSF 18
+#define CDAT 13
+#define VDAT 14
+#define ActPlug 22
+#define Ex2 23
+#define Ex3 25
+#define Ex4 26
+#define Ex5 27
+#define Ex6 32
+#define Ex7 35
+#define Ex8 34
+#define TX  1
+#define RX 2
+#define SOFST 33
 
-  public:
-    void alimentation_odometry(double time){
-      //pour le premier appel
-      if (!initialized) {
-        prevTime = time;
-        initialized = true;
-        return;
-      }
+HardwareSerial Serial2(2);
 
-      //calculs des delta ticks
-      double dTime = time - prevTime;
-      prevTime = time;
+bool RobotActivated = false;
 
-    }
-};
 
-// Timer callback invoked by the rclc executor on each timer tick.
-// Reads the encoder count, publishes it, and toggles the heartbeat LED.
-void timer_callback(rcl_timer_t *timer, int64_t last_call_time)
-{
- 
-}
+int ReadCurrent();
+int ReadVoltage();
 
-// Standard Arduino setup function: initializes hardware and micro-ROS
 void setup()
 {
+  // put your setup code here, to run once:
   Serial.begin(115200);
-  Serial.println("Starting micro-ROS alimentation example");
-  pinMode(LED_PIN, OUTPUT);
+  delay(2000); // Wait for the serial connection to be established
+  Serial.println("Serial Monitor Started");
 
+  //Initialize UART Communication with Rapsberry PI
 
+  Serial2.begin(115200, SERIAL_8N1, RX, TX);
+  Serial.println("UART Communication Initialized with Raspberry Pi");
+
+  // Initialize micro-ROS
+  rcl_allocator_t allocator = rcl_get_default_allocator();
+  rclc_support_t support;
+  rclc_support_init(&support, 0, NULL, &allocator);
+
+  // Create a node
+  rcl_node_t node;
+  rclc_node_init_default(&node, "alimentation_node", "", &support);
+
+  //Setup pin modes
+  pinMode(CDAT, INPUT);
+  pinMode(VDAT, INPUT);
+  pinMode(ActPlug, INPUT);
+    //Mosfets
+  pinMode(SOFST, OUTPUT);
+  pinMode(MOSF, OUTPUT);
+
+    // Activate slow start mosfet
+  digitalWrite(SOFST, HIGH); // Activate the MOSFET to allow current flow
 }
 
-// Arduino main loop: let the rclc executor run callbacks periodically
 void loop()
 {
-  Serial.println("Running alimentation eps32");
-  delay(1000);
+ 
+  // Robot Activation Logic
+  int Startup = digitalRead(ActPlug);
+  
+  if (Startup == HIGH) {
+    RobotActivated = true;
+    Serial2.println("Activate Main Robot");    //Going to be a micro Ros Topic Message in the future
+  }
+
+  //Current Measurement Value
+   int sensorcurrentvalue = ReadCurrent(); // Read current value from the function
+  int sensorvoltagevalue = ReadVoltage(); // Read voltage value from the function
+
+  if (sensorcurrentvalue == 30) { // If current exceeds 30A (mapped value), send a warning message
+  
+    Serial.println("Warning: High Current Detected!"); // Going to be a micro Ros Topic Message in the future
+    
+    Serial2.println("High Current Detected!"); // Going to be a micro Ros Topic Message in the future
+    digitalWrite(MOSF, LOW); // Deactivate the MOSFET to cut off power
+  };
+
+    //Graphical Representation of Voltage and Current Values (for displaying purposes
 
 }
+
+  int ReadCurrent() {
+    
+    int sensorcurrentvalue = analogRead(CDAT);
+
+    //Convert the raw ADC values to voltage and current using the map function
+    
+    int currentvalue = map(sensorcurrentvalue, 0, 4095, 0, 30); // Map the ADC value to a current range (0-30A)
+
+    Serial.println("Current Value: " + String(currentvalue));
+    return currentvalue;
+  }
+
+  int ReadVoltage() {
+    int sensorvoltagevalue = analogRead(VDAT);
+    int voltagevalue = map(sensorvoltagevalue, 0, 4095, 0.02445, 25); // Map the ADC value to a voltage range (0-25V)
+    
+    Serial.println("Voltage Value: " + String(voltagevalue));
+    return voltagevalue;
+  }
+
+
+
+
