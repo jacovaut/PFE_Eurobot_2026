@@ -18,8 +18,6 @@ class TicksListener : public rclcpp::Node
     rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_pub_;
     //std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
 
-    rclcpp::TimerBase::SharedPtr timer_;
-
     double x__{0.0}, y__{0.0}, theta__{0.0};
     double vx{0}, vy{0}, omega{0};
     std::mutex mtx_;
@@ -35,14 +33,10 @@ class TicksListener : public rclcpp::Node
     bool initialized_{false};
     rclcpp::Time prev_stamp_;
 
-    void publishOdomAndTf()
-    {
-      std::lock_guard<std::mutex> lock(mtx_);
-      
+    void publishOdom(const rclcpp::Time& stamp)
+    { 
       if (!initialized_)
         return;
-
-      rclcpp::Time stamp = this->now();
 
       // Create quaternion from yaw
       tf2::Quaternion q;
@@ -99,10 +93,6 @@ class TicksListener : public rclcpp::Node
     {
       odom_pub_ = this->create_publisher<nav_msgs::msg::Odometry>("odom_deadwheels", 10);
       //tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
-
-      timer_ = this->create_wall_timer(
-      std::chrono::milliseconds(20),
-      std::bind(&TicksListener::publishOdomAndTf, this));
 
       subscription_ = this->create_subscription<deadwheel_msgs::msg::DeadwheelTicks>(
       "deadwheel_ticks", 50,[this](deadwheel_msgs::msg::DeadwheelTicks::SharedPtr msg)
@@ -169,6 +159,8 @@ class TicksListener : public rclcpp::Node
         "x=%.3f y=%.3f", 
         x__, y__
         );
+
+        publishOdom(stamp);
       }
     ); 
   }
