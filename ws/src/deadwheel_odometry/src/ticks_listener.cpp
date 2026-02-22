@@ -2,10 +2,10 @@
 #include "deadwheel_msgs/msg/deadwheel_ticks.hpp"
 #include <cmath>
 #include <nav_msgs/msg/odometry.hpp>
-#include <geometry_msgs/msg/transform_stamped.hpp>
 #include <tf2/LinearMath/Quaternion.h>
-#include <tf2_ros/transform_broadcaster.h>
 #include <mutex>
+//#include <tf2_ros/transform_broadcaster.h>
+//#include <geometry_msgs/msg/transform_stamped.hpp>
 
 double normalizeAngleSigned(double angle) {
     return std::remainder(angle, 2.0 * M_PI);
@@ -16,7 +16,7 @@ class TicksListener : public rclcpp::Node
   private : 
     rclcpp::Subscription<deadwheel_msgs::msg::DeadwheelTicks>::SharedPtr subscription_;
     rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_pub_;
-    std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
+    //std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
 
     rclcpp::TimerBase::SharedPtr timer_;
 
@@ -77,7 +77,7 @@ class TicksListener : public rclcpp::Node
 
       odom_pub_->publish(odom);
 
-      // TF transform
+     /*  // TF transform
       geometry_msgs::msg::TransformStamped tf;
       tf.header.stamp = stamp;
       tf.header.frame_id = "odom";
@@ -91,14 +91,14 @@ class TicksListener : public rclcpp::Node
       tf.transform.rotation.z = q.z();
       tf.transform.rotation.w = q.w();
 
-      tf_broadcaster_->sendTransform(tf);
-    }
+      tf_broadcaster_->sendTransform(tf);*/
+    } 
 
   public:
     TicksListener() : Node("ticks_listener")
     {
       odom_pub_ = this->create_publisher<nav_msgs::msg::Odometry>("odom_deadwheels", 10);
-      tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
+      //tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
 
       timer_ = this->create_wall_timer(
       std::chrono::milliseconds(20),

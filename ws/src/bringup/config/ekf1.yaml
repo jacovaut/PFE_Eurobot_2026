@@ -1,0 +1,41 @@
+ekf_filter_node:
+  ros__parameters:
+    frequency: 50.0
+    sensor_timeout: 0.1
+    two_d_mode: true
+
+    # Frames
+    map_frame: map              # unused for local-only, but required param
+    odom_frame: odom
+    base_link_frame: base_link
+    world_frame: odom           # local EKF => world_frame is odom
+
+    # Output
+    publish_tf: true
+    publish_acceleration: false
+
+    # Input: deadwheel odom
+    odom0: /odom_deadwheels
+
+    # Which variables from odom0 to fuse:
+    # state vector: [x, y, z, roll, pitch, yaw, vx, vy, vz, vroll, vpitch, vyaw, ax, ay, az]
+    # For 2D mecanum, fuse x, y, yaw, vx, vy, vyaw
+    odom0_config: [
+      true,  true,  false,
+      false, false, true,
+      true,  true,  false,
+      false, false, true,
+      false, false, false
+    ]
+
+    odom0_queue_size: 5
+    odom0_nodelay: true
+
+    # Use twist from the odom message if it exists and is good
+    odom0_differential: false
+    odom0_relative: false
+
+    # If your deadwheel odom already has reasonable covariances, keep false
+    # If covariances are missing/zero/garbage, set true and define defaults (next section)
+    odom0_pose_rejection_threshold: 5.0
+    odom0_twist_rejection_threshold: 1.0

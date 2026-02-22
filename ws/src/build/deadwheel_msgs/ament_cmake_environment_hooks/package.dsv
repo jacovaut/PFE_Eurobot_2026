@@ -1,0 +1,4 @@
+source;share/deadwheel_msgs/local_setup.bash
+source;share/deadwheel_msgs/local_setup.dsv
+source;share/deadwheel_msgs/local_setup.sh
+source;share/deadwheel_msgs/local_setup.zsh

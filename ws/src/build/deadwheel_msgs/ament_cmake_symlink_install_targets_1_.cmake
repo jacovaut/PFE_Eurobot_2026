@@ -1,0 +1,1 @@
+ament_cmake_symlink_install_targets("TARGET_FILES" "/home/jacob/PFE_Eurobot_2026/ws/src/build/deadwheel_msgs/rosidl_generator_py/deadwheel_msgs/deadwheel_msgs_s__rosidl_typesupport_introspection_c.so" "TARGETS" "deadwheel_msgs_s__rosidl_typesupport_introspection_c" "DESTINATION" "lib/python3.12/site-packages/deadwheel_msgs")

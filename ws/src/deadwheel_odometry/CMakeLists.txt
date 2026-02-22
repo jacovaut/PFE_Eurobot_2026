@@ -15,8 +15,11 @@ install(TARGETS ticks_listener
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(deadwheel_msgs REQUIRED)
+find_package(nav_msgs REQUIRED)
+find_package(tf2 REQUIRED)
+find_package(tf2_ros REQUIRED)
 
-ament_target_dependencies(ticks_listener rclcpp deadwheel_msgs)
+ament_target_dependencies(ticks_listener rclcpp deadwheel_msgs nav_msgs tf2 tf2_ros)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
