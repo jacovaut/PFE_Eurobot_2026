@@ -1,0 +1,10 @@
+/home/com2001/PFE_Eurobot_2026/ws/src/build/deadwheel_odometry/CMakeFiles/ticks_listener.dir
+/home/com2001/PFE_Eurobot_2026/ws/src/build/deadwheel_odometry/CMakeFiles/uninstall.dir
+/home/com2001/PFE_Eurobot_2026/ws/src/build/deadwheel_odometry/CMakeFiles/deadwheel_odometry_uninstall.dir
+/home/com2001/PFE_Eurobot_2026/ws/src/build/deadwheel_odometry/CMakeFiles/test.dir
+/home/com2001/PFE_Eurobot_2026/ws/src/build/deadwheel_odometry/CMakeFiles/edit_cache.dir
+/home/com2001/PFE_Eurobot_2026/ws/src/build/deadwheel_odometry/CMakeFiles/rebuild_cache.dir
+/home/com2001/PFE_Eurobot_2026/ws/src/build/deadwheel_odometry/CMakeFiles/list_install_components.dir
+/home/com2001/PFE_Eurobot_2026/ws/src/build/deadwheel_odometry/CMakeFiles/install.dir
+/home/com2001/PFE_Eurobot_2026/ws/src/build/deadwheel_odometry/CMakeFiles/install/local.dir
+/home/com2001/PFE_Eurobot_2026/ws/src/build/deadwheel_odometry/CMakeFiles/install/strip.dir

@@ -1,9 +1,8 @@
 #include <Arduino.h>
 #include <micro_ros_platformio.h>
-#include <rcl/rcl.h>
 #include <rclc/rclc.h>
 #include <rclc/executor.h>
-#include <rmw_microros/rmw_microros.h>
+
 
 // Pin definitions
 #define MOSF 18
@@ -24,8 +23,6 @@
 HardwareSerial Serial2(2);
 
 bool RobotActivated = false;
-
-
 int ReadCurrent();
 int ReadVoltage();
 
@@ -89,7 +86,8 @@ void loop()
 
 }
 
-  int ReadCurrent() {
+  int ReadCurrent() 
+  {
     
     int sensorcurrentvalue = analogRead(CDAT);
 
