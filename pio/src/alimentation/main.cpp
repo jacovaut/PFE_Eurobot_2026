@@ -41,6 +41,7 @@ rcl_timer_t timer;         // periodic timer
   }                      \
 }
 
+
 // Blink LED quickly to signal fatal setup error (never returns)
 void error_loop(){
   while (true)
@@ -49,6 +50,7 @@ void error_loop(){
     delay(100);
   }
 }
+
 
 void timer_callback(rcl_timer_t *timer, int64_t last_call_time)
 {
@@ -71,6 +73,7 @@ void setup()
 
   // Initialize rclc support and node/publisher structures
   allocator = rcl_get_default_allocator();
+
   RCCHECK(rclc_support_init(&support, 0, NULL, &allocator));
 
   RCCHECK(rclc_node_init_default(&node, "alimentation_node", "", &support));
@@ -80,6 +83,7 @@ void setup()
     //ROSIDL_GET_MSG_TYPE_SUPPORT(deadwheel_msgs, msg, DeadwheelTicks),
     "deadwheel_ticks")); */
   
+  // Initialize a timer to trigger every 10ms (100Hz)
  const unsigned int timer_timeout = 10; // ms
 
  RCCHECK(rclc_timer_init_default(
@@ -94,20 +98,20 @@ void setup()
   pinMode(VDAT, INPUT);
   pinMode(ActPlug, INPUT);
 
-  //Mosfets
+  //Setup Mosfets pins
   pinMode(SOFST, OUTPUT);
   pinMode(MOSF, OUTPUT);
 
     // Activate slow start mosfet
   digitalWrite(SOFST, HIGH); // Activate the MOSFET to allow current flow
 
-
-
 }
 
 void loop()
 {
- 
+  // Spin the executor to handle timer callbacks and other events
+   RCSOFTCHECK(rclc_executor_spin_some(&executor, RCL_MS_TO_NS(10)));
+
   // Robot Activation Logic
   int Startup = digitalRead(ActPlug);
   
@@ -132,8 +136,6 @@ void loop()
 
 
 }
-
-
 
   int ReadCurrent() 
   {

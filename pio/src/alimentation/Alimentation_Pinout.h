@@ -1,5 +1,5 @@
 
-// Pin definitions
+// Pinout defintio for the alimentaion board of the Robot
 #define MOSF 18
 #define CDAT 13
 #define VDAT 14
