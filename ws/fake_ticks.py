@@ -19,6 +19,9 @@ class FakeTicks(Node):
         msg = DeadwheelTicks()
         msg.header.stamp = self.get_clock().now().to_msg()
 
+        if (self.t0 % 1000) == 0:
+            self.get_logger().info("still publishing")
+
         # Simulate straight motion: both main wheels advance equally
         self.t0 += 20
         self.t1 += 20
