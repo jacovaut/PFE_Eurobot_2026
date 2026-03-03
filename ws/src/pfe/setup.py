@@ -38,7 +38,7 @@ setup(
             'subscriber_node = ros2_opencv.subscriberImage:main',
             'aruco_node = ros2_opencv.aruco_marker_pose_estimation:main',
             'cluster_node = strategy.clusterAnalyze:main',
-            'nav_goal_node = ros2_opencv.aruco_nav_goal:main',
+            'local_pickup_solver_node = ros2_opencv.local_pickup_solver:main',
         ],
     },
 )
