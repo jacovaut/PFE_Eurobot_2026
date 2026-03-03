@@ -109,8 +109,9 @@ velocity_smoother:
     odom_topic: "/odometry/filtered"
     velocity_timeout: 0.5
 
-# Costmaps (odom-only, no sensors, no map)
+# --- Global costmap params (used by multiple nodes) ---
 global_costmap:
+# This nested block is what planner_server is currently using (note the logger: global_costmap.global_costmap)
   global_costmap:
     ros__parameters:
       use_sim_time: false
@@ -119,18 +120,17 @@ global_costmap:
       update_frequency: 5.0
       publish_frequency: 2.0
       resolution: 0.05
-      track_unknown_space: false
       rolling_window: true
       width: 200
       height: 200
       robot_radius: 0.22
       plugins: ["inflation_layer"]
-
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         inflation_radius: 0.5
         cost_scaling_factor: 3.0
 
+# --- Local costmap params ---
 local_costmap:
   local_costmap:
     ros__parameters:
@@ -145,7 +145,6 @@ local_costmap:
       height: 80
       robot_radius: 0.22
       plugins: ["inflation_layer"]
-
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         inflation_radius: 0.4
