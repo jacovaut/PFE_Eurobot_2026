@@ -129,26 +129,11 @@ class SubscriberNodeClass(Node):
                 T = np.eye(4)
                 T[:3, :3] = R
                 quat = tf_transformations.quaternion_from_matrix(T)
-                pose_msg = PoseStamped()
-                pose_msg.header.stamp = self.get_clock().now().to_msg()
-                pose_msg.header.frame_id = "camera_link"
-
-                pose_msg.pose.position.x = float(tvec[0])
-                pose_msg.pose.position.y = float(tvec[1])
-                pose_msg.pose.position.z = float(tvec[2])
-
-                pose_msg.pose.orientation.x = quat[0]
-                pose_msg.pose.orientation.y = quat[1]
-                pose_msg.pose.orientation.z = quat[2]
-                pose_msg.pose.orientation.w = quat[3]
-
-                self.pose_pub.publish(pose_msg)
 
                 t = TransformStamped()
                 t.header.stamp = self.get_clock().now().to_msg()
-                t.header.frame_id = "camera_link"
-                t.child_frame_id = f"aruco_{marker_id}"
-
+                t.header.frame_id = "arducam_link"  # use your camera frame
+                t.child_frame_id = f"aruco_{marker_id}"  # unique
                 t.transform.translation.x = float(tvec[0])
                 t.transform.translation.y = float(tvec[1])
                 t.transform.translation.z = float(tvec[2])
