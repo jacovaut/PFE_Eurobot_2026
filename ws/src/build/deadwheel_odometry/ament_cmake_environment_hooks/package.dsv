@@ -1,0 +1,4 @@
+source;share/deadwheel_odometry/local_setup.bash
+source;share/deadwheel_odometry/local_setup.dsv
+source;share/deadwheel_odometry/local_setup.sh
+source;share/deadwheel_odometry/local_setup.zsh

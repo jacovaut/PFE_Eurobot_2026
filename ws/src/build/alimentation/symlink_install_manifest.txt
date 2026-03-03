@@ -1,0 +1,15 @@
+/home/com2001/PFE_Eurobot_2026/ws/src/install/alimentation/share/ament_index/resource_index/package_run_dependencies/alimentation
+/home/com2001/PFE_Eurobot_2026/ws/src/install/alimentation/share/ament_index/resource_index/parent_prefix_path/alimentation
+/home/com2001/PFE_Eurobot_2026/ws/src/install/alimentation/share/alimentation/environment/ament_prefix_path.sh
+/home/com2001/PFE_Eurobot_2026/ws/src/install/alimentation/share/alimentation/environment/ament_prefix_path.dsv
+/home/com2001/PFE_Eurobot_2026/ws/src/install/alimentation/share/alimentation/environment/path.sh
+/home/com2001/PFE_Eurobot_2026/ws/src/install/alimentation/share/alimentation/environment/path.dsv
+/home/com2001/PFE_Eurobot_2026/ws/src/install/alimentation/share/alimentation/local_setup.bash
+/home/com2001/PFE_Eurobot_2026/ws/src/install/alimentation/share/alimentation/local_setup.sh
+/home/com2001/PFE_Eurobot_2026/ws/src/install/alimentation/share/alimentation/local_setup.zsh
+/home/com2001/PFE_Eurobot_2026/ws/src/install/alimentation/share/alimentation/local_setup.dsv
+/home/com2001/PFE_Eurobot_2026/ws/src/install/alimentation/share/alimentation/package.dsv
+/home/com2001/PFE_Eurobot_2026/ws/src/install/alimentation/share/ament_index/resource_index/packages/alimentation
+/home/com2001/PFE_Eurobot_2026/ws/src/install/alimentation/share/alimentation/cmake/alimentationConfig.cmake
+/home/com2001/PFE_Eurobot_2026/ws/src/install/alimentation/share/alimentation/cmake/alimentationConfig-version.cmake
+/home/com2001/PFE_Eurobot_2026/ws/src/install/alimentation/share/alimentation/package.xml

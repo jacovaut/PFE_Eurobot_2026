@@ -1,0 +1,1 @@
+/home/com2001/PFE_Eurobot_2026/ws/src/build/alimentation/ament_cmake_core/alimentationConfig.cmake
