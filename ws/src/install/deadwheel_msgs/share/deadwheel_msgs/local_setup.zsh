@@ -1,1 +1,0 @@
-/home/jacob/PFE_Eurobot_2026/ws/src/build/deadwheel_msgs/ament_cmake_environment_hooks/local_setup.zsh

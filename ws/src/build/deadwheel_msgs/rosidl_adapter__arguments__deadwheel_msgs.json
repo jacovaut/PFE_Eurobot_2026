@@ -1,6 +1,0 @@
-{
-  "package_name": "deadwheel_msgs",
-  "non_idl_tuples": [
-    "/home/jacob/PFE_Eurobot_2026/ws/src/deadwheel_msgs:msg/DeadwheelTicks.msg"
-  ]
-}
