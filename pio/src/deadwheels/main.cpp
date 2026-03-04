@@ -19,6 +19,21 @@
 // LED used as a simple heartbeat indicator (typically the on-board LED)
 #define LED_PIN 2
 
+//Define variables for odometry
+struct odo{
+double x = 0;
+double y = 0;
+double angle = 0;
+double vx = 0;
+double vy = 0;
+double vangle = 0;
+}deadwheelodo;
+
+//fonction pour normaliser les angles à l'intervalle [-pi, pi]
+double normalizeAngleSigned(double angle) {
+    return std::remainder(angle, 2.0 * M_PI);
+}
+
 //Ajoute les différences de position relatives à la position connue basée sur les encodeurs + trouve les vitesses 
 class deadwheels{
   private : 
@@ -29,12 +44,12 @@ class deadwheels{
     double DEADWHEEL_DISTANCE = 10; //distance entre les deux deadwheel principaux
     double OFFSET = 2; //distance entre le side deadwheel et le centre de rotation du robot
 
-    double prevTicks[3] = {0, 0, 0};
+    int64_t prevTicks[3] = {0, 0, 0};
     double prevTime = 0.0;
     bool initialized = false;
 
   public : 
-    void deadwheel_odometry(double ticks0, double ticks1, double ticks2, double time){
+    void deadwheel_odometry(int64_t ticks0, int64_t ticks1, int64_t ticks2, double time){
       //pour le premier appel
       if (!initialized) {
         prevTicks[0] = ticks0;
@@ -46,19 +61,19 @@ class deadwheels{
       }
 
       //calculs des delta ticks
-      double dRTicks = ticks0 - prevTicks[0];
-      double dLTicks = ticks1 - prevTicks[1];
-      double dSTicks = ticks2 - prevTicks[2];
+      int64_t dRTicks = ticks0 - prevTicks[0];
+      int64_t dLTicks = ticks1 - prevTicks[1];
+      int64_t dSTicks = ticks2 - prevTicks[2];
       prevTicks[0] = ticks0;
       prevTicks[1] = ticks1;
       prevTicks[2] = ticks2;
 
       //calculs des déplacements selon les axes du robot
-      double rightDist = dRTicks * DEADWHEEL_CIRCUMFERENCE / ENCODER_TICKS_PER_REVOLUTION[0];
-      double leftDist = dLTicks * DEADWHEEL_CIRCUMFERENCE / ENCODER_TICKS_PER_REVOLUTION[1];
+      double rightDist = static_cast<double>(dRTicks) * DEADWHEEL_CIRCUMFERENCE / ENCODER_TICKS_PER_REVOLUTION[0];
+      double leftDist = static_cast<double>(dLTicks) * DEADWHEEL_CIRCUMFERENCE / ENCODER_TICKS_PER_REVOLUTION[1];
       double dxr = 0.5 * (rightDist + leftDist);
       double dangle = (rightDist - leftDist) / DEADWHEEL_DISTANCE;
-      double dyr = (dSTicks * DEADWHEEL_CIRCUMFERENCE / ENCODER_TICKS_PER_REVOLUTION[2]) - OFFSET * dangle;
+      double dyr = (static_cast<double>(dSTicks) * DEADWHEEL_CIRCUMFERENCE / ENCODER_TICKS_PER_REVOLUTION[2]) - OFFSET * dangle;
       double avgangle = deadwheelodo.angle + dangle/2; 
 
       //calculs des déplacements selon le world
@@ -83,23 +98,8 @@ class deadwheels{
     }
 };
 
-//Define variables for odometry
-struct odo{
-double x = 0;
-double y = 0;
-double angle = 0;
-double vx = 0;
-double vy = 0;
-double vangle = 0;
-}deadwheelodo;
-
 //Define odometry update callback
 deadwheels callback;
-
-//fonction pour normaliser les angles à l'intervalle [-pi, pi]
-double normalizeAngleSigned(double angle) {
-    return std::remainder(angle, 2.0 * M_PI);
-}
 
 // Encoder instance (ESP32-specific library)
 ESP32Encoder encoder0;
@@ -150,9 +150,9 @@ void timer_callback(rcl_timer_t *timer, int64_t last_call_time)
   if (timer != NULL)
   {
     // Read tick counts (absolute)
-    double ticks0 = encoder0.getCount();
-    double ticks1 = encoder1.getCount();
-    double ticks2 = encoder2.getCount();
+    int64_t ticks0 = encoder0.getCount();
+    int64_t ticks1 = encoder1.getCount();
+    int64_t ticks2 = encoder2.getCount();
 
     deadwheel_msg.t0 = ticks0;
     deadwheel_msg.t1 = ticks1;

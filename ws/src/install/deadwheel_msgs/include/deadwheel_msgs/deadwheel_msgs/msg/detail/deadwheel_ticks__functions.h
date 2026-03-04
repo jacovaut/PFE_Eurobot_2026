@@ -1,1 +1,0 @@
-/home/com2001/PFE_Eurobot_2026/ws/src/build/deadwheel_msgs/rosidl_generator_c/deadwheel_msgs/msg/detail/deadwheel_ticks__functions.h

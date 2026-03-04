@@ -1,6 +1,0 @@
-source;share/pfe/hook/pythonpath.dsv
-source;share/pfe/hook/pythonpath.sh
-source;share/pfe/hook/ament_prefix_path.dsv
-source;share/pfe/hook/ament_prefix_path.sh
-source;../../build/pfe/share/pfe/hook/pythonpath_develop.dsv
-source;../../build/pfe/share/pfe/hook/pythonpath_develop.sh
