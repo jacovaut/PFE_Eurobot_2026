@@ -23,7 +23,7 @@ class TicksListener : public rclcpp::Node
     std::mutex mtx_;
   
     //Constantes, à ajouter les bonnes valeurs
-    const double ENCODER_TICKS_PER_REVOLUTION [3] = {1000, 1000, 1000};
+    const double ENCODER_TICKS_PER_REVOLUTION [3] = {4096, 4096, 4096};
     const double DEADWHEEL_DIAMETER  = 0.0373;
     const double DEADWHEEL_CIRCUMFERENCE = (M_PI) * DEADWHEEL_DIAMETER;
     const double DEADWHEEL_DISTANCE = 0.1446; //distance entre les deux deadwheel principaux

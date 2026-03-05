@@ -38,11 +38,11 @@ double normalizeAngleSigned(double angle) {
 class deadwheels{
   private : 
     //Constantes, à ajouter bonnes valeurs
-    double ENCODER_TICKS_PER_REVOLUTION [3] = {1000, 1000, 1000};
-    double DEADWHEEL_DIAMETER = 2;
+    double ENCODER_TICKS_PER_REVOLUTION [3] = {4096, 4096, 4096};
+    double DEADWHEEL_DIAMETER = 0.0373;
     double DEADWHEEL_CIRCUMFERENCE = (M_PI) * DEADWHEEL_DIAMETER;
-    double DEADWHEEL_DISTANCE = 10; //distance entre les deux deadwheel principaux
-    double OFFSET = 2; //distance entre le side deadwheel et le centre de rotation du robot
+    double DEADWHEEL_DISTANCE = 0.1446; //distance entre les deux deadwheel principaux
+    double OFFSET = 0.063; //distance entre le side deadwheel et le centre de rotation du robot
 
     int64_t prevTicks[3] = {0, 0, 0};
     double prevTime = 0.0;
@@ -186,9 +186,9 @@ void setup()
 
   // Configure encoder library: enable internal pull-ups and attach pins
   // ESP32Encoder::useInternalWeakPullResistors = puType::up;
-  encoder0.attachHalfQuad(23, 22);
-  encoder1.attachHalfQuad(36, 39);
-  encoder2.attachHalfQuad(34, 35);
+  encoder0.attachHalfQuad(2, 19);
+  encoder1.attachHalfQuad(36, 34);
+  encoder2.attachHalfQuad(35, 32);
   encoder0.setCount(0); // reset counter
   encoder1.setCount(0); // reset counter
   encoder2.setCount(0); // reset counter
