@@ -14,7 +14,6 @@
   </joint>
 
   <!-- ===================== CAD WRAPPER (Fusion frame) ===================== -->
-  <!-- Fusion: +x backward, +y right  => rotate CAD frame by pi about Z to match ROS -->
   <link name="base_cad">
     <inertial>
       <origin xyz="-0.181130474842482 0.10958995900517023 -0.10051074270429218" rpy="0 0 0"/>
@@ -38,95 +37,102 @@
     </collision>
   </link>
 
+  <!-- Fusion: +x backward, +y right -->
   <joint name="base_to_cad" type="fixed">
     <parent link="base_link"/>
     <child link="base_cad"/>
     <origin xyz="0 0 0" rpy="0 0 3.141592653589793"/>
   </joint>
 
-  <!-- ===================== WHEELS (MECANUM) ===================== -->
-  <!-- Mapping from your Fusion positions with Fusion axes:
-       front = more negative x  (since +x is backwards)
-       right = more positive y  (since +y is right)
-  -->
+  <!-- ===================== ARM ===================== -->
+  <link name="arm_link">
+    <inertial>
+      <origin xyz="-2.2902735970831146e-07 0.0017334076218106455 0.0365000048213585" rpy="0 0 0"/>
+      <mass value="0.5338474560099968"/>
+      <inertia ixx="0.00022030891025364568" iyy="0.0011328418152016656" izz="0.0009599083468218444"
+               ixy="9.724324401272355e-10" iyz="-5.204170427930421e-18" ixz="-5.898059818321144e-17"/>
+    </inertial>
 
-  <link name="front_left_wheel_link">
     <visual>
+      <origin xyz="9.349037100037094e-10 0.004999995232077037 0.03650000482135752"
+              rpy="1.5707963267948963 1.5707963267948957 0"/>
       <geometry>
-        <mesh filename="package://pfe/meshes/wheel_link-v1.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://pfe/meshes/arm_link-v1.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </visual>
+
     <collision>
+      <origin xyz="9.349037100037094e-10 0.004999995232077037 0.03650000482135752"
+              rpy="1.5707963267948963 1.5707963267948957 0"/>
       <geometry>
-        <mesh filename="package://pfe/meshes/wheel_link-v1.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://pfe/meshes/arm_link-v1.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </collision>
+  </link>
+
+  <joint name="arm_joint" type="continuous">
+    <parent link="base_cad"/>
+    <child link="arm_link"/>
+    <origin xyz="-0.3689156752862411 0.07293206200904699 -0.14265636918407304"
+            rpy="-1.5707963267948974 -1.5265566588595922e-16 7.21644966006352e-16"/>
+    <axis xyz="0 0 1"/>
+  </joint>
+
+  <!-- ===================== FLIPPER ===================== -->
+  <link name="flipper_link">
     <inertial>
-      <origin xyz="2.9766545619658303e-05 4.304267826675812e-06 0.004179545797070823" rpy="0 0 0"/>
-      <mass value="0.3360663312138791"/>
-      <inertia ixx="9.012634603781933e-05" iyy="9.001291913218745e-05" izz="0.00013234115795366513"
-               ixy="1.8834943431300655e-09" iyz="1.41718145309222e-08" ixz="1.2750272517306205e-07"/>
+      <origin xyz="2.6474475234294913e-09 4.767925592119582e-09 -0.07580524145430977" rpy="0 0 0"/>
+      <mass value="0.4797185340176825"/>
+      <inertia ixx="0.0011969873864993257" iyy="0.0009456324882451857" izz="0.0002533232197152197"
+               ixy="-1.3010426069826053e-18" iyz="1.734723475976807e-18" ixz="1.7802599672211983e-16"/>
     </inertial>
+
+    <visual>
+      <origin xyz="0.00861550378970137 0.01247089554740951 -0.07550000482135592"
+              rpy="-1.5707963267948968 -1.5707963267947291 0"/>
+      <geometry>
+        <mesh filename="package://pfe/meshes/flipper_link-v1.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </visual>
+
+    <collision>
+      <origin xyz="0.00861550378970137 0.01247089554740951 -0.07550000482135592"
+              rpy="-1.5707963267948968 -1.5707963267947291 0"/>
+      <geometry>
+        <mesh filename="package://pfe/meshes/flipper_link-v1.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="flipper_joint" type="continuous">
+    <parent link="base_cad"/>
+    <child link="flipper_link"/>
+    <origin xyz="-0.0164154352862412 0.03393206200904719 -0.13965336918407295"
+            rpy="1.5707963267948957 -1.5265566588595922e-16 7.21644966006352e-16"/>
+    <axis xyz="0 0 1"/>
+  </joint>
+
+  <!-- ===================== MECANUM WHEELS ===================== -->
+  <link name="front_left_wheel_link">
+    <visual><geometry><mesh filename="package://pfe/meshes/wheel_link-v1.stl" scale="0.001 0.001 0.001"/></geometry></visual>
+    <collision><geometry><mesh filename="package://pfe/meshes/wheel_link-v1.stl" scale="0.001 0.001 0.001"/></geometry></collision>
   </link>
 
   <link name="rear_left_wheel_link">
-    <visual>
-      <geometry>
-        <mesh filename="package://pfe/meshes/wheel_link-v1.stl" scale="0.001 0.001 0.001"/>
-      </geometry>
-    </visual>
-    <collision>
-      <geometry>
-        <mesh filename="package://pfe/meshes/wheel_link-v1.stl" scale="0.001 0.001 0.001"/>
-      </geometry>
-    </collision>
-    <inertial>
-      <origin xyz="2.9770008680891636e-05 4.304267826675812e-06 0.004179545797070076" rpy="0 0 0"/>
-      <mass value="0.3360663312138791"/>
-      <inertia ixx="9.012634603780545e-05" iyy="9.001291913220827e-05" izz="0.00013234115795369462"
-               ixy="1.8834943587429966e-09" iyz="1.4171814541469944e-08" ixz="1.275027251867153e-07"/>
-    </inertial>
+    <visual><geometry><mesh filename="package://pfe/meshes/wheel_link-v1.stl" scale="0.001 0.001 0.001"/></geometry></visual>
+    <collision><geometry><mesh filename="package://pfe/meshes/wheel_link-v1.stl" scale="0.001 0.001 0.001"/></geometry></collision>
   </link>
 
   <link name="rear_right_wheel_link">
-    <visual>
-      <geometry>
-        <mesh filename="package://pfe/meshes/wheel_link-v1.stl" scale="0.001 0.001 0.001"/>
-      </geometry>
-    </visual>
-    <collision>
-      <geometry>
-        <mesh filename="package://pfe/meshes/wheel_link-v1.stl" scale="0.001 0.001 0.001"/>
-      </geometry>
-    </collision>
-    <inertial>
-      <origin xyz="-2.9768983099991432e-05 -4.304267826960029e-06 0.004179546726436565" rpy="0 0 0"/>
-      <mass value="0.3360663312138791"/>
-      <inertia ixx="9.012634603783667e-05" iyy="9.001291913223602e-05" izz="0.00013234115795369636"
-               ixy="1.883494383896067e-09" iyz="-1.4171814507720273e-08" ixz="-1.2750272519496293e-07"/>
-    </inertial>
+    <visual><geometry><mesh filename="package://pfe/meshes/wheel_link-v1.stl" scale="0.001 0.001 0.001"/></geometry></visual>
+    <collision><geometry><mesh filename="package://pfe/meshes/wheel_link-v1.stl" scale="0.001 0.001 0.001"/></geometry></collision>
   </link>
 
   <link name="front_right_wheel_link">
-    <visual>
-      <geometry>
-        <mesh filename="package://pfe/meshes/wheel_link-v1.stl" scale="0.001 0.001 0.001"/>
-      </geometry>
-    </visual>
-    <collision>
-      <geometry>
-        <mesh filename="package://pfe/meshes/wheel_link-v1.stl" scale="0.001 0.001 0.001"/>
-      </geometry>
-    </collision>
-    <inertial>
-      <origin xyz="-2.9772331126451947e-05 -4.304267826960029e-06 0.0041795467264360096" rpy="0 0 0"/>
-      <mass value="0.3360663312138791"/>
-      <inertia ixx="9.012634603783667e-05" iyy="9.001291913222215e-05" izz="0.00013234115795368248"
-               ixy="1.883494403845387e-09" iyz="-1.4171814508153954e-08" ixz="-1.2750272519626397e-07"/>
-    </inertial>
+    <visual><geometry><mesh filename="package://pfe/meshes/wheel_link-v1.stl" scale="0.001 0.001 0.001"/></geometry></visual>
+    <collision><geometry><mesh filename="package://pfe/meshes/wheel_link-v1.stl" scale="0.001 0.001 0.001"/></geometry></collision>
   </link>
 
-  <!-- Wheel joints: parent under base_cad so Fusion transforms remain valid -->
   <joint name="front_left_wheel_joint" type="continuous">
     <parent link="base_cad"/>
     <child link="front_left_wheel_link"/>
@@ -159,78 +165,8 @@
     <axis xyz="0 0 1"/>
   </joint>
 
-  <!-- ===================== ARM ===================== -->
-  <link name="arm_link">
-    <inertial>
-      <origin xyz="-2.2902735970831146e-07 0.0017334076218106455 0.0365000048213585" rpy="0 0 0"/>
-      <mass value="0.5338474560099968"/>
-      <inertia ixx="0.00022030891025364568" iyy="0.0011328418152016656" izz="0.0009599083468218444"
-               ixy="9.724324401272355e-10" iyz="-5.204170427930421e-18" ixz="-5.898059818321144e-17"/>
-    </inertial>
-    <visual>
-      <origin xyz="9.349037100037094e-10 0.004999995232077037 0.03650000482135752"
-              rpy="1.5707963267948963 1.5707963267948957 0"/>
-      <geometry>
-        <mesh filename="package://pfe/meshes/arm_link-v1.stl" scale="0.001 0.001 0.001"/>
-      </geometry>
-    </visual>
-    <collision>
-      <origin xyz="9.349037100037094e-10 0.004999995232077037 0.03650000482135752"
-              rpy="1.5707963267948963 1.5707963267948957 0"/>
-      <geometry>
-        <mesh filename="package://pfe/meshes/arm_link-v1.stl" scale="0.001 0.001 0.001"/>
-      </geometry>
-    </collision>
-  </link>
-
-  <joint name="arm_joint" type="continuous">
-    <parent link="base_cad"/>
-    <child link="arm_link"/>
-    <origin xyz="-0.3689156752862411 0.07293206200904699 -0.14265636918407304"
-            rpy="-1.5707963267948974 -1.5265566588595922e-16 7.21644966006352e-16"/>
-    <axis xyz="0 0 1"/>
-  </joint>
-
-  <!-- ===================== FLIPPER ===================== -->
-  <link name="flipper_link">
-    <inertial>
-      <origin xyz="2.6474475234294913e-09 4.767925592119582e-09 -0.07580524145430977" rpy="0 0 0"/>
-      <mass value="0.4797185340176825"/>
-      <inertia ixx="0.0011969873864993257" iyy="0.0009456324882451857" izz="0.0002533232197152197"
-               ixy="-1.3010426069826053e-18" iyz="1.734723475976807e-18" ixz="1.7802599672211983e-16"/>
-    </inertial>
-    <visual>
-      <origin xyz="0.00861550378970137 0.01247089554740951 -0.07550000482135592"
-              rpy="-1.5707963267948968 -1.5707963267947291 0"/>
-      <geometry>
-        <mesh filename="package://pfe/meshes/flipper_link-v1.stl" scale="0.001 0.001 0.001"/>
-      </geometry>
-    </visual>
-    <collision>
-      <origin xyz="0.00861550378970137 0.01247089554740951 -0.07550000482135592"
-              rpy="-1.5707963267948968 -1.5707963267947291 0"/>
-      <geometry>
-        <mesh filename="package://pfe/meshes/flipper_link-v1.stl" scale="0.001 0.001 0.001"/>
-      </geometry>
-    </collision>
-  </link>
-
-  <joint name="flipper_joint" type="continuous">
-    <parent link="base_cad"/>
-    <child link="flipper_link"/>
-    <origin xyz="-0.0164154352862412 0.03393206200904719 -0.13965336918407295"
-            rpy="1.5707963267948957 -1.5265566588595922e-16 7.21644966006352e-16"/>
-    <axis xyz="0 0 1"/>
-  </joint>
-
   <!-- ===================== CAMERA ===================== -->
   <link name="arducam_link">
-    <inertial>
-      <origin xyz="0.00013322309970456914 -0.000950447708985589 0.00043137326239044426" rpy="0 0 0"/>
-      <mass value="0.0010174438167060709"/>
-      <inertia ixx="4.5307132551573865e-08" iyy="3.509024203284948e-08" izz="7.596114417939664e-08"
-               ixy="1.0347644394365709e-09" iyz="2.2640703271659043e-09" ixz="-1.316658641836537e-10"/>
-    </inertial>
     <visual>
       <origin xyz="1.7220046188981542e-09 4.813011891258156e-09 -0.0017500015693401494"
               rpy="4.31077779183057e-16 1.6653345369377346e-16 -3.1415926535897927"/>
@@ -252,6 +188,54 @@
     <child link="arducam_link"/>
     <origin xyz="-0.21195906528624112 0.10993206200904702 0.0426585308159267"
             rpy="-3.141592653589791 -1.178097245096172 -3.141592653589791"/>
+  </joint>
+
+  <!-- ===================== SUCTION CUPS ===================== -->
+  <!-- arm_link IS the intake bar -->
+
+  <link name="cup_0">
+    <visual><geometry><mesh filename="package://pfe/meshes/suctioncup_link-v1.stl" scale="0.001 0.001 0.001"/></geometry></visual>
+    <collision><geometry><mesh filename="package://pfe/meshes/suctioncup_link-v1.stl" scale="0.001 0.001 0.001"/></geometry></collision>
+  </link>
+
+  <link name="cup_1">
+    <visual><geometry><mesh filename="package://pfe/meshes/suctioncup_link-v1.stl" scale="0.001 0.001 0.001"/></geometry></visual>
+    <collision><geometry><mesh filename="package://pfe/meshes/suctioncup_link-v1.stl" scale="0.001 0.001 0.001"/></geometry></collision>
+  </link>
+
+  <link name="cup_2">
+    <visual><geometry><mesh filename="package://pfe/meshes/suctioncup_link-v1.stl" scale="0.001 0.001 0.001"/></geometry></visual>
+    <collision><geometry><mesh filename="package://pfe/meshes/suctioncup_link-v1.stl" scale="0.001 0.001 0.001"/></geometry></collision>
+  </link>
+
+  <link name="cup_3">
+    <visual><geometry><mesh filename="package://pfe/meshes/suctioncup_link-v1.stl" scale="0.001 0.001 0.001"/></geometry></visual>
+    <collision><geometry><mesh filename="package://pfe/meshes/suctioncup_link-v1.stl" scale="0.001 0.001 0.001"/></geometry></collision>
+  </link>
+
+  <!-- Keep your exact fixed transforms -->
+  <joint name="arm_to_cup_0" type="fixed">
+    <parent link="arm_link"/>
+    <child link="cup_0"/>
+    <origin xyz="0.075 0.0105 0.0365" rpy="1.5707963267948966 0 0"/>
+  </joint>
+
+  <joint name="arm_to_cup_1" type="fixed">
+    <parent link="arm_link"/>
+    <child link="cup_1"/>
+    <origin xyz="0.025 0.0100 0.0365" rpy="-1.5707963267948966 0 0"/>
+  </joint>
+
+  <joint name="arm_to_cup_2" type="fixed">
+    <parent link="arm_link"/>
+    <child link="cup_2"/>
+    <origin xyz="-0.025 0.0105 0.0365" rpy="1.5707963267948966 0 0"/>
+  </joint>
+
+  <joint name="arm_to_cup_3" type="fixed">
+    <parent link="arm_link"/>
+    <child link="cup_3"/>
+    <origin xyz="-0.075 0.0105 0.0365" rpy="1.5707963267948966 0 0"/>
   </joint>
 
 </robot>
