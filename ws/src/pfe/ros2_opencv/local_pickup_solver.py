@@ -198,7 +198,7 @@ class LocalPickupSolver(Node):
         self.aruco_prefix = self.declare_parameter('aruco_prefix', 'aruco_').value
 
         # Which markers to consider (edit these for your setup)
-        self.aruco_ids = self.declare_parameter('aruco_ids', [1, 2, 3, 4, 47, 48, 49, 50]).value
+        self.aruco_ids = self.declare_parameter('aruco_ids', [ 36, 47]).value
 
         # Solver params
         self.cups_spacing_m = float(self.declare_parameter('cups_spacing_m', 0.05).value)
