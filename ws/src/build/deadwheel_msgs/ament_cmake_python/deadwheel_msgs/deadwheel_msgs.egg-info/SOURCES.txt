@@ -1,6 +1,0 @@
-setup.py
-deadwheel_msgs/__init__.py
-deadwheel_msgs.egg-info/PKG-INFO
-deadwheel_msgs.egg-info/SOURCES.txt
-deadwheel_msgs.egg-info/dependency_links.txt
-deadwheel_msgs.egg-info/top_level.txt

@@ -1,3 +1,0 @@
-pfe
-ros2_opencv
-strategy
