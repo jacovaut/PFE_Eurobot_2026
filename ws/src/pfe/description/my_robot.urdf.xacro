@@ -13,26 +13,26 @@
     <origin xyz="0 0 0" rpy="0 0 0"/>
   </joint>
 
-  <!-- ===================== CAD WRAPPER (Fusion frame) ===================== -->
+  <!-- ===================== CAD WRAPPER ===================== -->
   <link name="base_cad">
     <inertial>
-      <origin xyz="-0.181130474842482 0.10958995900517023 -0.10051074270429218" rpy="0 0 0"/>
-      <mass value="10.802255131301344"/>
-      <inertia ixx="0.11142549471720897" iyy="0.15234586542751433" izz="0.15214678916514196"
-               ixy="0.0002653832816470656" iyz="0.00027410838368888666" ixz="0.009773387741291757"/>
+      <origin xyz="-0.1806532478764334 0.10959136535685834 -0.09958100133613353" rpy="0 0 0"/>
+      <mass value="10.846844826170994"/>
+      <inertia ixx="0.1137300898429841" iyy="0.15506270343665957" izz="0.1525596007466387"
+               ixy="0.0002636196730894534" iyz="0.0002706724915273537" ixz="0.008689234245133912"/>
     </inertial>
 
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <geometry>
-        <mesh filename="package://pfe/meshes/base_link-v3.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://pfe/meshes/base_link-v5.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </visual>
 
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <geometry>
-        <mesh filename="package://pfe/meshes/base_link-v3.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://pfe/meshes/base_link-v5.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </collision>
   </link>
@@ -114,23 +114,55 @@
 
   <!-- ===================== MECANUM WHEELS ===================== -->
   <link name="front_left_wheel_link">
-    <visual><geometry><mesh filename="package://pfe/meshes/wheel_link-v1.stl" scale="0.001 0.001 0.001"/></geometry></visual>
-    <collision><geometry><mesh filename="package://pfe/meshes/wheel_link-v1.stl" scale="0.001 0.001 0.001"/></geometry></collision>
+    <visual>
+      <geometry>
+        <mesh filename="package://pfe/meshes/wheel_link-v1.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </visual>
+    <collision>
+      <geometry>
+        <mesh filename="package://pfe/meshes/wheel_link-v1.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
   </link>
 
   <link name="rear_left_wheel_link">
-    <visual><geometry><mesh filename="package://pfe/meshes/wheel_link-v1.stl" scale="0.001 0.001 0.001"/></geometry></visual>
-    <collision><geometry><mesh filename="package://pfe/meshes/wheel_link-v1.stl" scale="0.001 0.001 0.001"/></geometry></collision>
+    <visual>
+      <geometry>
+        <mesh filename="package://pfe/meshes/wheel_link-v1.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </visual>
+    <collision>
+      <geometry>
+        <mesh filename="package://pfe/meshes/wheel_link-v1.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
   </link>
 
   <link name="rear_right_wheel_link">
-    <visual><geometry><mesh filename="package://pfe/meshes/wheel_link-v1.stl" scale="0.001 0.001 0.001"/></geometry></visual>
-    <collision><geometry><mesh filename="package://pfe/meshes/wheel_link-v1.stl" scale="0.001 0.001 0.001"/></geometry></collision>
+    <visual>
+      <geometry>
+        <mesh filename="package://pfe/meshes/wheel_link-v1.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </visual>
+    <collision>
+      <geometry>
+        <mesh filename="package://pfe/meshes/wheel_link-v1.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
   </link>
 
   <link name="front_right_wheel_link">
-    <visual><geometry><mesh filename="package://pfe/meshes/wheel_link-v1.stl" scale="0.001 0.001 0.001"/></geometry></visual>
-    <collision><geometry><mesh filename="package://pfe/meshes/wheel_link-v1.stl" scale="0.001 0.001 0.001"/></geometry></collision>
+    <visual>
+      <geometry>
+        <mesh filename="package://pfe/meshes/wheel_link-v1.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </visual>
+    <collision>
+      <geometry>
+        <mesh filename="package://pfe/meshes/wheel_link-v1.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
   </link>
 
   <joint name="front_left_wheel_joint" type="continuous">
@@ -167,16 +199,24 @@
 
   <!-- ===================== CAMERA ===================== -->
   <link name="arducam_link">
+    <inertial>
+      <origin xyz="-0.00013322161290098224 0.0009504573350092649 0.00043137020324471645" rpy="0 0 0"/>
+      <mass value="0.0010174438167060709"/>
+      <inertia ixx="4.5307132551562007e-08" iyy="3.5090242032863035e-08" izz="7.59611441794051e-08"
+               ixy="1.0347644394329782e-09" iyz="-2.264070327162072e-09" ixz="1.3166586418150303e-10"/>
+    </inertial>
+
     <visual>
-      <origin xyz="1.7220046188981542e-09 4.813011891258156e-09 -0.0017500015693401494"
-              rpy="4.31077779183057e-16 1.6653345369377346e-16 -3.1415926535897927"/>
+      <origin xyz="-2.352010142203653e-10 4.813011784676747e-09 -0.001750004628485895"
+              rpy="8.52607141014584e-18 -5.5511151231257815e-17 9.485990215114392e-16"/>
       <geometry>
         <mesh filename="package://pfe/meshes/arducam_link-v3.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </visual>
+
     <collision>
-      <origin xyz="1.7220046188981542e-09 4.813011891258156e-09 -0.0017500015693401494"
-              rpy="4.31077779183057e-16 1.6653345369377346e-16 -3.1415926535897927"/>
+      <origin xyz="-2.352010142203653e-10 4.813011784676747e-09 -0.001750004628485895"
+              rpy="8.52607141014584e-18 -5.5511151231257815e-17 9.485990215114392e-16"/>
       <geometry>
         <mesh filename="package://pfe/meshes/arducam_link-v3.stl" scale="0.001 0.001 0.001"/>
       </geometry>
@@ -186,34 +226,63 @@
   <joint name="base_to_arducam" type="fixed">
     <parent link="base_cad"/>
     <child link="arducam_link"/>
-    <origin xyz="-0.21195906528624112 0.10993206200904702 0.0426585308159267"
-            rpy="-3.141592653589791 -1.178097245096172 -3.141592653589791"/>
+    <origin xyz="-0.10964196528624118 0.10993206200904702 0.15264326081592658"
+            rpy="-3.1415926535897922 -0.6973907898697068 -3.141592653589792"/>
   </joint>
 
   <!-- ===================== SUCTION CUPS ===================== -->
-  <!-- arm_link IS the intake bar -->
-
   <link name="cup_0">
-    <visual><geometry><mesh filename="package://pfe/meshes/suctioncup_link-v1.stl" scale="0.001 0.001 0.001"/></geometry></visual>
-    <collision><geometry><mesh filename="package://pfe/meshes/suctioncup_link-v1.stl" scale="0.001 0.001 0.001"/></geometry></collision>
+    <visual>
+      <geometry>
+        <mesh filename="package://pfe/meshes/suctioncup_link-v1.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </visual>
+    <collision>
+      <geometry>
+        <mesh filename="package://pfe/meshes/suctioncup_link-v1.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
   </link>
 
   <link name="cup_1">
-    <visual><geometry><mesh filename="package://pfe/meshes/suctioncup_link-v1.stl" scale="0.001 0.001 0.001"/></geometry></visual>
-    <collision><geometry><mesh filename="package://pfe/meshes/suctioncup_link-v1.stl" scale="0.001 0.001 0.001"/></geometry></collision>
+    <visual>
+      <geometry>
+        <mesh filename="package://pfe/meshes/suctioncup_link-v1.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </visual>
+    <collision>
+      <geometry>
+        <mesh filename="package://pfe/meshes/suctioncup_link-v1.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
   </link>
 
   <link name="cup_2">
-    <visual><geometry><mesh filename="package://pfe/meshes/suctioncup_link-v1.stl" scale="0.001 0.001 0.001"/></geometry></visual>
-    <collision><geometry><mesh filename="package://pfe/meshes/suctioncup_link-v1.stl" scale="0.001 0.001 0.001"/></geometry></collision>
+    <visual>
+      <geometry>
+        <mesh filename="package://pfe/meshes/suctioncup_link-v1.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </visual>
+    <collision>
+      <geometry>
+        <mesh filename="package://pfe/meshes/suctioncup_link-v1.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
   </link>
 
   <link name="cup_3">
-    <visual><geometry><mesh filename="package://pfe/meshes/suctioncup_link-v1.stl" scale="0.001 0.001 0.001"/></geometry></visual>
-    <collision><geometry><mesh filename="package://pfe/meshes/suctioncup_link-v1.stl" scale="0.001 0.001 0.001"/></geometry></collision>
+    <visual>
+      <geometry>
+        <mesh filename="package://pfe/meshes/suctioncup_link-v1.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </visual>
+    <collision>
+      <geometry>
+        <mesh filename="package://pfe/meshes/suctioncup_link-v1.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
   </link>
 
-  <!-- Keep your exact fixed transforms -->
   <joint name="arm_to_cup_0" type="fixed">
     <parent link="arm_link"/>
     <child link="cup_0"/>
