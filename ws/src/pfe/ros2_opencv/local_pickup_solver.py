@@ -1,316 +1,296 @@
 #!/usr/bin/env python3
 import math
 from dataclasses import dataclass
-from typing import List, Tuple, Optional, Dict
+from typing import Dict, List, Set, Tuple, Optional
 
 import rclpy
 from rclpy.node import Node
-import tf2_ros
-from tf_transformations import euler_from_quaternion
+from rclpy.duration import Duration
+from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
 
-
-# ----------------------------
-# Data models
-# ----------------------------
-
-@dataclass
-class BlockObs:
-    uid: int        # unique instance token (aruco_id*1000 + index)
-    aruco_id: int   # actual marker id (e.g., 36, 47)
-    x: float        # in base_link (m)
-    y: float        # in base_link (m)
-    yaw: float      # block yaw in base_link (rad)
+from tf2_ros import Buffer, TransformListener
+from tf2_msgs.msg import TFMessage
 
 
 @dataclass
-class PickupPlan:
-    theta_arm: float                 # desired arm axis yaw in base_link (rad)
-    u0: float                        # center shift along arm axis (m)
-    matches: Dict[int, int]          # cup_index -> uid
-    score: int                       # number of matched cups
-    mean_abs_v: float                # lateral quality metric (smaller = better)
+class XY:
+    x: float
+    y: float
 
 
-# ----------------------------
-# Math helpers
-# ----------------------------
-
-def wrap_pi(a: float) -> float:
-    return (a + math.pi) % (2.0 * math.pi) - math.pi
-
-
-def angle_dist(a: float, b: float) -> float:
-    return abs(wrap_pi(a - b))
-
-
-def is_perpendicular(block_yaw: float, theta_arm: float, tol_rad: float) -> bool:
-    """
-    Block yaw should be theta_arm ± 90° modulo pi.
-    Equivalent: distance to (theta_arm + pi/2) modulo pi is small.
-    """
-    target = wrap_pi(theta_arm + math.pi / 2.0)
-    d = angle_dist(block_yaw, target)
-    d = min(d, abs(d - math.pi))
-    return d <= tol_rad
-
-
-def pca_direction(points: List[Tuple[float, float]]) -> Optional[float]:
-    if len(points) < 2:
-        return None
-    mx = sum(p[0] for p in points) / len(points)
-    my = sum(p[1] for p in points) / len(points)
-
-    sxx = sum((p[0] - mx) ** 2 for p in points)
-    syy = sum((p[1] - my) ** 2 for p in points)
-    sxy = sum((p[0] - mx) * (p[1] - my) for p in points)
-
-    if abs(sxy) < 1e-12 and abs(sxx - syy) < 1e-12:
-        return 0.0
-    return 0.5 * math.atan2(2.0 * sxy, (sxx - syy))
-
-
-def compute_best_pickup_plan(
-    blocks: List[BlockObs],
-    cups_spacing_m: float = 0.05,
-    tol_perp_m: float = 0.02,
-    tol_along_m: float = 0.02,
-    tol_angle_deg: float = 15.0,
-) -> Optional[PickupPlan]:
-    """
-    Finds the best (theta_arm, u0) placing 4 cups on up to 4 blocks.
-
-    Arm axis is along +x in the robot when theta_arm == 0 (base_link frame).
-    """
-    if not blocks:
-        return None
-
-    cups = [-1.5 * cups_spacing_m, -0.5 * cups_spacing_m,
-             0.5 * cups_spacing_m,  1.5 * cups_spacing_m]
-    tol_angle = math.radians(tol_angle_deg)
-
-    pts = [(b.x, b.y) for b in blocks]
-    base_theta = pca_direction(pts)
-    if base_theta is None:
-        b0 = min(blocks, key=lambda b: b.x * b.x + b.y * b.y)
-        base_theta = math.atan2(b0.y, b0.x)
-
-    candidates = [
-        base_theta,
-        wrap_pi(base_theta + math.pi),
-        wrap_pi(base_theta + math.radians(10)),
-        wrap_pi(base_theta - math.radians(10)),
-    ]
-
-    best: Optional[PickupPlan] = None
-
-    for theta in candidates:
-        c = math.cos(theta)
-        s = math.sin(theta)
-
-        arm_blocks = []
-        for b in blocks:
-            u = c * b.x + s * b.y
-            v = -s * b.x + c * b.y
-
-            if abs(v) > tol_perp_m:
-                continue
-            if not is_perpendicular(b.yaw, theta, tol_angle):
-                continue
-
-            # IMPORTANT: use uid here (unique per instance)
-            arm_blocks.append((b.uid, u, v))
-
-        if not arm_blocks:
-            continue
-
-        for (uid, u, _v) in arm_blocks:
-            for cup_u in cups:
-                u0 = u - cup_u
-
-                unused = {ab[0] for ab in arm_blocks}
-                matches: Dict[int, int] = {}
-                abs_v_list = []
-
-                for cup_idx, cup_off in enumerate(cups):
-                    target_u = u0 + cup_off
-
-                    best_blk = None
-                    best_du = None
-                    best_v = None
-
-                    for (uid2, u2, v2) in arm_blocks:
-                        if uid2 not in unused:
-                            continue
-                        du = abs(u2 - target_u)
-                        if du <= tol_along_m and (best_du is None or du < best_du):
-                            best_du = du
-                            best_blk = uid2
-                            best_v = v2
-
-                    if best_blk is not None:
-                        matches[cup_idx] = best_blk
-                        unused.remove(best_blk)
-                        abs_v_list.append(abs(best_v))
-
-                score = len(matches)
-                if score == 0:
-                    continue
-
-                mean_abs_v = sum(abs_v_list) / len(abs_v_list) if abs_v_list else 1e9
-
-                plan = PickupPlan(theta_arm=theta, u0=u0, matches=matches, score=score, mean_abs_v=mean_abs_v)
-
-                if (best is None or
-                    plan.score > best.score or
-                    (plan.score == best.score and plan.mean_abs_v < best.mean_abs_v)):
-                    best = plan
-
-    return best
-
-
-# ----------------------------
-# ROS2 Node
-# ----------------------------
-
-class LocalPickupSolver(Node):
+class CupBlockAligner(Node):
     def __init__(self):
-        super().__init__('local_pickup_solver')
+        super().__init__("cup_block_aligner")
 
-        # TF
-        self.tf_buffer = tf2_ros.Buffer()
-        self.tf_listener = tf2_ros.TransformListener(self.tf_buffer, self)
+        # ---------- Frames ----------
+        self.ref_frame = "base_link"
+        self.cup_frames = ["cup_0", "cup_1", "cup_2", "cup_3"]
 
-        # Frames
-        self.base_frame = self.declare_parameter('base_frame', 'base_link').value
-        self.aruco_prefix = self.declare_parameter('aruco_prefix', 'aruco_').value
+        # ---------- Matching params ----------
+        # 2 mm tolerance for testing
+        self.match_radius_m = 0.03 
 
-        # Which ArUco IDs to consider
-        self.aruco_ids = self.declare_parameter('aruco_ids', [36, 47]).value
+        # Minimum number of matched cups required to care about the solution
+        self.min_useful_matches = 2
 
-        # Solver params
-        self.cups_spacing_m = float(self.declare_parameter('cups_spacing_m', 0.05).value)
-        self.tol_perp_m = float(self.declare_parameter('tol_perp_m', 0.02).value)
-        self.tol_along_m = float(self.declare_parameter('tol_along_m', 0.02).value)
-        self.tol_angle_deg = float(self.declare_parameter('tol_angle_deg', 15.0).value)
+        # TF lookup timeout
+        self.tf_timeout = Duration(seconds=0.05)
 
-        # Filter window
-        self.max_dist_m = float(self.declare_parameter('max_dist_m', 1.5).value)
-        self.min_x_m = float(self.declare_parameter('min_x_m', 0.05).value)
+        # ---------- Local-mode limits ----------
+        # Reject solutions outside this local correction window
+        self.max_local_dx_m = 0.5
+        self.max_local_dy_m = 0.5
+        self.max_local_dyaw_deg = 25.0
 
-        self.timer = self.create_timer(0.2, self.tick)  # 5 Hz
+        # ---------- Yaw search ----------
+        self.yaw_min_deg = -35.0
+        self.yaw_max_deg = 35.0
+        self.yaw_step_deg = 2.0
 
-        self.get_logger().info("✅ LocalPickupSolver running. Auto-discovering aruco_<id>_<idx> TF frames...")
+        # Slight preference for smaller yaw changes
+        self.yaw_penalty = 0.002
 
-    def _discover_aruco_frames(self):
-        """
-        Returns list of tuples: (frame_name, aruco_id, idx)
-        Accepts frames like:
-          aruco_47_5
-        Also accepts aruco_47 (idx=0) if it exists.
-        """
-        frames_yaml = self.tf_buffer.all_frames_as_yaml()
+        # ---------- Stability filtering ----------
+        self.required_stable_cycles = 3
+        self.stable_dx_tol_m = 0.01       # 10 mm
+        self.stable_dy_tol_m = 0.01       # 10 mm
+        self.stable_dyaw_tol_deg = 3.0    # 3 deg
 
-        found = []
-        for line in frames_yaml.splitlines():
-            line = line.strip()
-            if not line.endswith(":"):
-                continue
-            frame = line[:-1]  # remove ':'
+        self.prev_solution = None
+        self.stable_cycles = 0
 
-            if not frame.startswith(self.aruco_prefix):
-                continue
+        # ---------- Pickup-ready thresholds ----------
+        self.pickup_max_err_m = 0.03     # each matched cup must be within 2 mm
+        self.pickup_min_matches = 2
 
-            rest = frame[len(self.aruco_prefix):]
-            parts = rest.split("_")
+        # ---------- TF ----------
+        self.tf_buffer = Buffer()
+        self.tf_listener = TransformListener(self.tf_buffer, self)
 
-            try:
-                if len(parts) == 1:
-                    mid = int(parts[0])
-                    idx = 0
-                elif len(parts) == 2:
-                    mid = int(parts[0])
-                    idx = int(parts[1])
-                else:
-                    continue
-            except ValueError:
-                continue
+        self.aruco_frames: Set[str] = set()
 
-            if mid not in self.aruco_ids:
-                continue
+        qos = QoSProfile(
+            reliability=QoSReliabilityPolicy.BEST_EFFORT,
+            history=QoSHistoryPolicy.KEEP_LAST,
+            depth=20,
+        )
+        self.create_subscription(TFMessage, "/tf", self.tf_cb, qos)
 
-            found.append((frame, mid, idx))
+        self.timer = self.create_timer(0.2, self.tick)
 
-        return found
+    def tf_cb(self, msg: TFMessage):
+        for t in msg.transforms:
+            child = t.child_frame_id
+            if child.startswith("aruco"):
+                self.aruco_frames.add(child)
 
-    def tick(self):
-        blocks: List[BlockObs] = []
+    def lookup_xy(self, target_frame: str) -> Optional[XY]:
+        try:
+            tf = self.tf_buffer.lookup_transform(
+                self.ref_frame,
+                target_frame,
+                rclpy.time.Time(),
+                timeout=self.tf_timeout,
+            )
+            tr = tf.transform.translation
+            return XY(tr.x, tr.y)
+        except Exception:
+            return None
 
-        candidates = self._discover_aruco_frames()
-
-        for (target_frame, mid, idx) in candidates:
-            try:
-                t = self.tf_buffer.lookup_transform(
-                    self.base_frame,
-                    target_frame,
-                    rclpy.time.Time()
-                )
-
-                x = float(t.transform.translation.x)
-                y = float(t.transform.translation.y)
-
-                if x < self.min_x_m:
-                    continue
-                if math.hypot(x, y) > self.max_dist_m:
-                    continue
-
-                q = t.transform.rotation
-                _roll, _pitch, yaw = euler_from_quaternion([q.x, q.y, q.z, q.w])
-
-                uid = int(mid) * 1000 + int(idx)
-                blocks.append(BlockObs(uid=uid, aruco_id=int(mid), x=x, y=y, yaw=yaw))
-
-            except Exception:
-                pass
-
-        if not blocks:
-            self.get_logger().info("⏳ No blocks in TF (base_link).")
-            return
-
-        plan = compute_best_pickup_plan(
-            blocks=blocks,
-            cups_spacing_m=self.cups_spacing_m,
-            tol_perp_m=self.tol_perp_m,
-            tol_along_m=self.tol_along_m,
-            tol_angle_deg=self.tol_angle_deg,
+    @staticmethod
+    def rotate_xy(p: XY, yaw_rad: float) -> XY:
+        c = math.cos(yaw_rad)
+        s = math.sin(yaw_rad)
+        return XY(
+            x=c * p.x - s * p.y,
+            y=s * p.x + c * p.y,
         )
 
-        det_str = ", ".join([
-            f"aruco{b.aruco_id}[{b.uid%1000}](x={b.x:.2f},y={b.y:.2f},yaw={math.degrees(b.yaw):.0f}°)"
-            for b in blocks
-        ])
+    def score_candidate(
+        self,
+        rotated_cups: Dict[str, XY],
+        blocks: Dict[str, XY],
+        dx: float,
+        dy: float,
+        yaw_rad: float,
+    ) -> Tuple[int, float, List[Tuple[str, str, float]]]:
+        unmatched_blocks = set(blocks.keys())
+        assignments: List[Tuple[str, str, float]] = []
+        total_err = 0.0
+        matches = 0
 
-        if plan is None:
-            self.get_logger().info(f"👀 Blocks: {det_str} | ❌ No valid pickup plan (tolerances/orientation).")
+        for cup_name, cxy in rotated_cups.items():
+            shifted = XY(cxy.x + dx, cxy.y + dy)
+
+            nearest_block = None
+            nearest_dist = None
+
+            for bname in unmatched_blocks:
+                bxy = blocks[bname]
+                d = math.hypot(bxy.x - shifted.x, bxy.y - shifted.y)
+                if nearest_dist is None or d < nearest_dist:
+                    nearest_dist = d
+                    nearest_block = bname
+
+            if nearest_block is not None and nearest_dist is not None and nearest_dist <= self.match_radius_m:
+                matches += 1
+                total_err += nearest_dist
+                assignments.append((cup_name, nearest_block, nearest_dist))
+                unmatched_blocks.remove(nearest_block)
+
+        cost = total_err + self.yaw_penalty * abs(yaw_rad)
+        return matches, cost, assignments
+
+    def compute_best_alignment(
+        self,
+        cups: Dict[str, XY],
+        blocks: Dict[str, XY],
+    ) -> Tuple[float, float, float, int, float, List[Tuple[str, str, float]]]:
+        best_yaw = 0.0
+        best_dx = 0.0
+        best_dy = 0.0
+        best_matches = -1
+        best_cost = float("inf")
+        best_assignments: List[Tuple[str, str, float]] = []
+
+        yaw_deg = self.yaw_min_deg
+        while yaw_deg <= self.yaw_max_deg + 1e-9:
+            yaw_rad = math.radians(yaw_deg)
+
+            rotated_cups = {
+                name: self.rotate_xy(p, yaw_rad)
+                for name, p in cups.items()
+            }
+
+            for _, cup_xy in rotated_cups.items():
+                for _, block_xy in blocks.items():
+                    dx = block_xy.x - cup_xy.x
+                    dy = block_xy.y - cup_xy.y
+
+                    matches, cost, assignments = self.score_candidate(
+                        rotated_cups, blocks, dx, dy, yaw_rad
+                    )
+
+                    if matches > best_matches or (matches == best_matches and cost < best_cost):
+                        best_yaw = yaw_rad
+                        best_dx = dx
+                        best_dy = dy
+                        best_matches = matches
+                        best_cost = cost
+                        best_assignments = assignments
+
+            yaw_deg += self.yaw_step_deg
+
+        return best_yaw, best_dx, best_dy, best_matches, best_cost, best_assignments
+
+    def solution_is_local(self, dx: float, dy: float, yaw_rad: float) -> bool:
+        return (
+            abs(dx) <= self.max_local_dx_m and
+            abs(dy) <= self.max_local_dy_m and
+            abs(math.degrees(yaw_rad)) <= self.max_local_dyaw_deg
+        )
+
+    def update_stability(self, dx: float, dy: float, yaw_rad: float):
+        yaw_deg = math.degrees(yaw_rad)
+
+        if self.prev_solution is None:
+            self.prev_solution = (dx, dy, yaw_deg)
+            self.stable_cycles = 1
             return
 
-        theta_deg = math.degrees(plan.theta_arm)
+        prev_dx, prev_dy, prev_yaw_deg = self.prev_solution
+
+        if (
+            abs(dx - prev_dx) <= self.stable_dx_tol_m and
+            abs(dy - prev_dy) <= self.stable_dy_tol_m and
+            abs(yaw_deg - prev_yaw_deg) <= self.stable_dyaw_tol_deg
+        ):
+            self.stable_cycles += 1
+        else:
+            self.stable_cycles = 1
+
+        self.prev_solution = (dx, dy, yaw_deg)
+
+    def is_pickup_ready(self, matches: int, assignments: List[Tuple[str, str, float]]) -> bool:
+        if matches < self.pickup_min_matches:
+            return False
+
+        if self.stable_cycles < self.required_stable_cycles:
+            return False
+
+        for _, _, dist in assignments:
+            if dist > self.pickup_max_err_m:
+                return False
+
+        return True
+
+    def tick(self):
+        cups: Dict[str, XY] = {}
+        for c in self.cup_frames:
+            xy = self.lookup_xy(c)
+            if xy is not None:
+                cups[c] = xy
+
+        blocks: Dict[str, XY] = {}
+        for b in list(self.aruco_frames):
+            xy = self.lookup_xy(b)
+            if xy is not None:
+                blocks[b] = xy
+
+        if len(cups) != len(self.cup_frames):
+            self.get_logger().info(
+                f"waiting for cups... got {len(cups)}/{len(self.cup_frames)}"
+            )
+            return
+
+        if len(blocks) == 0:
+            self.get_logger().info("waiting for blocks...")
+            return
+
+        best_yaw, best_dx, best_dy, best_matches, best_cost, best_assignments = \
+            self.compute_best_alignment(cups, blocks)
+
+        if best_matches < self.min_useful_matches:
+            self.get_logger().info(
+                f"No worthwhile pickup found. best_matches={best_matches}"
+            )
+            self.stable_cycles = 0
+            self.prev_solution = None
+            return
+
+        if not self.solution_is_local(best_dx, best_dy, best_yaw):
+            self.get_logger().info(
+                f"Best solution outside local window: "
+                f"dx={best_dx:+.3f}, dy={best_dy:+.3f}, dyaw={math.degrees(best_yaw):+.1f} deg"
+            )
+            self.stable_cycles = 0
+            self.prev_solution = None
+            return
+
+        self.update_stability(best_dx, best_dy, best_yaw)
+
+        yaw_deg = math.degrees(best_yaw)
+        assign_str = ", ".join(
+            [f"{cup}->{blk} ({dist*1000:.1f} mm)" for cup, blk, dist in best_assignments]
+        )
+
+        ready = self.is_pickup_ready(best_matches, best_assignments)
 
         self.get_logger().info(
-            f"👀 Blocks: {det_str}\n"
-            f"✅ Best plan: score={plan.score}/4, theta_arm={theta_deg:.1f}°, u0={plan.u0:.3f} m, mean|v|={plan.mean_abs_v:.3f}\n"
-            f"   matches (cup_index->uid): {plan.matches}"
+            f"BEST ALIGN | dx={best_dx:+.3f} m, dy={best_dy:+.3f} m, "
+            f"dyaw={yaw_deg:+.1f} deg | matches={best_matches} | "
+            f"stable={self.stable_cycles}/{self.required_stable_cycles} | "
+            f"pickup_ready={ready} | {assign_str}"
         )
 
 
 def main():
     rclpy.init()
-    node = LocalPickupSolver()
-    try:
-        rclpy.spin(node)
-    finally:
-        node.destroy_node()
-        rclpy.shutdown()
+    node = CupBlockAligner()
+    rclpy.spin(node)
+    node.destroy_node()
+    rclpy.shutdown()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
