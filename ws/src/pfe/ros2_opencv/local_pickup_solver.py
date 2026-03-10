@@ -18,55 +18,58 @@ class XY:
     x: float
     y: float
 
-
+W
 class CupBlockAligner(Node):
     def __init__(self):
         super().__init__("cup_block_aligner")
+
+        # ---------- Debug ----------
+        self.debug_candidates = True
+        self.debug_top_k = 15
 
         # ---------- Frames ----------
         self.ref_frame = "base_link"
         self.cup_frames = ["cup_0", "cup_1", "cup_2", "cup_3"]
 
         # ---------- Team color ----------
-        # Set this to "blue" or "yellow"
-        self.team_color = "yellow"
+        self.team_color = "yellow"   # or "blue"
 
-        # ---------- Block colors ----------
-        # Placeholder map. Replace/update from your own perception node later.
-        # Example:
-        # self.block_color_map["aruco_47_14"] = "blue"
-        self.block_color_map: Dict[str, str] = {}
+        # ---------- Marker ID -> color ----------
+        self.BLUE_IDS = {36}
+        self.YELLOW_IDS = {47}
 
         # ---------- Matching params ----------
-        self.match_radius_m = 0.015
-        self.pickup_max_err_m = 0.015
+        self.match_radius_m = 0.015      # 8 mm
+        self.pickup_max_err_m = 0.015    # 8 mm
 
         self.min_useful_matches = 1
         self.pickup_min_matches = 1
 
-        self.tf_timeout = Duration(seconds=0.05)
+        self.tf_timeout = Duration(seconds=0.03)
 
-        # ---------- Fresh block filtering ----------
+        
+        # ---------- Recent visible blocks ----------
+        # Keep aruco frames seen recently across multiple /tf callbacks
         self.aruco_last_seen: Dict[str, float] = {}
-        self.block_timeout_s = 0.2
+        self.block_memory_s = 0.30
+        self.max_blocks_to_consider = 20
 
         # ---------- Local-mode limits ----------
         self.max_local_dx_m = 0.40
         self.max_local_dy_m = 0.25
-        self.max_local_dyaw_deg = 30.0
+        self.max_local_dyaw_deg = 90
 
         # ---------- Yaw search ----------
-        self.yaw_min_deg = -20.0
-        self.yaw_max_deg = 20.0
-        self.yaw_step_deg = 1.5
- 
-        # ---------- Weighted scoring ---------- ######################## Weighting factors for scoring function. Adjust these to change behavior. Higher w_matches means more aggressive pickups with more matches, higher w_color means more preference for correct color orientation, higher w_error means more penalty for misalignment, etc.
-        # Bigger is better
+        self.yaw_min_deg = -95
+        self.yaw_max_deg = 95
+        self.yaw_step_deg = 3
+
+        # ---------- Weighted scoring ----------
         self.w_matches = 1000.0
         self.w_color = 120.0
-        self.w_error = 1.0      # applied to avg error in mm
-        self.w_yaw = 2.0        # penalty per degree
-        self.w_translation = 80.0  # penalty per meter of base shift
+        self.w_error = 1.0          # avg error in mm
+        self.w_yaw = 0.1            # penalty per degree
+        self.w_translation = 80.0   # penalty per meter
 
         # ---------- Stability filtering ----------
         self.required_stable_cycles = 3
@@ -85,7 +88,7 @@ class CupBlockAligner(Node):
         qos = QoSProfile(
             reliability=QoSReliabilityPolicy.BEST_EFFORT,
             history=QoSHistoryPolicy.KEEP_LAST,
-            depth=20,
+            depth=50,
         )
         self.create_subscription(TFMessage, "/tf", self.tf_cb, qos)
 
@@ -94,29 +97,17 @@ class CupBlockAligner(Node):
     def tf_cb(self, msg: TFMessage):
         now_sec = self.get_clock().now().nanoseconds * 1e-9
 
-        for t in msg.transforms:
+        for t in msg.transforms:    
             child = t.child_frame_id
-            if child.startswith("aruco"):
+            self.get_logger().debug(f"tf child seen: {child}")
+            if "aruco" in child.lower():
                 self.aruco_last_seen[child] = now_sec
 
-    def get_fresh_aruco_frames(self) -> List[str]:
-        now_sec = self.get_clock().now().nanoseconds * 1e-9
-
-        fresh = []
-        stale = []
-
-        for frame, last_seen in self.aruco_last_seen.items():
-            if (now_sec - last_seen) <= self.block_timeout_s:
-                fresh.append(frame)
-            else:
-                stale.append(frame)
-
-        for frame in stale:
-            del self.aruco_last_seen[frame]
-
-        return fresh
-
     def lookup_xy(self, target_frame: str) -> Optional[XY]:
+        """
+        Generic XY lookup for any frame.
+        Uses only x,y in base_link.
+        """
         try:
             tf = self.tf_buffer.lookup_transform(
                 self.ref_frame,
@@ -138,38 +129,58 @@ class CupBlockAligner(Node):
             y=s * p.x + c * p.y,
         )
 
+    def get_recent_aruco_frames(self) -> List[str]:
+        now_sec = self.get_clock().now().nanoseconds * 1e-9
+
+        recent = []
+        stale = []
+
+        for frame, last_seen in self.aruco_last_seen.items():
+            if (now_sec - last_seen) <= self.block_memory_s:
+                recent.append(frame)
+            else:
+                stale.append(frame)
+
+        for frame in stale:
+            del self.aruco_last_seen[frame]
+
+        # Stable ordering helps debugging
+        recent.sort()
+
+        # Hard cap to prevent candidate explosion
+        return recent[:self.max_blocks_to_consider]
+
     def get_block_color(self, frame_name: str) -> str:
         """
-        Extract block color from TF name.
+        Extract block color from TF frame name.
         Expected format: aruco_<id>_<index>
+        Example: aruco_36_3, aruco_47_5
         """
-
         try:
             parts = frame_name.split("_")
             marker_id = int(parts[1])
         except Exception:
             return "unknown"
 
-        # Adjust these if your camera confirms the opposite mapping ##################################### 
-        if marker_id == 36:
+        if marker_id in self.BLUE_IDS:
             return "blue"
-        elif marker_id == 47:
+        elif marker_id in self.YELLOW_IDS:
             return "yellow"
         else:
             return "unknown"
 
-    def color_value(self, frame_name: str) -> float:  # Color scores for scoring function ###########################
+    def color_value(self, frame_name: str) -> float:
         color = self.get_block_color(frame_name)
 
         if color == "unknown":
             return 0.0
 
-        # We want the opposite color facing up so we can flip it
         if self.team_color == "yellow":
             if color == "blue":
                 return 1.0
             elif color == "yellow":
                 return 0.2
+
         elif self.team_color == "blue":
             if color == "yellow":
                 return 1.0
@@ -186,14 +197,6 @@ class CupBlockAligner(Node):
         dy: float,
         yaw_rad: float,
     ) -> Tuple[int, float, List[Tuple[str, str, float]], float, float]:
-        """
-        Returns:
-            matches,
-            weighted_score,
-            assignments,
-            avg_err_mm,
-            color_score
-        """
         unmatched_blocks = {name: xy for name, xy in block_list}
         assignments: List[Tuple[str, str, float]] = []
         total_err_m = 0.0
@@ -251,6 +254,8 @@ class CupBlockAligner(Node):
         best_avg_err_mm = 1e9
         best_color_score = 0.0
 
+        all_candidates = []
+
         block_list = list(blocks.items())
 
         yaw_deg = self.yaw_min_deg
@@ -275,8 +280,20 @@ class CupBlockAligner(Node):
                     matches, score, assignments, avg_err_mm, color_score = self.score_candidate(
                         rotated_cups, block_list, dx, dy, yaw_rad
                     )
+                    if matches < 2:
+                        continue
+                    # Save candidate for debugging
+                    all_candidates.append({
+                        "matches": matches,
+                        "score": score,
+                        "yaw_deg": yaw_deg,
+                        "dx": dx,
+                        "dy": dy,
+                        "avg_err_mm": avg_err_mm,
+                        "color_score": color_score,
+                        "assignments": assignments,
+                    })
 
-                    # First prefer more matches, then weighted score
                     if (
                         matches > best_matches
                         or (matches == best_matches and score > best_score)
@@ -289,6 +306,31 @@ class CupBlockAligner(Node):
                         best_assignments = assignments
                         best_avg_err_mm = avg_err_mm
                         best_color_score = color_score
+
+            yaw_deg += self.yaw_step_deg
+
+        # ---------- Debug print top candidates ----------
+        if self.debug_candidates and len(all_candidates) > 0:
+            all_candidates.sort(
+                key=lambda c: (c["matches"], c["score"]),
+                reverse=True
+            )
+
+            self.get_logger().info("===== TOP CANDIDATES =====")
+            for i, cand in enumerate(all_candidates[:self.debug_top_k]):
+                assign_str = ", ".join(
+                    [f"{cup}->{blk} ({dist*1000:.1f} mm)" for cup, blk, dist in cand["assignments"]]
+                )
+                self.get_logger().info(
+                    f"[{i}] matches={cand['matches']} | "
+                    f"score={cand['score']:.1f} | "
+                    f"dyaw={cand['yaw_deg']:+.1f} deg | "
+                    f"dx={cand['dx']:+.3f} | dy={cand['dy']:+.3f} | "
+                    f"avg_err={cand['avg_err_mm']:.1f} mm | "
+                    f"color_score={cand['color_score']:.2f} | "
+                    f"{assign_str}"
+                )
+            self.get_logger().info("==========================")
 
         return (
             best_yaw,
@@ -343,104 +385,114 @@ class CupBlockAligner(Node):
         return True
 
     def tick(self):
-        start_t = time.time()
+        try:
+            start_t = time.time()
 
-        # ---------- Cups ----------
-        cups: Dict[str, XY] = {}
-        for c in self.cup_frames:
-            xy = self.lookup_xy(c)
-            if xy is not None:
-                cups[c] = xy
+            # ---------- Cups ----------
+            cups: Dict[str, XY] = {}
+            for c in self.cup_frames:
+                xy = self.lookup_xy(c)
+                if xy is not None:
+                    cups[c] = xy
 
-        if len(cups) != len(self.cup_frames):
+            if len(cups) != len(self.cup_frames):
+                self.get_logger().info(
+                    f"waiting for cups... got {len(cups)}/{len(self.cup_frames)}"
+                )
+                self.stable_cycles = 0
+                self.prev_solution = None
+                self.prev_assignment_signature = None
+                return
+
+            # ---------- Recent visible blocks ----------
+            blocks: Dict[str, XY] = {}
+            recent_frames = self.get_recent_aruco_frames()
+
+            for b in recent_frames:
+                xy = self.lookup_xy(b)
+                if xy is not None:
+                    blocks[b] = xy
+
             self.get_logger().info(
-                f"waiting for cups... got {len(cups)}/{len(self.cup_frames)}"
+                f"debug | recent_aruco_frames={len(recent_frames)} | valid_blocks={len(blocks)}"
             )
-            self.stable_cycles = 0
-            self.prev_solution = None
-            self.prev_assignment_signature = None
-            return
+            if len(blocks) == 0:
+                self.get_logger().info("waiting for fresh blocks...")
+                self.stable_cycles = 0
+                self.prev_solution = None
+                self.prev_assignment_signature = None
+                return
+            
+            self.get_logger().info("debug | entering compute_best_alignment()")
+            # ---------- Solve ----------
+            (
+                best_yaw,
+                best_dx,
+                best_dy,
+                best_matches,
+                best_score,
+                best_assignments,
+                best_avg_err_mm,
+                best_color_score,
+            ) = self.compute_best_alignment(cups, blocks)
 
-        # ---------- Fresh blocks ----------
-        blocks: Dict[str, XY] = {}
-        fresh_frames = self.get_fresh_aruco_frames()
+            self.get_logger().info("debug | compute_best_alignment() returned")
 
-        for b in fresh_frames:
-            xy = self.lookup_xy(b)
-            if xy is not None:
-                blocks[b] = xy
-
-        if len(blocks) == 0:
-            self.get_logger().info("waiting for fresh blocks...")
-            self.stable_cycles = 0
-            self.prev_solution = None
-            self.prev_assignment_signature = None
-            return
-
-        # ---------- Solve ----------
-        (
-            best_yaw,
-            best_dx,
-            best_dy,
-            best_matches,
-            best_score,
-            best_assignments,
-            best_avg_err_mm,
-            best_color_score,
-        ) = self.compute_best_alignment(cups, blocks)
-
-        self.get_logger().info(
-            f"debug | fresh_blocks={len(blocks)} | matches={best_matches} | "
-            f"score={best_score:.1f} | color_score={best_color_score:.2f} | "
-            f"avg_err={best_avg_err_mm:.1f} mm"
-        )
-
-        if best_matches < self.min_useful_matches:
             self.get_logger().info(
-                f"No worthwhile pickup found. best_matches={best_matches}"
+                f"debug | matches={best_matches} | "
+                f"score={best_score:.1f} | color_score={best_color_score:.2f} | "
+                f"avg_err={best_avg_err_mm:.1f} mm"
             )
-            self.stable_cycles = 0
-            self.prev_solution = None
-            self.prev_assignment_signature = None
-            return
 
-        if not self.solution_is_local(best_dx, best_dy, best_yaw):
+            if best_matches < self.min_useful_matches:
+                self.get_logger().info(
+                    f"No worthwhile pickup found. best_matches={best_matches}"
+                )
+                self.stable_cycles = 0
+                self.prev_solution = None
+                self.prev_assignment_signature = None
+                return
+
+            if not self.solution_is_local(best_dx, best_dy, best_yaw):
+                self.get_logger().info(
+                    f"Best solution outside local window: "
+                    f"dx={best_dx:+.3f}, dy={best_dy:+.3f}, dyaw={math.degrees(best_yaw):+.1f} deg"
+                )
+                self.stable_cycles = 0
+                self.prev_solution = None
+                self.prev_assignment_signature = None
+                return
+
+            assignment_signature = tuple(sorted([blk for _, blk, _ in best_assignments]))
+            if self.prev_assignment_signature is None:
+                self.prev_assignment_signature = assignment_signature
+            elif assignment_signature != self.prev_assignment_signature:
+                self.stable_cycles = 0
+                self.prev_solution = None
+                self.prev_assignment_signature = assignment_signature
+
+            self.update_stability(best_dx, best_dy, best_yaw)
+
+            ready = self.is_pickup_ready(best_matches, best_assignments)
+            yaw_deg = math.degrees(best_yaw)
+
+            assign_str = ", ".join(
+                [f"{cup}->{blk} ({dist*1000:.1f} mm)" for cup, blk, dist in best_assignments]
+            )
+
+            dt_ms = (time.time() - start_t) * 1000.0
+
             self.get_logger().info(
-                f"Best solution outside local window: "
-                f"dx={best_dx:+.3f}, dy={best_dy:+.3f}, dyaw={math.degrees(best_yaw):+.1f} deg"
+                f"BEST ALIGN | dx={best_dx:+.3f} m, dy={best_dy:+.3f} m, "
+                f"dyaw={yaw_deg:+.1f} deg | matches={best_matches} | "
+                f"score={best_score:.1f} | color_score={best_color_score:.2f} | "
+                f"avg_err={best_avg_err_mm:.1f} mm | "
+                f"stable={self.stable_cycles}/{self.required_stable_cycles} | "
+                f"pickup_ready={ready} | solver_time={dt_ms:.2f} ms | {assign_str}"
             )
-            self.stable_cycles = 0
-            self.prev_solution = None
-            self.prev_assignment_signature = None
-            return
 
-        assignment_signature = tuple(sorted([blk for _, blk, _ in best_assignments]))
-        if self.prev_assignment_signature is None:
-            self.prev_assignment_signature = assignment_signature
-        elif assignment_signature != self.prev_assignment_signature:
-            self.stable_cycles = 0
-            self.prev_solution = None
-            self.prev_assignment_signature = assignment_signature
-
-        self.update_stability(best_dx, best_dy, best_yaw)
-
-        ready = self.is_pickup_ready(best_matches, best_assignments)
-        yaw_deg = math.degrees(best_yaw)
-
-        assign_str = ", ".join(
-            [f"{cup}->{blk} ({dist*1000:.1f} mm)" for cup, blk, dist in best_assignments]
-        )
-
-        dt_ms = (time.time() - start_t) * 1000.0
-
-        self.get_logger().info(
-            f"BEST ALIGN | dx={best_dx:+.3f} m, dy={best_dy:+.3f} m, "
-            f"dyaw={yaw_deg:+.1f} deg | matches={best_matches} | "
-            f"score={best_score:.1f} | color_score={best_color_score:.2f} | "
-            f"avg_err={best_avg_err_mm:.1f} mm | "
-            f"stable={self.stable_cycles}/{self.required_stable_cycles} | "
-            f"pickup_ready={ready} | solver_time={dt_ms:.2f} ms | {assign_str}"
-        )
+        except Exception as e:
+            self.get_logger().error(f"tick() crashed: {repr(e)}")
 
 
 def main():
