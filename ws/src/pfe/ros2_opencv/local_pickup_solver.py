@@ -27,16 +27,23 @@ class CupBlockAligner(Node):
         self.ref_frame = "base_link"
         self.cup_frames = ["cup_0", "cup_1", "cup_2", "cup_3"]
 
-        # ---------- Matching params ----------
-        # Relaxed for testing
-        self.match_radius_m = 0.015    # 15 mm
-        self.pickup_max_err_m = 0.015    # 8 mm
+        # ---------- Team color ----------
+        # Set this to "blue" or "yellow"
+        self.team_color = "yellow"
 
-        # Allow even 1-block solutions while testing
+        # ---------- Block colors ----------
+        # Placeholder map. Replace/update from your own perception node later.
+        # Example:
+        # self.block_color_map["aruco_47_14"] = "blue"
+        self.block_color_map: Dict[str, str] = {}
+
+        # ---------- Matching params ----------
+        self.match_radius_m = 0.015
+        self.pickup_max_err_m = 0.015
+
         self.min_useful_matches = 1
         self.pickup_min_matches = 1
 
-        # TF lookup timeout
         self.tf_timeout = Duration(seconds=0.05)
 
         # ---------- Fresh block filtering ----------
@@ -44,7 +51,6 @@ class CupBlockAligner(Node):
         self.block_timeout_s = 0.2
 
         # ---------- Local-mode limits ----------
-        # Looser window for testing
         self.max_local_dx_m = 0.40
         self.max_local_dy_m = 0.25
         self.max_local_dyaw_deg = 30.0
@@ -53,9 +59,14 @@ class CupBlockAligner(Node):
         self.yaw_min_deg = -20.0
         self.yaw_max_deg = 20.0
         self.yaw_step_deg = 1.5
-
-        # Slight preference for smaller yaw changes
-        self.yaw_penalty = 0.002
+ 
+        # ---------- Weighted scoring ---------- ######################## Weighting factors for scoring function. Adjust these to change behavior. Higher w_matches means more aggressive pickups with more matches, higher w_color means more preference for correct color orientation, higher w_error means more penalty for misalignment, etc.
+        # Bigger is better
+        self.w_matches = 1000.0
+        self.w_color = 120.0
+        self.w_error = 1.0      # applied to avg error in mm
+        self.w_yaw = 2.0        # penalty per degree
+        self.w_translation = 80.0  # penalty per meter of base shift
 
         # ---------- Stability filtering ----------
         self.required_stable_cycles = 3
@@ -127,6 +138,46 @@ class CupBlockAligner(Node):
             y=s * p.x + c * p.y,
         )
 
+    def get_block_color(self, frame_name: str) -> str:
+        """
+        Extract block color from TF name.
+        Expected format: aruco_<id>_<index>
+        """
+
+        try:
+            parts = frame_name.split("_")
+            marker_id = int(parts[1])
+        except Exception:
+            return "unknown"
+
+        # Adjust these if your camera confirms the opposite mapping ##################################### 
+        if marker_id == 36:
+            return "blue"
+        elif marker_id == 47:
+            return "yellow"
+        else:
+            return "unknown"
+
+    def color_value(self, frame_name: str) -> float:  # Color scores for scoring function ###########################
+        color = self.get_block_color(frame_name)
+
+        if color == "unknown":
+            return 0.0
+
+        # We want the opposite color facing up so we can flip it
+        if self.team_color == "yellow":
+            if color == "blue":
+                return 1.0
+            elif color == "yellow":
+                return 0.2
+        elif self.team_color == "blue":
+            if color == "yellow":
+                return 1.0
+            elif color == "blue":
+                return 0.2
+
+        return 0.0
+
     def score_candidate(
         self,
         rotated_cups: List[Tuple[str, XY]],
@@ -134,11 +185,20 @@ class CupBlockAligner(Node):
         dx: float,
         dy: float,
         yaw_rad: float,
-    ) -> Tuple[int, float, List[Tuple[str, str, float]]]:
+    ) -> Tuple[int, float, List[Tuple[str, str, float]], float, float]:
+        """
+        Returns:
+            matches,
+            weighted_score,
+            assignments,
+            avg_err_mm,
+            color_score
+        """
         unmatched_blocks = {name: xy for name, xy in block_list}
         assignments: List[Tuple[str, str, float]] = []
-        total_err = 0.0
+        total_err_m = 0.0
         matches = 0
+        color_score = 0.0
 
         for cup_name, cxy in rotated_cups:
             shifted = XY(cxy.x + dx, cxy.y + dy)
@@ -154,24 +214,42 @@ class CupBlockAligner(Node):
 
             if nearest_block is not None and nearest_dist is not None and nearest_dist <= self.match_radius_m:
                 matches += 1
-                total_err += nearest_dist
+                total_err_m += nearest_dist
+                color_score += self.color_value(nearest_block)
                 assignments.append((cup_name, nearest_block, nearest_dist))
                 del unmatched_blocks[nearest_block]
 
-        cost = total_err + self.yaw_penalty * abs(yaw_rad)
-        return matches, cost, assignments
+        if matches > 0:
+            avg_err_mm = (total_err_m / matches) * 1000.0
+        else:
+            avg_err_mm = 1e9
+
+        yaw_deg = abs(math.degrees(yaw_rad))
+        translation_mag = math.hypot(dx, dy)
+
+        weighted_score = (
+            self.w_matches * matches
+            + self.w_color * color_score
+            - self.w_error * avg_err_mm
+            - self.w_yaw * yaw_deg
+            - self.w_translation * translation_mag
+        )
+
+        return matches, weighted_score, assignments, avg_err_mm, color_score
 
     def compute_best_alignment(
         self,
         cups: Dict[str, XY],
         blocks: Dict[str, XY],
-    ) -> Tuple[float, float, float, int, float, List[Tuple[str, str, float]]]:
+    ) -> Tuple[float, float, float, int, float, List[Tuple[str, str, float]], float, float]:
         best_yaw = 0.0
         best_dx = 0.0
         best_dy = 0.0
         best_matches = -1
-        best_cost = float("inf")
+        best_score = -1e18
         best_assignments: List[Tuple[str, str, float]] = []
+        best_avg_err_mm = 1e9
+        best_color_score = 0.0
 
         block_list = list(blocks.items())
 
@@ -189,35 +267,39 @@ class CupBlockAligner(Node):
                     dx = block_xy.x - cup_xy.x
                     dy = block_xy.y - cup_xy.y
 
-                    # Skip impossible local-mode candidates early
                     if abs(dx) > self.max_local_dx_m:
                         continue
                     if abs(dy) > self.max_local_dy_m:
                         continue
 
-                    matches, cost, assignments = self.score_candidate(
+                    matches, score, assignments, avg_err_mm, color_score = self.score_candidate(
                         rotated_cups, block_list, dx, dy, yaw_rad
                     )
 
-                    if matches > best_matches or (matches == best_matches and cost < best_cost):
+                    # First prefer more matches, then weighted score
+                    if (
+                        matches > best_matches
+                        or (matches == best_matches and score > best_score)
+                    ):
                         best_yaw = yaw_rad
                         best_dx = dx
                         best_dy = dy
                         best_matches = matches
-                        best_cost = cost
+                        best_score = score
                         best_assignments = assignments
+                        best_avg_err_mm = avg_err_mm
+                        best_color_score = color_score
 
-                        # Early exit if a very strong 4-cup solution is found
-                        if (
-                            matches == len(self.cup_frames)
-                            and len(assignments) == len(self.cup_frames)
-                            and cost < 0.001
-                        ):
-                            return best_yaw, best_dx, best_dy, best_matches, best_cost, best_assignments
-
-            yaw_deg += self.yaw_step_deg
-
-        return best_yaw, best_dx, best_dy, best_matches, best_cost, best_assignments
+        return (
+            best_yaw,
+            best_dx,
+            best_dy,
+            best_matches,
+            best_score,
+            best_assignments,
+            best_avg_err_mm,
+            best_color_score,
+        )
 
     def solution_is_local(self, dx: float, dy: float, yaw_rad: float) -> bool:
         return (
@@ -296,15 +378,21 @@ class CupBlockAligner(Node):
             return
 
         # ---------- Solve ----------
-        best_yaw, best_dx, best_dy, best_matches, best_cost, best_assignments = \
-            self.compute_best_alignment(cups, blocks)
+        (
+            best_yaw,
+            best_dx,
+            best_dy,
+            best_matches,
+            best_score,
+            best_assignments,
+            best_avg_err_mm,
+            best_color_score,
+        ) = self.compute_best_alignment(cups, blocks)
 
         self.get_logger().info(
-            f"debug | fresh_blocks={len(blocks)} | "
-            f"match_radius={self.match_radius_m*1000:.1f} mm | "
-            f"pickup_err={self.pickup_max_err_m*1000:.1f} mm | "
-            f"local_window=({self.max_local_dx_m:.2f}, {self.max_local_dy_m:.2f}, {self.max_local_dyaw_deg:.1f} deg) | "
-            f"raw_best_matches={best_matches}"
+            f"debug | fresh_blocks={len(blocks)} | matches={best_matches} | "
+            f"score={best_score:.1f} | color_score={best_color_score:.2f} | "
+            f"avg_err={best_avg_err_mm:.1f} mm"
         )
 
         if best_matches < self.min_useful_matches:
@@ -326,7 +414,6 @@ class CupBlockAligner(Node):
             self.prev_assignment_signature = None
             return
 
-        # Reset stability if matched block IDs changed
         assignment_signature = tuple(sorted([blk for _, blk, _ in best_assignments]))
         if self.prev_assignment_signature is None:
             self.prev_assignment_signature = assignment_signature
@@ -340,11 +427,6 @@ class CupBlockAligner(Node):
         ready = self.is_pickup_ready(best_matches, best_assignments)
         yaw_deg = math.degrees(best_yaw)
 
-        # Optional future idea: approach offset before pickup
-        # approach_offset_m = 0.03
-        # best_dx_adjusted = best_dx - approach_offset_m
-        # Not used for now.
-
         assign_str = ", ".join(
             [f"{cup}->{blk} ({dist*1000:.1f} mm)" for cup, blk, dist in best_assignments]
         )
@@ -354,6 +436,8 @@ class CupBlockAligner(Node):
         self.get_logger().info(
             f"BEST ALIGN | dx={best_dx:+.3f} m, dy={best_dy:+.3f} m, "
             f"dyaw={yaw_deg:+.1f} deg | matches={best_matches} | "
+            f"score={best_score:.1f} | color_score={best_color_score:.2f} | "
+            f"avg_err={best_avg_err_mm:.1f} mm | "
             f"stable={self.stable_cycles}/{self.required_stable_cycles} | "
             f"pickup_ready={ready} | solver_time={dt_ms:.2f} ms | {assign_str}"
         )
