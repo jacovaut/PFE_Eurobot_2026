@@ -197,6 +197,7 @@
     <axis xyz="0 0 1"/>
   </joint>
 
+ 
   <!-- ===================== CAMERA ===================== -->
   <link name="arducam_link">
     <inertial>
@@ -228,6 +229,15 @@
     <child link="arducam_link"/>
     <origin xyz="-0.10964196528624118 0.10993206200904702 0.15264326081592658"
             rpy="-3.1415926535897922 -0.6973907898697068 -3.141592653589792"/>
+  </joint>
+
+  <!-- ROS optical frame for camera-based vision -->
+  <link name="arducam_optical_frame"/>
+
+  <joint name="arducam_to_optical" type="fixed">
+    <parent link="arducam_link"/>
+    <child link="arducam_optical_frame"/>
+    <origin xyz="0 0 0" rpy="-1.57079632679 0 -1.57079632679"/>
   </joint>
 
   <!-- ===================== SUCTION CUPS ===================== -->

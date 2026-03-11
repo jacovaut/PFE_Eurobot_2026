@@ -177,7 +177,7 @@ class SubscriberNodeClass(Node):
                 # --- TF publish: unique frame per tracked instance ---
                 t = TransformStamped()
                 t.header.stamp = self.get_clock().now().to_msg()
-                t.header.frame_id = "arducam_link"
+                t.header.frame_id = "arducam_optical_frame"
                 t.child_frame_id = f"aruco_{track.id}_{track.index}"
                 t.transform.translation.x = track.x
                 t.transform.translation.y = track.y
@@ -202,7 +202,7 @@ class SubscriberNodeClass(Node):
 
         for c in self.memory.values():
             marker = Marker()
-            marker.header.frame_id = "arducam_link"
+            marker.header.frame_id = "arducam_optical_frame"
             marker.header.stamp = stamp
 
             # Unique marker identity in RViz is (ns, id)
