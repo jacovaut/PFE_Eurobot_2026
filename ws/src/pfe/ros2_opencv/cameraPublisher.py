@@ -10,7 +10,7 @@ class PublisherNodeClass(Node):
         super().__init__('publisher_node')
         
         # Camera setup
-        self.cameraDeviceNumber = 0 #if no cam detected, /dev/video* and change value
+        self.cameraDeviceNumber = 2 #if no cam detected, /dev/video* and change value
         self.camera = cv2.VideoCapture(self.cameraDeviceNumber)
         
         # ROS publisher setup

@@ -18,7 +18,7 @@ class XY:
     x: float
     y: float
 
-W
+
 class CupBlockAligner(Node):
     def __init__(self):
         super().__init__("cup_block_aligner")
@@ -128,6 +128,37 @@ class CupBlockAligner(Node):
             x=c * p.x - s * p.y,
             y=s * p.x + c * p.y,
         )
+    
+    def debug_pairwise_spacing(self, label: str, items: Dict[str, XY], sort_axis: str = "y"):
+        if len(items) == 0:
+            return
+
+        if sort_axis == "x":
+            ordered = sorted(items.items(), key=lambda item: item[1].x)
+        else:
+            ordered = sorted(items.items(), key=lambda item: item[1].y)
+
+        self.get_logger().info(f"----- {label} ORDERED BY {sort_axis.upper()} -----")
+
+        for name, xy in ordered:
+            self.get_logger().info(
+                f"{name}: x={xy.x:+.3f}, y={xy.y:+.3f}"
+            )
+
+        if len(ordered) >= 2:
+            self.get_logger().info(f"----- {label} SPACING -----")
+
+            for i in range(len(ordered) - 1):
+                n1, p1 = ordered[i]
+                n2, p2 = ordered[i + 1]
+
+                dx = p2.x - p1.x
+                dy = p2.y - p1.y
+                d = math.hypot(dx, dy)
+
+                self.get_logger().info(
+                    f"{n1} -> {n2}: dx={dx:+.3f}, dy={dy:+.3f}, dist={d*1000:.1f} mm"
+                )
 
     def get_recent_aruco_frames(self) -> List[str]:
         now_sec = self.get_clock().now().nanoseconds * 1e-9
@@ -422,6 +453,26 @@ class CupBlockAligner(Node):
                 self.prev_solution = None
                 self.prev_assignment_signature = None
                 return
+            
+                        # ---------- DEBUG GEOMETRY ----------
+            self.get_logger().info("===== CUP POSITIONS =====")
+
+            for name, xy in cups.items():
+                self.get_logger().info(
+                    f"{name}: x={xy.x:+.3f}, y={xy.y:+.3f}"
+                )
+
+            self.get_logger().info("===== BLOCK POSITIONS =====")
+
+            for name, xy in blocks.items():
+                color = self.get_block_color(name)
+                self.get_logger().info(
+                    f"{name} ({color}): x={xy.x:+.3f}, y={xy.y:+.3f}"
+                )
+
+            # Print sorted geometry and spacing
+            self.debug_pairwise_spacing("CUPS", cups, sort_axis="y")
+            self.debug_pairwise_spacing("BLOCKS", blocks, sort_axis="y")
             
             self.get_logger().info("debug | entering compute_best_alignment()")
             # ---------- Solve ----------
