@@ -38,6 +38,8 @@ class CupBlockAligner(Node):
         self.BLUE_IDS = {36}
         self.YELLOW_IDS = {47}
 
+             
+
         # ---------- Matching params ----------
         self.match_radius_m = 0.015      # 8 mm
         self.pickup_max_err_m = 0.015    # 8 mm
@@ -70,6 +72,8 @@ class CupBlockAligner(Node):
         self.w_error = 1.0          # avg error in mm
         self.w_yaw = 0.1            # penalty per degree
         self.w_translation = 80.0   # penalty per meter
+        self.w_row = 200.0              # bonus for matched blocks forming a line
+        self.row_max_perp_error_m = 0.02  # 20 mm tolerance to consider "on the same line"
 
         # ---------- Stability filtering ----------
         self.required_stable_cycles = 3
@@ -93,6 +97,65 @@ class CupBlockAligner(Node):
         self.create_subscription(TFMessage, "/tf", self.tf_cb, qos)
 
         self.timer = self.create_timer(0.2, self.tick)
+
+
+    def compute_row_bonus(self, assignments: List[Tuple[str, str, float]], blocks: Dict[str, XY]) -> float:
+        """
+        Returns a bonus if matched blocks lie on a clean straight line.
+        Uses perpendicular distance of matched blocks to a best-fit line
+        defined by the first and last matched blocks (ordered by projection).
+        """
+        if len(assignments) < 2:
+            return 0.0
+
+        matched_points = []
+        for _, blk_name, _ in assignments:
+            if blk_name in blocks:
+                matched_points.append(blocks[blk_name])
+
+        if len(matched_points) < 2:
+            return 0.0
+
+        # Try all pairs of matched points as candidate line
+        best_avg_perp = float("inf")
+
+        for i in range(len(matched_points)):
+            for j in range(i + 1, len(matched_points)):
+                p1 = matched_points[i]
+                p2 = matched_points[j]
+
+                dx = p2.x - p1.x
+                dy = p2.y - p1.y
+                norm = math.hypot(dx, dy)
+                if norm < 1e-9:
+                    continue
+
+                # Unit direction vector
+                ux = dx / norm
+                uy = dy / norm
+
+                perp_errors = []
+                for p in matched_points:
+                    vx = p.x - p1.x
+                    vy = p.y - p1.y
+
+                    # perpendicular distance to line
+                    perp = abs(vx * uy - vy * ux)
+                    perp_errors.append(perp)
+
+                avg_perp = sum(perp_errors) / len(perp_errors)
+                if avg_perp < best_avg_perp:
+                    best_avg_perp = avg_perp
+
+        if best_avg_perp == float("inf"):
+            return 0.0
+
+        # Convert to bonus
+        # full bonus when avg perp error is near 0, fades out near row_max_perp_error_m
+        if best_avg_perp >= self.row_max_perp_error_m:
+            return 0.0
+
+        return self.w_row * (1.0 - best_avg_perp / self.row_max_perp_error_m)
 
     def tf_cb(self, msg: TFMessage):
         now_sec = self.get_clock().now().nanoseconds * 1e-9
@@ -226,6 +289,7 @@ class CupBlockAligner(Node):
         block_list: List[Tuple[str, XY]],
         dx: float,
         dy: float,
+        blocks_dict: Dict[str, XY],
         yaw_rad: float,
     ) -> Tuple[int, float, List[Tuple[str, str, float]], float, float]:
         unmatched_blocks = {name: xy for name, xy in block_list}
@@ -261,9 +325,12 @@ class CupBlockAligner(Node):
         yaw_deg = abs(math.degrees(yaw_rad))
         translation_mag = math.hypot(dx, dy)
 
+        row_bonus = self.compute_row_bonus(assignments, blocks_dict)
+
         weighted_score = (
             self.w_matches * matches
             + self.w_color * color_score
+            + row_bonus
             - self.w_error * avg_err_mm
             - self.w_yaw * yaw_deg
             - self.w_translation * translation_mag
@@ -309,8 +376,9 @@ class CupBlockAligner(Node):
                         continue
 
                     matches, score, assignments, avg_err_mm, color_score = self.score_candidate(
-                        rotated_cups, block_list, dx, dy, yaw_rad
+                        rotated_cups, block_list, dx, dy, yaw_rad, blocks
                     )
+
                     if matches < 2:
                         continue
                     # Save candidate for debugging
