@@ -61,3 +61,11 @@ void deadwheels::deadwheel_odometry(double ticks0, double ticks1, double ticks2,
 double deadwheels::normalizeAngleSigned(double angle) {
     return std::remainder(angle, 2.0 * M_PI);
 }
+
+
+void deadwheels::getCount(int64_t *ticks){ 
+
+    ticks[0] = encoder0.getCount();
+    ticks[1] = encoder1.getCount();
+    ticks[2] = encoder2.getCount();
+}

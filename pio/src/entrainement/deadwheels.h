@@ -3,6 +3,11 @@
 #include <ESP32Encoder.h>
 #include <micro_ros_platformio.h>
 #include <cmath>
+#include <rcl/rcl.h>
+#include <rclc/rclc.h>
+#include <rclc/executor.h>
+#include <rmw_microros/rmw_microros.h>
+#include "deadwheel_msgs/msg/deadwheel_ticks.h"
 
 // for later use
 // //Define odometry update callback
@@ -16,6 +21,7 @@ public :
 
   void deadwheel_odometry(double ticks0, double ticks1, double ticks2, double time);
   double normalizeAngleSigned(double angle);
+  void getCount(int64_t *ticks);
   
   //Define variables for odometry
   struct odo{
