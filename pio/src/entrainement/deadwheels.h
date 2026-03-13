@@ -19,6 +19,7 @@ public :
 
   deadwheels(int A_0, int B_0, int A_1, int B_1,  int A_2, int B_2);
 
+  void begin();
   void deadwheel_odometry(double ticks0, double ticks1, double ticks2, double time);
   double normalizeAngleSigned(double angle);
   void getCount(int64_t *ticks);
@@ -34,6 +35,8 @@ public :
   }deadwheelodo;
 
 private :
+
+  int A_0, B_0, A_1, B_1, A_2, B_2; // pin numbers for encoders
 
   //Constantes, à ajouter bonnes valeurs
   double ENCODER_TICKS_PER_REVOLUTION [3] = {1000, 1000, 1000};

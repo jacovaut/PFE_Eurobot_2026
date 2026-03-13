@@ -118,7 +118,8 @@ void timercallback(rcl_timer_t *timer, int64_t last_call_time)
   RCLC_UNUSED(last_call_time);
   if (timer != NULL)
   {
-    // Read tick counts (absolute)
+      
+    // Read tick counts
     int64_t ticks [3];
     Deadwheel.getCount(ticks);
 
@@ -163,20 +164,13 @@ void setSpeed(float new_vx, float new_vy, float new_w);
 void core1 (void* pvParameters);
 void core2 (void* pvParameters);
 
+
 void setup() {
     
     allocator = rcl_get_default_allocator();
     
     Serial.begin(115200);
     set_microros_serial_transports(Serial);
-
-    // initialize message memory
-    deadwheel_msgs__msg__DeadwheelTicks__init(&deadwheel_msg);
-
-    // initialize header.frame_id (required!)
-    deadwheel_msg.header.frame_id.data = (char*)"base_link";
-    deadwheel_msg.header.frame_id.size = strlen("base_link");
-    deadwheel_msg.header.frame_id.capacity = deadwheel_msg.header.frame_id.size + 1;
     
     // Wait for agent
     while (rmw_uros_ping_agent(1000, 1) != RMW_RET_OK) {
@@ -184,7 +178,7 @@ void setup() {
     }
     
     rmw_uros_sync_session(1000);  // try to sync with agent for up to 1s
-
+    
     RCCHECK(rclc_support_init(&support, 0, NULL, &allocator));
     
     // create node
@@ -194,7 +188,7 @@ void setup() {
     "",
     &support
     ));
-
+    
     // create publisher for deadwheel ticks
     RCCHECK(rclc_publisher_init_default(
         &deadwheel_pub,
@@ -209,7 +203,7 @@ void setup() {
         RCL_MS_TO_NS(10),
         timercallback
     ));
-
+    
     RCCHECK(rclc_executor_init(
         &executor,
         &support.context,
@@ -218,14 +212,14 @@ void setup() {
     ));
 
     RCCHECK(rclc_executor_add_timer(&executor, &timer));
-
+    
     RCCHECK(rclc_subscription_init_default(
         &cmdvel_sub,
         &node,
         ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, Twist),
         "cmd_vel"
     ));
-
+    
     RCCHECK(rclc_executor_add_subscription(
         &executor,
         &cmdvel_sub,
@@ -234,16 +228,9 @@ void setup() {
         ON_NEW_DATA
     ));
     
-    pinMode(2, OUTPUT);
     pinMode(27, OUTPUT);
-    pinMode(32, OUTPUT);
-    pinMode(19, OUTPUT);
-
-    digitalWrite(2, HIGH);
     digitalWrite(27, HIGH);
-    digitalWrite(32, HIGH);
-    digitalWrite(19, HIGH);
-
+    
     SPI.begin(18,14,5);
     engine.init();
     
@@ -251,11 +238,13 @@ void setup() {
     motor2.begin(engine);
     motor3.begin(engine);
     motor4.begin(engine);
-
+    
     motor1.Enabledriver(true);
     motor2.Enabledriver(true);
     motor3.Enabledriver(true);
     motor4.Enabledriver(true);
+    
+    Deadwheel.begin();
 
     xTaskCreatePinnedToCore(
         core1,
