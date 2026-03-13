@@ -77,13 +77,16 @@ rcl_timer_t timer;         // periodic timer
 
 // Blink LED quickly to signal fatal setup error (never returns)
 void error_loop(){
-  while (true)
-  {
-    // digitalWrite(LED_PIN, !digitalRead(LED_PIN));
-    delay(100);
-  }
+    pinMode(2, OUTPUT);
+    while (true)
+    {
+        digitalWrite(2, !digitalRead(2));
+        delay(100);
+    }
 }
 /* ------------------------------------------------------------- */
+
+deadwheels Deadwheel(2, 19, 36, 34, 35, 32); // A0, B0, A1, B1, A2, B2
 
 struct CmdVel {
   float vx;
@@ -105,6 +108,37 @@ void cmdvel_callback(const void* msgin)
   cmdvel.vy = msg->linear.y;
   cmdvel.w  = msg->angular.z;
   cmdvel.seq++;
+}
+
+
+// Timer callback invoked by the rclc executor on each timer tick.
+// Reads the encoder count, publishes it, and toggles the heartbeat LED.
+void timercallback(rcl_timer_t *timer, int64_t last_call_time)
+{
+  RCLC_UNUSED(last_call_time);
+  if (timer != NULL)
+  {
+      
+    // Read tick counts
+    int64_t ticks [3];
+    Deadwheel.getCount(ticks);
+
+    deadwheel_msg.t0 = ticks[0];
+    deadwheel_msg.t1 = ticks[1];
+    deadwheel_msg.t2 = ticks[2];
+
+    // Timestamp (ROS-synced epoch time)
+    const uint64_t now_ns = rmw_uros_epoch_nanos();
+    deadwheel_msg.header.stamp.sec = (int32_t)(now_ns / 1000000000ULL);
+    deadwheel_msg.header.stamp.nanosec = (uint32_t)(now_ns % 1000000000ULL);
+
+    // Publish one message containing all 3 ticks + time (soft-check errors)
+    RCSOFTCHECK(rcl_publish(&deadwheel_pub, &deadwheel_msg, NULL));
+
+    //Update local odometry
+    double time = esp_timer_get_time() * 1e-6; // possible improvement : use rcl time instead of esp_timer
+    // Deadwheel.deadwheel_odometry(ticks[0], ticks[1], ticks[2], time);
+  }
 }
 
 FastAccelStepperEngine engine;
@@ -130,18 +164,73 @@ void setSpeed(float new_vx, float new_vy, float new_w);
 void core1 (void* pvParameters);
 void core2 (void* pvParameters);
 
+
 void setup() {
+    
+    allocator = rcl_get_default_allocator();
+    
+    Serial.begin(115200);
+    set_microros_serial_transports(Serial);
+    
+    // Wait for agent
+    while (rmw_uros_ping_agent(1000, 1) != RMW_RET_OK) {
+        delay(1000);
+    }
+    
+    rmw_uros_sync_session(1000);  // try to sync with agent for up to 1s
+    
+    RCCHECK(rclc_support_init(&support, 0, NULL, &allocator));
+    
+    // create node
+    RCCHECK(rclc_node_init_default(
+    &node,
+    "esp32_motion_node",
+    "",
+    &support
+    ));
+    
+    // create publisher for deadwheel ticks
+    RCCHECK(rclc_publisher_init_default(
+        &deadwheel_pub,
+        &node,
+        ROSIDL_GET_MSG_TYPE_SUPPORT(deadwheel_msgs, msg, DeadwheelTicks),
+        "deadwheel_ticks"
+    ));
 
-    pinMode(2, OUTPUT);
+    RCCHECK(rclc_timer_init_default(
+        &timer,
+        &support,
+        RCL_MS_TO_NS(10),
+        timercallback
+    ));
+    
+    RCCHECK(rclc_executor_init(
+        &executor,
+        &support.context,
+        2,
+        &allocator
+    ));
+
+    RCCHECK(rclc_executor_add_timer(&executor, &timer));
+    
+    RCCHECK(rclc_subscription_init_default(
+        &cmdvel_sub,
+        &node,
+        ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, Twist),
+        "cmd_vel"
+    ));
+    
+    RCCHECK(rclc_executor_add_subscription(
+        &executor,
+        &cmdvel_sub,
+        &cmdvel_msg,
+        &cmdvel_callback,
+        ON_NEW_DATA
+    ));
+    
     pinMode(27, OUTPUT);
-    pinMode(32, OUTPUT);
-    pinMode(19, OUTPUT);
-
-    digitalWrite(2, HIGH);
     digitalWrite(27, HIGH);
-    digitalWrite(32, HIGH);
-    digitalWrite(19, HIGH);
-
+    
     SPI.begin(18,14,5);
     engine.init();
     
@@ -149,44 +238,18 @@ void setup() {
     motor2.begin(engine);
     motor3.begin(engine);
     motor4.begin(engine);
-
-    allocator = rcl_get_default_allocator();
-
-    RCCHECK(rclc_support_init(&support, 0, NULL, &allocator));
-
-    RCCHECK(rclc_node_init_default(
-    &node,
-    "esp32_motion_node",
-    "",
-    &support
-    ));
-
-    RCCHECK(rclc_executor_init(
-    &executor,
-    &support.context,
-    1,   // number of handles (only cmd_vel)
-    &allocator
-    ));
-
-    RCCHECK(rclc_subscription_init_default(
-    &cmdvel_sub,
-    &node,
-    ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, Twist),
-    "cmd_vel"
-    ));
-
-    RCCHECK(rclc_executor_add_subscription(
-    &executor,
-    &cmdvel_sub,
-    &cmdvel_msg,
-    &cmdvel_callback,
-    ON_NEW_DATA
-    ));
+    
+    motor1.Enabledriver(true);
+    motor2.Enabledriver(true);
+    motor3.Enabledriver(true);
+    motor4.Enabledriver(true);
+    
+    Deadwheel.begin();
 
     xTaskCreatePinnedToCore(
         core1,
         "Control",
-        4096,
+        16000,
         NULL,
         3,
         NULL,
@@ -196,7 +259,7 @@ void setup() {
     xTaskCreatePinnedToCore(
         core2,
         "ROS",
-        8192,
+        16000,
         NULL,
         1,
         NULL,
@@ -279,7 +342,11 @@ void core1 (void* pvParameters){
 //   - rclc executor
 //   - publishers / subscribers
 void core2(void* pvParameters){
-
+    for (;;)
+    {
+        RCSOFTCHECK(rclc_executor_spin_some(&executor, RCL_MS_TO_NS(10)));
+        vTaskDelay(1);
+    }
 }
 
 void loop(){vTaskDelay(portMAX_DELAY);}

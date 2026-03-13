@@ -24,7 +24,7 @@ def generate_launch_description():
 
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(
-                os.path.join(nav2_bringup, 'launch', 'navigation_launch.py')
+                os.path.join(pkg_share, 'launch', 'odom_navigation_launch.launch.py')
             ),
             launch_arguments={
                 'params_file': params_file,
