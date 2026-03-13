@@ -5,7 +5,9 @@ import os
 
 def generate_launch_description():
     pkg_share = get_package_share_directory('bringup')
-    config_file = os.path.join(pkg_share, 'config', 'ekf1.yaml')
+
+    ekf1_config = os.path.join(pkg_share, 'config', 'ekf1.yaml')
+    ekf2_config = os.path.join(pkg_share, 'config', 'ekf2.yaml')
 
     return LaunchDescription([
         # Deadwheel odometry node
@@ -16,12 +18,20 @@ def generate_launch_description():
             output='screen'
         ),
 
-        # EKF
+        # EKF1 : Local filter (odom -> base_link)
 	Node(
             package='robot_localization',
             executable='ekf_node',
-            name='ekf_filter_node',
+            name='ekf_local_node',
             output='screen',
-            parameters=[config_file],
+            parameters=[ekf1_config],
+        ),
+ 	# EKF2: global filter (map -> odom)
+        Node(
+            package='robot_localization',
+            executable='ekf_node',
+            name='ekf_global_node',
+            output='screen',
+            parameters=[ekf2_config],
         )
     ])
