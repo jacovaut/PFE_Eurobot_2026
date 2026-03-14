@@ -34,10 +34,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'publisher_node = ros2_opencv.cameraPublisher:main',
-            'subscriber_node = ros2_opencv.subscriberImage:main',
-            'aruco_node = ros2_opencv.aruco_marker_pose_estimation:main',
-            'cluster_node = strategy.clusterAnalyze:main',
+            'local_camera_perception_node = ros2_opencv.local_camera_perception:main',
             'local_pickup_solver_node = ros2_opencv.local_pickup_solver:main',
         ],
     },
