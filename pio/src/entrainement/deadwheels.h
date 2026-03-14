@@ -3,6 +3,11 @@
 #include <ESP32Encoder.h>
 #include <micro_ros_platformio.h>
 #include <cmath>
+#include <rcl/rcl.h>
+#include <rclc/rclc.h>
+#include <rclc/executor.h>
+#include <rmw_microros/rmw_microros.h>
+#include "deadwheel_msgs/msg/deadwheel_ticks.h"
 
 // for later use
 // //Define odometry update callback
@@ -14,8 +19,10 @@ public :
 
   deadwheels(int A_0, int B_0, int A_1, int B_1,  int A_2, int B_2);
 
+  void begin();
   void deadwheel_odometry(double ticks0, double ticks1, double ticks2, double time);
   double normalizeAngleSigned(double angle);
+  void getCount(int64_t *ticks);
   
   //Define variables for odometry
   struct odo{
@@ -28,6 +35,8 @@ public :
   }deadwheelodo;
 
 private :
+
+  int A_0, B_0, A_1, B_1, A_2, B_2; // pin numbers for encoders
 
   //Constantes, à ajouter bonnes valeurs
   double ENCODER_TICKS_PER_REVOLUTION [3] = {1000, 1000, 1000};

@@ -1,13 +1,16 @@
 #include "deadwheels.h"
 
-deadwheels::deadwheels(int A_0, int B_0, int A_1, int B_1,  int A_2, int B_2) {
-  encoder0.attachHalfQuad(A_0, B_0);
-  encoder1.attachHalfQuad(A_1, B_1);
-  encoder2.attachHalfQuad(A_2, B_2);
-  encoder0.setCount(0); // reset counter
-  encoder1.setCount(0); // reset counter
-  encoder2.setCount(0); // reset counter
-} 
+deadwheels::deadwheels(int A_0, int B_0, int A_1, int B_1,  int A_2, int B_2) 
+    : A_0(A_0), B_0(B_0), A_1(A_1), B_1(B_1), A_2(A_2), B_2(B_2) {}
+
+void deadwheels::begin() {
+    encoder0.attachHalfQuad(A_0, B_0);
+    encoder1.attachHalfQuad(A_1, B_1);
+    encoder2.attachHalfQuad(A_2, B_2);
+    encoder0.setCount(0); // reset counter
+    encoder1.setCount(0); // reset counter
+    encoder2.setCount(0); // reset counter
+}
 
 void deadwheels::deadwheel_odometry(double ticks0, double ticks1, double ticks2, double time){
     //pour le premier appel
@@ -60,4 +63,11 @@ void deadwheels::deadwheel_odometry(double ticks0, double ticks1, double ticks2,
 //fonction pour normaliser les angles à l'intervalle [-pi, pi]
 double deadwheels::normalizeAngleSigned(double angle) {
     return std::remainder(angle, 2.0 * M_PI);
+}
+
+
+void deadwheels::getCount(int64_t *ticks){ 
+    ticks[0] = encoder0.getCount();
+    ticks[1] = encoder1.getCount();
+    ticks[2] = encoder2.getCount();
 }

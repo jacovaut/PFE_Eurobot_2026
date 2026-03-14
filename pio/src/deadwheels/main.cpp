@@ -17,7 +17,7 @@
 #include "deadwheel_msgs/msg/deadwheel_ticks.h"
 
 // LED used as a simple heartbeat indicator (typically the on-board LED)
-#define LED_PIN 2
+#define LED_PIN 27
 
 //Define variables for odometry
 struct odo{
