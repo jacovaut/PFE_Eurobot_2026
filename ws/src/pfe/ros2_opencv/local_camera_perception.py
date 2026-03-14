@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import os
 import cv2
 import rclpy
 from rclpy.node import Node
@@ -143,14 +144,33 @@ class LocalCameraPerceptionNode(Node):
         # Real marker size = 30 mm
         self.marker_length = 0.03  # meters
 
-        # Temporary onboard calibration placeholder
-        # Replace later with real onboard calibration
-        self.camera_matrix = np.array([
-            [600.0, 0.0, 320.0],
-            [0.0, 600.0, 240.0],
-            [0.0, 0.0, 1.0]
-        ], dtype=np.float64)
-        self.dist_coeffs = np.zeros((5, 1), dtype=np.float64)
+                # --- Load onboard camera calibration automatically ---
+        calib_path = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            "camera_calibration",
+            "onboard_cam_1080p.yml"
+        )
+
+        fs = cv2.FileStorage(calib_path, cv2.FILE_STORAGE_READ)
+
+        if not fs.isOpened():
+            self.get_logger().error(f"Could not open calibration file: {calib_path}")
+            raise RuntimeError("Calibration file open failed")
+
+        self.camera_matrix = fs.getNode("camera_matrix").mat()
+        self.dist_coeffs = fs.getNode("distortion_coefficients").mat()
+        fs.release()
+
+        if self.camera_matrix is None or self.dist_coeffs is None:
+            self.get_logger().error(f"Calibration file is missing required fields: {calib_path}")
+            raise RuntimeError("Invalid calibration file")
+
+        self.camera_matrix = np.array(self.camera_matrix, dtype=np.float64)
+        self.dist_coeffs = np.array(self.dist_coeffs, dtype=np.float64)
+
+        self.get_logger().info(f"Loaded calibration from: {calib_path}")
+        self.get_logger().info(f"Camera matrix:\n{self.camera_matrix}")
+        self.get_logger().info(f"Dist coeffs:\n{self.dist_coeffs}")
 
         # Square object points for solvePnP IPPE_SQUARE
         m = self.marker_length / 2.0

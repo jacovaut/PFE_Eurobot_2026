@@ -1,12 +1,20 @@
 import cv2
 import numpy as np
 import glob
+import os
 
 # chessboard parameters
-chessboard_size = (9,6)   # inner corners
-square_size = 0.024       # meters (24mm square example)
+chessboard_size = (6,8)   # inner corners
+square_size = 0.07        # meters (70mm square example)
 
-images = glob.glob("calibration_images/*.png")
+# paths
+script_dir = os.path.dirname(os.path.abspath(__file__))
+image_path = os.path.join(script_dir, "calibration_images", "*.png")
+images = glob.glob(image_path)
+
+# create output folder if missing
+output_dir = os.path.join(script_dir, "..", "camera_calibration")
+os.makedirs(output_dir, exist_ok=True)
 
 objpoints = []
 imgpoints = []
@@ -41,6 +49,7 @@ for fname in images:
 
 cv2.destroyAllWindows()
 
+# run calibration
 ret, camera_matrix, dist_coeffs, rvecs, tvecs = cv2.calibrateCamera(
     objpoints,
     imgpoints,
@@ -53,9 +62,11 @@ print("\nCamera Matrix:\n", camera_matrix)
 print("\nDistortion:\n", dist_coeffs)
 
 # save calibration
-fs = cv2.FileStorage("camera_calibration/onboard_cam_1080p.yml", cv2.FILE_STORAGE_WRITE)
+output_file = os.path.join(output_dir, "onboard_cam_1080p.yml")
+
+fs = cv2.FileStorage(output_file, cv2.FILE_STORAGE_WRITE)
 fs.write("camera_matrix", camera_matrix)
 fs.write("distortion_coefficients", dist_coeffs)
 fs.release()
 
-print("\nCalibration saved to camera_calibration/onboard_cam_1080p.yml")
+print("\nCalibration saved to:", output_file)
