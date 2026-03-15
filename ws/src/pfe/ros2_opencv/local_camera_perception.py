@@ -346,10 +346,9 @@ class LocalCameraPerceptionNode(Node):
             tb.transform.rotation.z = track.pickup_quat[2]
             tb.transform.rotation.w = track.pickup_quat[3]
             self.tf_broadcaster.sendTransform(tb)
-
-        except Exception:
-            # Normal for a brief moment at startup
-            pass
+            self.get_logger().info(f"Published block TF: block_{track.id}_{track.index}")
+        except Exception as e:
+            self.get_logger().error(f"Failed to publish block TF for block_{track.id}_{track.index}: {e}")
 
     # -------------------------------------------------------------------------
     # Main camera loop
@@ -379,6 +378,7 @@ class LocalCameraPerceptionNode(Node):
         self._publish_pickup_frame(stamp)
 
         if ids is not None and len(ids) > 0:
+            self.get_logger().info(f"Detected {len(ids)} ArUco markers: {ids.flatten()}")
             cv2.aruco.drawDetectedMarkers(frame, corners, ids)
 
             for i, marker_id in enumerate(ids.flatten()):
