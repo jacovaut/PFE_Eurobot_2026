@@ -116,7 +116,7 @@ class LocalCameraPerceptionNode(Node):
         super().__init__('local_camera_perception_node')
 
         # ---------- Camera ----------
-        self.cameraDeviceNumber = 2
+        self.cameraDeviceNumber = 0
         self.camera = cv2.VideoCapture(self.cameraDeviceNumber)
 
         if not self.camera.isOpened():
@@ -124,8 +124,8 @@ class LocalCameraPerceptionNode(Node):
             raise RuntimeError("Camera open failed")
 
         # Keep this consistent with your current setup
-        self.output_width = 680
-        self.output_height = 480
+        self.output_width = 1280
+        self.output_height = 720
 
         # ---------- ROS ----------
         self.bridge = CvBridge()
@@ -150,18 +150,18 @@ class LocalCameraPerceptionNode(Node):
 
         # Camera intrinsic matrix (from calibration)
         self.camera_matrix = np.array([
-            [696.21534236, 0.0, 945.05631067],
-            [0.0, 692.25306834, 565.67884406],
-            [0.0, 0.0, 1.0] 
+            [457.33917579,   0.0,         637.592287  ],
+            [  0.0,         453.81772548, 374.90978642],
+            [  0.0,           0.0,           1.        ] 
         ], dtype=np.float64)
  
         # Distortion coefficients
         self.dist_coeffs = np.array([
-            0.01143388,
-            -0.02778998,
-            0.00314388,
-            -0.00054888,
-            0.00160066
+            -0.0241479, 
+            -0.01872201,  
+            0.00181977, 
+            -0.00044101,  
+            0.04127062
         ], dtype=np.float64)
 
         self.get_logger().info("✅ Using HARDCODED onboard camera calibration (1080p)")
