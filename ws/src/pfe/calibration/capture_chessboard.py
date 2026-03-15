@@ -4,7 +4,7 @@ import os
 output_dir = "calibration_images"
 os.makedirs(output_dir, exist_ok=True)
 
-camera = cv2.VideoCapture(0)
+camera = cv2.VideoCapture(2)
 
 camera.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
 camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)

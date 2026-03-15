@@ -116,7 +116,7 @@ class LocalCameraPerceptionNode(Node):
         super().__init__('local_camera_perception_node')
 
         # ---------- Camera ----------
-        self.cameraDeviceNumber = 0
+        self.cameraDeviceNumber = 2
         self.camera = cv2.VideoCapture(self.cameraDeviceNumber)
 
         if not self.camera.isOpened():
@@ -141,34 +141,34 @@ class LocalCameraPerceptionNode(Node):
         self.dictionary = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
         self.parameters = cv2.aruco.DetectorParameters_create()
 
-        # Real marker size = 30 mm
+       # ===========================================================
+        # CAMERA CALIBRATION (HARDCODED - 1920x1080)
+        # ===========================================================
+
+        # Marker size (IMPORTANT: 30 mm)
         self.marker_length = 0.03  # meters
 
-                # --- Load onboard camera calibration automatically ---
-        calib_path = os.path.join(
-            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-            "camera_calibration",
-            "onboard_cam_1080p.yml"
-        )
+        # Camera intrinsic matrix (from calibration)
+        self.camera_matrix = np.array([
+            [696.21534236, 0.0, 945.05631067],
+            [0.0, 692.25306834, 565.67884406],
+            [0.0, 0.0, 1.0] 
+        ], dtype=np.float64)
+ 
+        # Distortion coefficients
+        self.dist_coeffs = np.array([
+            0.01143388,
+            -0.02778998,
+            0.00314388,
+            -0.00054888,
+            0.00160066
+        ], dtype=np.float64)
 
-        fs = cv2.FileStorage(calib_path, cv2.FILE_STORAGE_READ)
-
-        if not fs.isOpened():
-            self.get_logger().error(f"Could not open calibration file: {calib_path}")
-            raise RuntimeError("Calibration file open failed")
-
-        self.camera_matrix = fs.getNode("camera_matrix").mat()
-        self.dist_coeffs = fs.getNode("distortion_coefficients").mat()
-        fs.release()
-
-        if self.camera_matrix is None or self.dist_coeffs is None:
-            self.get_logger().error(f"Calibration file is missing required fields: {calib_path}")
-            raise RuntimeError("Invalid calibration file")
+        self.get_logger().info("✅ Using HARDCODED onboard camera calibration (1080p)")
 
         self.camera_matrix = np.array(self.camera_matrix, dtype=np.float64)
         self.dist_coeffs = np.array(self.dist_coeffs, dtype=np.float64)
 
-        self.get_logger().info(f"Loaded calibration from: {calib_path}")
         self.get_logger().info(f"Camera matrix:\n{self.camera_matrix}")
         self.get_logger().info(f"Dist coeffs:\n{self.dist_coeffs}")
 
