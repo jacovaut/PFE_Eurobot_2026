@@ -482,6 +482,11 @@ class LocalCameraPerceptionNode(Node):
         for k in to_delete:
             del self.memory[k]
 
+        # Debug block loss
+        lost_blocks = [k for k, c in self.memory.items() if current_time - c.last_seen > self.memory_timeout]
+        if lost_blocks:
+            self.get_logger().info(f"Lost {len(lost_blocks)} blocks due to timeout: {lost_blocks}")
+
         # RViz markers in pickup_frame
         marker_array = MarkerArray()
 

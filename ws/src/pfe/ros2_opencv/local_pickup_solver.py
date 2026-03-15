@@ -46,9 +46,10 @@ class CupBlockAligner(Node):
         self.tf_timeout = Duration(seconds=0.03)
 
         # ---------- Recent visible blocks ----------
-        self.block_last_seen: Dict[str, float] = {}
-        self.block_memory_s = 0.30
-        self.max_blocks_to_consider = 20
+        self.block_memory_s = 0.50  # Increased from 0.30 to keep blocks in memory longer
+
+        # ---------- tolerate temporary block loss ----------
+        self.missing_block_cycles_allowed = 10  # Increased from 3 to allow ~2s gaps (at 0.2s/tick)
 
         # ---------- Local-mode limits ----------
         self.max_local_dx_m = 0.40
@@ -117,11 +118,6 @@ class CupBlockAligner(Node):
         self.pickup_state_sub = self.create_subscription(
             String, "pickup_state", self.pickup_state_cb, 10
         )
-
-        # ---------- tolerate temporary block loss ----------
-        self.last_blocks: Dict[str, XY] = {}
-        self.missing_block_cycles = 0
-        self.missing_block_cycles_allowed = 3
 
         self.locked = False
         self.locked_signature = None
