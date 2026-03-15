@@ -47,6 +47,8 @@ class CupBlockAligner(Node):
 
         # ---------- Recent visible blocks ----------
         self.block_memory_s = 0.50  # Increased from 0.30 to keep blocks in memory longer
+        self.block_last_seen = {}  # Add this (dict to track last seen times)
+        self.max_blocks_to_consider = 20  # Add this (limit blocks to consider)
 
         # ---------- tolerate temporary block loss ----------
         self.missing_block_cycles_allowed = 10  # Increased from 3 to allow ~2s gaps (at 0.2s/tick)
