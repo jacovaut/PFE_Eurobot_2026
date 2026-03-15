@@ -293,26 +293,31 @@ class LocalCameraPerceptionNode(Node):
 
     def _compute_and_publish_clean_block_tf(self, track, stamp):
         try:
-            # wait for TF to exist (pickup_frame -> arducam_optical_frame)
+            # Use base_link as the stable reference (pickup_frame is currently coincident
+            # with base_link, and TF lookup across siblings is failing in our setup).
+            ref_frame = "base_link"
+            camera_frame = "arducam_optical_frame"
+
             if not self.tf_buffer.can_transform(
-                self.pickup_frame_name,
-                "arducam_optical_frame",
-                rclpy.time.Time(),
-                timeout=rclpy.duration.Duration(seconds=0.2),
+                ref_frame,
+                camera_frame,
+                self.get_clock().now(),
+                timeout=Duration(seconds=0.2),
             ):
                 self.get_logger().warn(
-                    "TF not ready: pickup_frame -> arducam_optical_frame (skipping block TF)"
+                    "TF not ready: base_link -> arducam_optical_frame (skipping block TF)"
                 )
                 return
-            tf_cam_to_pickup = self.tf_buffer.lookup_transform(
-                self.pickup_frame_name,
-                "arducam_optical_frame",
-                rclpy.time.Time(),
-                timeout=rclpy.duration.Duration(seconds=0.2),
+
+            tf_cam_to_base = self.tf_buffer.lookup_transform(
+                ref_frame,
+                camera_frame,
+                self.get_clock().now(),
+                timeout=Duration(seconds=0.2),
             )
 
-            t = tf_cam_to_pickup.transform.translation
-            q_tf = tf_cam_to_pickup.transform.rotation
+            t = tf_cam_to_base.transform.translation
+            q_tf = tf_cam_to_base.transform.rotation
 
             trans = np.array([t.x, t.y, t.z], dtype=float)
             quat_tf = np.array([q_tf.x, q_tf.y, q_tf.z, q_tf.w], dtype=float)
@@ -321,14 +326,14 @@ class LocalCameraPerceptionNode(Node):
             T[0:3, 3] = trans
 
             p_cam = np.array([track.x, track.y, track.z, 1.0], dtype=float)
-            p_pickup_h = T @ p_cam
-            p_pickup = p_pickup_h[:3]
+            p_base_h = T @ p_cam
+            p_base = p_base_h[:3]
 
-            cam_origin_pickup = trans
+            cam_origin_base = trans
 
             p_proj = self._intersect_ray_with_pickup_plane(
-                cam_origin_pickup,
-                p_pickup,
+                cam_origin_base,
+                p_base,
                 plane_z=0.0
             )
 
@@ -336,9 +341,9 @@ class LocalCameraPerceptionNode(Node):
                 return
 
             quat_cam = np.array(track.quat, dtype=float)
-            quat_pickup_raw = tf_transformations.quaternion_multiply(quat_tf, quat_cam)
+            quat_base_raw = tf_transformations.quaternion_multiply(quat_tf, quat_cam)
 
-            _, _, yaw = tf_transformations.euler_from_quaternion(quat_pickup_raw)
+            _, _, yaw = tf_transformations.euler_from_quaternion(quat_base_raw)
             q_flat = tf_transformations.quaternion_from_euler(0.0, 0.0, yaw)
 
             track.update_pickup_pose(
@@ -350,7 +355,7 @@ class LocalCameraPerceptionNode(Node):
 
             tb = TransformStamped()
             tb.header.stamp = stamp
-            tb.header.frame_id = self.pickup_frame_name
+            tb.header.frame_id = ref_frame                # publish in base_link
             tb.child_frame_id = f"block_{track.id}_{track.index}"
             tb.transform.translation.x = track.pickup_x
             tb.transform.translation.y = track.pickup_y
