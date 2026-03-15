@@ -714,7 +714,9 @@ class CupBlockAligner(Node):
                 self.prev_assignment_signature = None
                 return
 
-            assignment_signature = tuple(sorted([blk for _, blk, _ in best_assignments]))
+            # Compute stability / readiness before locking
+            yaw_deg = math.degrees(best_yaw)
+            ready = self.is_pickup_ready(best_matches, best_assignments)
 
             # when ready and not currently locked, send a single pickup command
             if ready and not self.locked:
@@ -725,13 +727,10 @@ class CupBlockAligner(Node):
                 self.publish_pickup_goal(best_dx, best_dy, yaw_deg, best_assignments)
                 self.get_logger().info("PUBLISHED pickup goal + queue, locking until done")
 
-            # while locked, do not change solution unless it explicitly unlocks
+            # while locked, do not change solution unless unlocked
             if self.locked:
                 # clear debug output but keep solver running (optional)
                 return
-
-            ready = self.is_pickup_ready(best_matches, best_assignments)
-            yaw_deg = math.degrees(best_yaw)
 
             assign_str = ", ".join(
                 [f"{cup}->{blk} ({dist*1000:.1f} mm)" for cup, blk, dist in best_assignments]
