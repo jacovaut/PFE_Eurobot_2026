@@ -99,7 +99,7 @@ class TicksListener : public rclcpp::Node
       {
         std::lock_guard<std::mutex> lock(mtx_);
 
-        const rclcpp::Time stamp(msg->header.stamp);
+        const rclcpp::Time stamp = this->now();
 
         if (!initialized_) {
           prevTicks[0] = msg->t0;
@@ -111,12 +111,13 @@ class TicksListener : public rclcpp::Node
         }
 
         double dt = (stamp - prev_stamp_).seconds();
-        prev_stamp_ = stamp;
 
-        if (dt <= 1e-6) {
-          RCLCPP_WARN(this->get_logger(), "dt too small (%.9f), skipping", dt);
+        if (dt <= 1e-6 || !std::isfinite(dt)) {
+          RCLCPP_WARN(this->get_logger(), "Bad dt (%.9f), skipping", dt);
           return;
         }
+
+        prev_stamp_ = stamp;
 
         // calculs des delta ticks
         int64_t ticks0 = (msg->t0); 

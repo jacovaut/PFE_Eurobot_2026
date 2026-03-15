@@ -7,11 +7,11 @@ map_server:
     use_sim_time: false
     yaml_filename: ""
 
-collision_monitor:
-  ros__parameters:
-    observation_sources: []
-    polygons: []
-    enable_stamped_cmd_vel: false
+#collision_monitor:
+  #ros__parameters:
+    #observation_sources: []
+    #polygons: []
+    #enable_stamped_cmd_vel: false
 
 planner_server:
   ros__parameters:
