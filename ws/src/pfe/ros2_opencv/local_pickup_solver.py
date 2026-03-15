@@ -35,8 +35,8 @@ class CupBlockAligner(Node):
         self.YELLOW_IDS = {47}
 
         # ---------- Matching params ----------
-        self.match_radius_m = 0.020
-        self.pickup_max_err_m = 0.020
+        self.match_radius_m = 0.015  # Reduced from 0.020 for tighter matches
+        self.pickup_max_err_m = 0.015  # Reduced from 0.020 for stricter pickup
 
         self.min_useful_matches = 2
         self.pickup_min_matches = 2
@@ -56,7 +56,7 @@ class CupBlockAligner(Node):
         # ---------- Yaw search ----------
         self.yaw_min_deg = -95.0
         self.yaw_max_deg = 95.0
-        self.yaw_step_deg = 3.0
+        self.yaw_step_deg = 1.0  # Reduced from 3.0 for finer resolution
 
         # ---------- Weighted scoring ----------
         self.w_matches = 1000.0
@@ -73,7 +73,7 @@ class CupBlockAligner(Node):
         self.w_consecutive = 250.0
 
         # ---------- Stability filtering ----------
-        self.required_stable_cycles = 3
+        self.required_stable_cycles = 5  # Increased from 3 for more stability
         self.stable_dx_tol_m = 0.01
         self.stable_dy_tol_m = 0.01
         self.stable_dyaw_tol_deg = 3.0
@@ -89,11 +89,11 @@ class CupBlockAligner(Node):
         self.motion_reset_threshold_m = 0.03
 
         # ---------- Debug ----------
-        self.debug_candidates = True
+        self.debug_candidates = False
         self.debug_top_k = 10
         self.debug_tf_children = False
-        self.debug_geometry = True
-        self.debug_block_stability = True
+        self.debug_geometry = False
+        self.debug_block_stability = False
 
         # ---------- TF ----------
         self.tf_buffer = Buffer()
