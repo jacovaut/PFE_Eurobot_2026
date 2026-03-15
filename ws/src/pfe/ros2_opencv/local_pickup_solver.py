@@ -718,6 +718,12 @@ class CupBlockAligner(Node):
             yaw_deg = math.degrees(best_yaw)
             ready = self.is_pickup_ready(best_matches, best_assignments)
 
+            # create a stable signature for the current assignment set
+            assignment_signature = tuple(sorted([blk for _, blk, _ in best_assignments]))
+
+            # update the stability counter (stable_cycles) based on the current solution
+            self.update_stability(best_dx, best_dy, best_yaw)
+
             # when ready and not currently locked, send a single pickup command
             if ready and not self.locked:
                 self.locked = True
