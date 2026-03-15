@@ -292,18 +292,19 @@ class LocalCameraPerceptionNode(Node):
         return ray_origin + s * d
 
     def _compute_and_publish_clean_block_tf(self, track, stamp):
+        self.get_logger().debug(f"compute_clean_tf: track id={track.id} idx={track.index}")
+
         try:
-            # Use base_link as the stable reference (pickup_frame is currently coincident
-            # with base_link, and TF lookup across siblings is failing in our setup).
             ref_frame = "base_link"
             camera_frame = "arducam_optical_frame"
 
-            if not self.tf_buffer.can_transform(
+            can = self.tf_buffer.can_transform(
                 ref_frame,
                 camera_frame,
                 self.get_clock().now(),
-                timeout=rclpy.duration.Duration(seconds=0.2),  # qualify Duration
-            ):
+                timeout=rclpy.duration.Duration(seconds=0.2),
+            )
+            if not can:
                 self.get_logger().warn(
                     "TF not ready: base_link -> arducam_optical_frame (skipping block TF)"
                 )
@@ -338,6 +339,9 @@ class LocalCameraPerceptionNode(Node):
             )
 
             if p_proj is None:
+                self.get_logger().warn(
+                    f"Projection failed for track {track.id}_{track.index} (ray parallel or behind camera)"
+                )
                 return
 
             quat_cam = np.array(track.quat, dtype=float)
@@ -365,7 +369,8 @@ class LocalCameraPerceptionNode(Node):
             tb.transform.rotation.z = track.pickup_quat[2]
             tb.transform.rotation.w = track.pickup_quat[3]
             self.tf_broadcaster.sendTransform(tb)
-            self.get_logger().info(f"Published block TF: block_{track.id}_{track.index}")
+            self.get_logger().info(f"Published block TF: block_{track.id}_{track.index} "
+                                   f"@ ({track.pickup_x:.3f}, {track.pickup_y:.3f}, {track.pickup_z:.3f})")
         except Exception as e:
             self.get_logger().error(
                 f"Failed to publish block TF for block_{track.id}_{track.index}: {e}"
