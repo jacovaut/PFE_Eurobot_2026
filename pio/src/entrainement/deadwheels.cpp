@@ -1,15 +1,28 @@
 #include "deadwheels.h"
+static portMUX_TYPE encoder_mux = portMUX_INITIALIZER_UNLOCKED;
 
 deadwheels::deadwheels(int A_0, int B_0, int A_1, int B_1,  int A_2, int B_2) 
     : A_0(A_0), B_0(B_0), A_1(A_1), B_1(B_1), A_2(A_2), B_2(B_2) {}
 
 void deadwheels::begin() {
+    pinMode(A_0, INPUT);
+    pinMode(B_0, INPUT);
+    pinMode(A_1, INPUT);
+    pinMode(B_1, INPUT);
+    pinMode(A_2, INPUT);
+    pinMode(B_2, INPUT);
     encoder0.attachHalfQuad(A_0, B_0);
     encoder1.attachHalfQuad(A_1, B_1);
     encoder2.attachHalfQuad(A_2, B_2);
     encoder0.setCount(0); // reset counter
     encoder1.setCount(0); // reset counter
     encoder2.setCount(0); // reset counter
+    encoder0.setFilter(1023);
+    encoder1.setFilter(1023);
+    encoder2.setFilter(1023);
+    encoder0.isrServiceCpuCore = 0; // use core 1 for encoder interrupts
+    encoder1.isrServiceCpuCore = 0; // use core 1 for encoder interrupts
+    encoder2.isrServiceCpuCore = 0; // use core 1 for
 }
 
 void deadwheels::deadwheel_odometry(double ticks0, double ticks1, double ticks2, double time){
@@ -66,8 +79,10 @@ double deadwheels::normalizeAngleSigned(double angle) {
 }
 
 
-void deadwheels::getCount(int64_t *ticks){ 
+void deadwheels::getCount(int64_t *ticks){
+    portENTER_CRITICAL(&encoder_mux);
     ticks[0] = encoder0.getCount();
     ticks[1] = encoder1.getCount();
     ticks[2] = encoder2.getCount();
+    portEXIT_CRITICAL(&encoder_mux);
 }

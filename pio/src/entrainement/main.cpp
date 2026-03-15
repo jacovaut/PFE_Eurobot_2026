@@ -45,6 +45,7 @@
 /* ---------------------------------------------------------- */
 
 /* ---------------------- ROS DEFENITIONS ---------------------- */
+TaskHandle_t core1_handle, core2_handle;
 rcl_subscription_t cmdvel_sub;
 geometry_msgs__msg__Twist cmdvel_msg;
 
@@ -118,7 +119,10 @@ void timercallback(rcl_timer_t *timer, int64_t last_call_time)
   RCLC_UNUSED(last_call_time);
   if (timer != NULL)
   {
-      
+    //       // Later, monitor both:
+    // Serial.printf("Core1: %u, Core2: %u\n", 
+    // uxTaskGetStackHighWaterMark(core1_handle),
+    // uxTaskGetStackHighWaterMark(core2_handle));
     // Read tick counts
     int64_t ticks [3];
     Deadwheel.getCount(ticks);
@@ -233,6 +237,7 @@ void setup() {
     
     SPI.begin(18,14,5);
     engine.init();
+    Deadwheel.begin();
     
     motor1.begin(engine);
     motor2.begin(engine);
@@ -244,25 +249,23 @@ void setup() {
     motor3.Enabledriver(true);
     motor4.Enabledriver(true);
     
-    Deadwheel.begin();
-
     xTaskCreatePinnedToCore(
         core1,
         "Control",
         16000,
         NULL,
         3,
-        NULL,
+        &core1_handle,
         1   // Core 1
     );
 
     xTaskCreatePinnedToCore(
         core2,
         "ROS",
-        16000,
+        3000,
         NULL,
         1,
-        NULL,
+        &core2_handle,
         0   // Core 0
     );
 }
