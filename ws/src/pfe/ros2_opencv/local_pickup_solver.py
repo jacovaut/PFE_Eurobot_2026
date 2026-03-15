@@ -44,14 +44,14 @@ class CupBlockAligner(Node):
         self.pickup_min_matches = 2
 
         self.tf_timeout = Duration(seconds=0.03)
-
+ 
         # ---------- Recent visible blocks ----------
         self.block_memory_s = 0.50  # Increased from 0.30 to keep blocks in memory longer
         self.block_last_seen = {}  # Add this (dict to track last seen times)
         self.max_blocks_to_consider = 20  # Add this (limit blocks to consider)
 
         # ---------- tolerate temporary block loss ----------
-        self.missing_block_cycles_allowed = 10  # Increased from 3 to allow ~2s gaps (at 0.2s/tick)
+        self.missing_block_cycles_allowed = 30  # Increased from 10 for more tolerance (~6s)
 
         # ---------- Local-mode limits ----------
         self.max_local_dx_m = 0.40
@@ -78,7 +78,7 @@ class CupBlockAligner(Node):
         self.w_consecutive = 250.0
 
         # ---------- Stability filtering ----------
-        self.required_stable_cycles = 5  # Increased from 3 for more stability
+        self.required_stable_cycles = 3  # Reduced from 5 for faster locking
         self.stable_dx_tol_m = 0.01
         self.stable_dy_tol_m = 0.01
         self.stable_dyaw_tol_deg = 3.0
