@@ -22,6 +22,38 @@ class XY:
     y: float
 
 
+# Constants
+TEAM_COLOR = "yellow"
+BLUE_IDS = {36}
+YELLOW_IDS = {47}
+MATCH_RADIUS_M = 0.015
+PICKUP_MAX_ERR_M = 0.015
+BLOCK_MEMORY_S = 0.50
+MISSING_BLOCK_CYCLES_ALLOWED = 30
+MAX_LOCAL_DX_M = 0.40
+MAX_LOCAL_DY_M = 0.25
+MAX_LOCAL_DYAW_DEG = 95.0
+YAW_MIN_DEG = -95.0
+YAW_MAX_DEG = 95.0
+YAW_STEP_DEG = 1.0
+W_MATCHES = 500.0
+W_COLOR = 10000.0
+W_ERROR = 1.0
+W_YAW = 0.3
+W_TRANSLATION = 80.0
+W_ROW = 400.0
+ROW_MAX_PERP_ERROR_M = 0.01
+W_CONSECUTIVE = 250.0
+REQUIRED_STABLE_CYCLES = 3
+STABLE_DX_TOL_M = 0.01
+STABLE_DY_TOL_M = 0.01
+STABLE_DYAW_TOL_DEG = 3.0
+BLOCK_HISTORY_LEN = 10
+MOTION_RESET_THRESHOLD_M = 0.03
+DEBUG_CANDIDATES = True
+DEBUG_TOP_K = 10
+
+
 class CupBlockAligner(Node):
     def __init__(self):
         super().__init__("cup_block_aligner")
@@ -31,15 +63,15 @@ class CupBlockAligner(Node):
         self.cup_frames = ["cup_0", "cup_1", "cup_2", "cup_3"]
 
         # ---------- Team color ----------
-        self.team_color = "yellow"   # or "blue"
+        self.team_color = TEAM_COLOR   # or "blue"
 
         # ---------- Marker ID -> color ----------
-        self.BLUE_IDS = {36}
-        self.YELLOW_IDS = {47}
+        self.BLUE_IDS = BLUE_IDS
+        self.YELLOW_IDS = YELLOW_IDS
 
         # ---------- Matching params ----------
-        self.match_radius_m = 0.015  # Reduced from 0.020 for tighter matches
-        self.pickup_max_err_m = 0.015  # Reduced from 0.020 for stricter pickup
+        self.match_radius_m = MATCH_RADIUS_M  # Reduced from 0.020 for tighter matches
+        self.pickup_max_err_m = PICKUP_MAX_ERR_M  # Reduced from 0.020 for stricter pickup
 
         self.min_useful_matches = 2
         self.pickup_min_matches = 2
@@ -47,42 +79,42 @@ class CupBlockAligner(Node):
         self.tf_timeout = Duration(seconds=0.03)
  
         # ---------- Recent visible blocks ----------
-        self.block_memory_s = 0.50  # Increased from 0.30 to keep blocks in memory longer
+        self.block_memory_s = BLOCK_MEMORY_S  # Increased from 0.30 to keep blocks in memory longer
         self.block_last_seen = {}  # Add this (dict to track last seen times)
         self.max_blocks_to_consider = 20  # Add this (limit blocks to consider)
 
         # ---------- tolerate temporary block loss ----------
-        self.missing_block_cycles_allowed = 30  # Increased from 10 for more tolerance (~6s)
+        self.missing_block_cycles_allowed = MISSING_BLOCK_CYCLES_ALLOWED  # Increased from 10 for more tolerance (~6s)
 
         # ---------- Local-mode limits ----------
-        self.max_local_dx_m = 0.40
-        self.max_local_dy_m = 0.25
-        self.max_local_dyaw_deg = 95.0
+        self.max_local_dx_m = MAX_LOCAL_DX_M
+        self.max_local_dy_m = MAX_LOCAL_DY_M
+        self.max_local_dyaw_deg = MAX_LOCAL_DYAW_DEG
 
         # ---------- Yaw search ----------
-        self.yaw_min_deg = -95.0
-        self.yaw_max_deg = 95.0
-        self.yaw_step_deg = 1.0  # Reduced from 3.0 for finer resolution
+        self.yaw_min_deg = YAW_MIN_DEG
+        self.yaw_max_deg = YAW_MAX_DEG
+        self.yaw_step_deg = YAW_STEP_DEG  # Reduced from 3.0 for finer resolution
 
         # ---------- Weighted scoring ----------
-        self.w_matches = 500.0
-        self.w_color = 10000.0
-        self.w_error = 1.0
-        self.w_yaw = 0.3
-        self.w_translation = 80.0
+        self.w_matches = W_MATCHES
+        self.w_color = W_COLOR
+        self.w_error = W_ERROR
+        self.w_yaw = W_YAW
+        self.w_translation = W_TRANSLATION
 
         # ---------- Row bonus ----------
-        self.w_row = 400.0
-        self.row_max_perp_error_m = 0.01
+        self.w_row = W_ROW
+        self.row_max_perp_error_m = ROW_MAX_PERP_ERROR_M
 
         # ---------- Consecutive cups bonus ----------
-        self.w_consecutive = 250.0
+        self.w_consecutive = W_CONSECUTIVE
 
         # ---------- Stability filtering ----------
-        self.required_stable_cycles = 3  # Reduced from 5 for faster locking
-        self.stable_dx_tol_m = 0.01
-        self.stable_dy_tol_m = 0.01
-        self.stable_dyaw_tol_deg = 3.0
+        self.required_stable_cycles = REQUIRED_STABLE_CYCLES  # Reduced from 5 for faster locking
+        self.stable_dx_tol_m = STABLE_DX_TOL_M
+        self.stable_dy_tol_m = STABLE_DY_TOL_M
+        self.stable_dyaw_tol_deg = STABLE_DYAW_TOL_DEG
 
         self.prev_solution = None
         self.prev_assignment_signature = None
@@ -90,13 +122,13 @@ class CupBlockAligner(Node):
 
         # ---------- Block stability tracking + smoothing ----------
         self.block_history: Dict[str, List[XY]] = {}
-        self.block_history_len = 10
+        self.block_history_len = BLOCK_HISTORY_LEN
         self.use_smoothed_blocks = True
-        self.motion_reset_threshold_m = 0.03
+        self.motion_reset_threshold_m = MOTION_RESET_THRESHOLD_M
 
         # ---------- Debug ----------
-        self.debug_candidates = True
-        self.debug_top_k = 10
+        self.debug_candidates = DEBUG_CANDIDATES
+        self.debug_top_k = DEBUG_TOP_K
         self.debug_tf_children = False
         self.debug_geometry = False
         self.debug_block_stability = False
@@ -431,121 +463,79 @@ class CupBlockAligner(Node):
 
         return matches, weighted_score, assignments, avg_err_mm, color_score
     
-    
-
-    def compute_best_alignment(
-        self,
-        cups: Dict[str, XY],
-        blocks: Dict[str, XY],
-    ) -> Tuple[float, float, float, int, float, List[Tuple[str, str, float]], float, float]:
-        best_yaw = 0.0
-        best_dx = 0.0
-        best_dy = 0.0
-        best_matches = 0
-        best_score = -1e18
-        best_assignments: List[Tuple[str, str, float]] = []
-        best_avg_err_mm = 1e9
-        best_color_score = 0.0
-
-        all_candidates = []
+    def generate_candidates(self, cups: Dict[str, XY], blocks: Dict[str, XY]) -> List[Dict]:
+        """Generate all possible alignment candidates."""
+        candidates = []
         block_list = list(blocks.items())
-
-        yaw_deg = self.yaw_min_deg
-        while yaw_deg <= self.yaw_max_deg + 1e-9:
+        
+        yaw_deg = YAW_MIN_DEG
+        while yaw_deg <= YAW_MAX_DEG + 1e-9:
             yaw_rad = math.radians(yaw_deg)
-
-            rotated_cups = [
-                (name, self.rotate_xy(p, yaw_rad))
-                for name, p in cups.items()
-            ]
-
+            rotated_cups = [(name, self.rotate_xy(p, yaw_rad)) for name, p in cups.items()]
+            
             for _, cup_xy in rotated_cups:
                 for _, block_xy in block_list:
                     dx = block_xy.x - cup_xy.x
                     dy = block_xy.y - cup_xy.y
-
-                    if abs(dx) > self.max_local_dx_m:
+                    if abs(dx) > MAX_LOCAL_DX_M or abs(dy) > MAX_LOCAL_DY_M:
                         continue
-                    if abs(dy) > self.max_local_dy_m:
-                        continue
-
+                    
                     matches, score, assignments, avg_err_mm, color_score = self.score_candidate(
                         rotated_cups, block_list, dx, dy, yaw_rad, blocks
                     )
+                    if matches >= self.min_useful_matches:
+                        candidates.append({
+                            "matches": matches, "score": score, "yaw_deg": yaw_deg,
+                            "dx": dx, "dy": dy, "avg_err_mm": avg_err_mm,
+                            "color_score": color_score, "assignments": assignments,
+                        })
+            yaw_deg += YAW_STEP_DEG
+        return candidates
 
-                    if matches < self.min_useful_matches:
-                        continue
+    def select_best_candidate(self, candidates: List[Dict]) -> Dict:
+        """Select the best candidate from the list."""
+        if not candidates:
+            return {}
+        return max(candidates, key=lambda c: (c["matches"], c["score"]))
 
-                    all_candidates.append({
-                        "matches": matches,
-                        "score": score,
-                        "yaw_deg": yaw_deg,
-                        "dx": dx,
-                        "dy": dy,
-                        "avg_err_mm": avg_err_mm,
-                        "color_score": color_score,
-                        "assignments": assignments,
-                    })
-
-                    if (
-                        matches > best_matches
-                        or (matches == best_matches and score > best_score)
-                    ):
-                        best_yaw = yaw_rad
-                        best_dx = dx
-                        best_dy = dy
-                        best_matches = matches
-                        best_score = score
-                        best_assignments = assignments
-                        best_avg_err_mm = avg_err_mm
-                        best_color_score = color_score
-
-            yaw_deg += self.yaw_step_deg
-
-        # Deduplicate candidates by assignment set (keep best score per unique assignment)
+    def deduplicate_candidates(self, candidates: List[Dict]) -> List[Dict]:
+        """Deduplicate by assignment set."""
         best_per_assignment = defaultdict(lambda: {"score": -1e18, "cand": None})
-
-        for cand in all_candidates:
-            # Create a signature of the assignment (sorted cup->block pairs)
+        for cand in candidates:
             assign_sig = tuple(sorted((cup, blk) for cup, blk, _ in cand["assignments"]))
             if cand["score"] > best_per_assignment[assign_sig]["score"]:
                 best_per_assignment[assign_sig] = {"score": cand["score"], "cand": cand}
+        return [v["cand"] for v in best_per_assignment.values() if v["cand"] is not None]
 
-        # Replace all_candidates with deduplicated list
-        all_candidates = [v["cand"] for v in best_per_assignment.values() if v["cand"] is not None]
-        all_candidates.sort(key=lambda c: (c["matches"], c["score"]), reverse=True)
-
-        if self.debug_candidates and len(all_candidates) > 0:
-            all_candidates.sort(key=lambda c: (c["matches"], c["score"]), reverse=True)
-
-            four_match_candidates = [c for c in all_candidates if c["matches"] == 4]
-            self.get_logger().info(f"debug | num_4_match_candidates={len(four_match_candidates)}")
-            self.get_logger().info("===== TOP CANDIDATES =====")
-            for i, cand in enumerate(all_candidates):  # Remove [:self.debug_top_k] to show all
-                assign_str = ", ".join(
-                    [f"{cup}->{blk} ({dist*1000:.1f} mm)" for cup, blk, dist in cand["assignments"]]
-                )
-                self.get_logger().info(
-                    f"[{i}] matches={cand['matches']} | "
-                    f"score={cand['score']:.1f} | "
-                    f"dyaw={cand['yaw_deg']:+.1f} deg | "
-                    f"dx={cand['dx']:+.3f} | dy={cand['dy']:+.3f} | "
-                    f"avg_err={cand['avg_err_mm']:.1f} mm | "
-                    f"color_score={cand['color_score']:.2f} | "
-                    f"{assign_str}"
-                )
-            self.get_logger().info("==========================")
-
+    def compute_best_alignment(self, cups: Dict[str, XY], blocks: Dict[str, XY]) -> Tuple[...]:
+        candidates = self.generate_candidates(cups, blocks)
+        candidates = self.deduplicate_candidates(candidates)
+        candidates.sort(key=lambda c: (c["matches"], c["score"]), reverse=True)
+        
+        best_cand = self.select_best_candidate(candidates)
+        if not best_cand:
+            return (0.0, 0.0, 0.0, 0, -1e18, [], 1e9, 0.0)
+        
+        # Debug logging (only if enabled)
+        if DEBUG_CANDIDATES and candidates:
+            self.log_candidates(candidates)
+        
         return (
-            best_yaw,
-            best_dx,
-            best_dy,
-            best_matches,
-            best_score,
-            best_assignments,
-            best_avg_err_mm,
-            best_color_score,
+            math.radians(best_cand["yaw_deg"]), best_cand["dx"], best_cand["dy"],
+            best_cand["matches"], best_cand["score"], best_cand["assignments"],
+            best_cand["avg_err_mm"], best_cand["color_score"]
         )
+
+    def log_candidates(self, candidates: List[Dict]):
+        """Log top candidates."""
+        four_match = [c for c in candidates if c["matches"] == 4]
+        self.get_logger().info(f"debug | num_4_match_candidates={len(four_match)}")
+        self.get_logger().info("===== TOP CANDIDATES =====")
+        for i, cand in enumerate(candidates):
+            assign_str = ", ".join([f"{cup}->{blk} ({dist*1000:.1f} mm)" for cup, blk, dist in cand["assignments"]])
+            self.get_logger().info(f"[{i}] matches={cand['matches']} | score={cand['score']:.1f} | ... | {assign_str}")
+        self.get_logger().info("==========================")
+
 
     def solution_is_local(self, dx: float, dy: float, yaw_rad: float) -> bool:
         return (
@@ -759,6 +749,12 @@ class CupBlockAligner(Node):
                 self.publish_block_queue(best_assignments)
                 self.publish_pickup_goal(best_dx, best_dy, yaw_deg, best_assignments)
                 self.get_logger().info("PUBLISHED pickup goal + queue, locking until done")
+
+                # Log the locked assignments
+                locked_assign_str = ", ".join(
+                    [f"{cup}->{blk} ({dist*1000:.1f} mm)" for cup, blk, dist in best_assignments]
+                )
+                self.get_logger().info(f"Locked solution blocks: {locked_assign_str}")
 
             # while locked, do not change solution unless unlocked
             if self.locked:
