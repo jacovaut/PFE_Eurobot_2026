@@ -13,6 +13,7 @@ from tf2_ros import Buffer, TransformListener
 from tf2_msgs.msg import TFMessage
 from std_msgs.msg import String
 import json
+from collections import defaultdict
 
 
 @dataclass
@@ -500,6 +501,19 @@ class CupBlockAligner(Node):
                         best_color_score = color_score
 
             yaw_deg += self.yaw_step_deg
+
+        # Deduplicate candidates by assignment set (keep best score per unique assignment)
+        best_per_assignment = defaultdict(lambda: {"score": -1e18, "cand": None})
+
+        for cand in all_candidates:
+            # Create a signature of the assignment (sorted cup->block pairs)
+            assign_sig = tuple(sorted((cup, blk) for cup, blk, _ in cand["assignments"]))
+            if cand["score"] > best_per_assignment[assign_sig]["score"]:
+                best_per_assignment[assign_sig] = {"score": cand["score"], "cand": cand}
+
+        # Replace all_candidates with deduplicated list
+        all_candidates = [v["cand"] for v in best_per_assignment.values() if v["cand"] is not None]
+        all_candidates.sort(key=lambda c: (c["matches"], c["score"]), reverse=True)
 
         if self.debug_candidates and len(all_candidates) > 0:
             all_candidates.sort(key=lambda c: (c["matches"], c["score"]), reverse=True)
