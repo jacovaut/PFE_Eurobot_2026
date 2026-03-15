@@ -603,19 +603,18 @@ class CupBlockAligner(Node):
 
     
     def publish_block_queue(self, assignments: List[Tuple[str, str, float]]):
-        # Cup order: 3 first, then 2, 1, 0 (as you described)
+        # Order by cup index descending (cup3 first, then cup2, ...)
         ordered = sorted(
             assignments,
             key=lambda a: int(a[0].split("_")[1]),
             reverse=True,
         )
-        cmd_parts = []
-        for cup, blk, _ in ordered:
-            color = "Y" if self.get_block_color(blk) == "yellow" else "B"
-            idx = cup.split("_")[1]
-            cmd_parts.append(f"C{idx}:{color}")
+        colors = []
+        for _, blk, _ in ordered:
+            color = self.get_block_color(blk)
+            colors.append(color)
         msg = String()
-        msg.data = ",".join(cmd_parts)
+        msg.data = ",".join(colors)
         self.block_queue_pub.publish(msg)
 
 
