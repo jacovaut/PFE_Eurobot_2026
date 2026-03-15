@@ -60,12 +60,21 @@ void subscription_callback(const void * msgin) {
     if (colorStr == "yellow") e.color = COLOR_YELLOW;
     else if (colorStr == "blue") e.color = COLOR_BLUE;
     else e.color = COLOR_UNKNOWN;
-        if (!queue_push(e)) {
+    e.cup_id = 0; // not used anymore
+    if (!queue_push(e)) {
       Serial.println("queue full, dropping");
     }
     if (comma == -1) break;
     start = comma + 1;
   }
+}
+
+void pickup_cups_callback(const void * msgin) {
+  const std_msgs__msg__String * m = (const std_msgs__msg__String *)msgin;
+  String s = String(m->data.data, m->data.size);
+  // s might be "3,2" or "2"
+  // Parse and activate valves accordingly
+  // Example: activateValveForCup(atoi(s.c_str()));
 }
 
 void setup() {

@@ -153,6 +153,7 @@ class CupBlockAligner(Node):
         self.pickup_state_sub = self.create_subscription(
             String, "pickup_state", self.pickup_state_cb, 10
         )
+        self.pickup_cups_pub = self.create_publisher(String, "pickup_cups_cmd", 10)
 
         self.locked = False
         self.locked_signature = None
@@ -584,10 +585,10 @@ class CupBlockAligner(Node):
         if s == "arrived":
             self.get_logger().info("pickup_state: arrived")
             self.pickup_state = "arrived"
-            # Publish the block queue now that robot is at pickup location
             if self.locked and self.locked_assignments is not None:
                 self.publish_block_queue(self.locked_assignments)
-                self.get_logger().info("PUBLISHED block queue after arrived")
+                self.publish_pickup_cups(self.locked_assignments)
+                self.get_logger().info("PUBLISHED block queue and cup assignments after arrived")
         elif s == "done":
             self.get_logger().info("pickup_state: done")
             self.pickup_state = "done"
@@ -616,6 +617,19 @@ class CupBlockAligner(Node):
         msg = String()
         msg.data = ",".join(colors)
         self.block_queue_pub.publish(msg)
+
+
+    def publish_pickup_cups(self, assignments: List[Tuple[str, str, float]]):
+        # Order by cup index descending (cup3 first, ...)
+        ordered = sorted(
+            assignments,
+            key=lambda a: int(a[0].split("_")[1]),
+            reverse=True,
+        )
+        cup_ids = [cup.split("_")[1] for cup, _, _ in ordered]
+        msg = String()
+        msg.data = ",".join(cup_ids)
+        self.pickup_cups_pub.publish(msg)
 
 
     def publish_pickup_goal(self, dx, dy, yaw_deg, assignments):
