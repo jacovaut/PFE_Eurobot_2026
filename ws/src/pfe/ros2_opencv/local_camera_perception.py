@@ -332,17 +332,11 @@ class LocalCameraPerceptionNode(Node):
 
             cam_origin_base = trans
 
-            p_proj = self._intersect_ray_with_pickup_plane(
-                cam_origin_base,
-                p_base,
-                plane_z=0.0
-            )
+            # Project the detected block position onto the pickup plane (flat table).
+            # We keep X/Y from the computed base-frame position and force Z to the table plane.
+            p_proj = np.array([p_base[0], p_base[1], 0.0], dtype=float)
 
-            if p_proj is None:
-                self.get_logger().warn(
-                    f"Projection failed for track {track.id}_{track.index} (ray parallel or behind camera)"
-                )
-                return
+            
 
             quat_cam = np.array(track.quat, dtype=float)
             quat_base_raw = tf_transformations.quaternion_multiply(quat_tf, quat_cam)
