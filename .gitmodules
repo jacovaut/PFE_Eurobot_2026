@@ -10,4 +10,5 @@
 	url = https://github.com/YDLIDAR/YDLidar-SDK
 [submodule "ws/src/ydlidar_ros2_driver"]
 	path = ws/src/ydlidar_ros2_driver
-	url = https://github.com/YDLIDAR/ydlidar_ros2_driver
+	url = https://github.com/YDLIDAR/ydlidar_ros2_driver.git
+	branch = jazzy

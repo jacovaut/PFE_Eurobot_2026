@@ -11,6 +11,8 @@ from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
 
 from tf2_ros import Buffer, TransformListener
 from tf2_msgs.msg import TFMessage
+from std_msgs.msg import String
+import json
 
 
 @dataclass
@@ -35,19 +37,19 @@ class CupBlockAligner(Node):
         self.YELLOW_IDS = {47}
 
         # ---------- Matching params ----------
-        self.match_radius_m = 0.020      # 20 mm
-        self.pickup_max_err_m = 0.020    # 20 mm
+        self.match_radius_m = 0.015  # Reduced from 0.020 for tighter matches
+        self.pickup_max_err_m = 0.015  # Reduced from 0.020 for stricter pickup
 
-        # Ignore single-block solutions
         self.min_useful_matches = 2
         self.pickup_min_matches = 2
 
         self.tf_timeout = Duration(seconds=0.03)
 
         # ---------- Recent visible blocks ----------
-        self.aruco_last_seen: Dict[str, float] = {}
-        self.block_memory_s = 0.30
-        self.max_blocks_to_consider = 20
+        self.block_memory_s = 0.50  # Increased from 0.30 to keep blocks in memory longer
+
+        # ---------- tolerate temporary block loss ----------
+        self.missing_block_cycles_allowed = 10  # Increased from 3 to allow ~2s gaps (at 0.2s/tick)
 
         # ---------- Local-mode limits ----------
         self.max_local_dx_m = 0.40
@@ -57,26 +59,24 @@ class CupBlockAligner(Node):
         # ---------- Yaw search ----------
         self.yaw_min_deg = -95.0
         self.yaw_max_deg = 95.0
-        self.yaw_step_deg = 3.0
+        self.yaw_step_deg = 1.0  # Reduced from 3.0 for finer resolution
 
         # ---------- Weighted scoring ----------
-        # Bigger is better
-        self.w_matches = 1000.0
-        self.w_color = 120.0
-        self.w_error = 1.0           # avg error in mm
-        self.w_yaw = 0.3             # penalty per degree
-        self.w_translation = 80.0    # penalty per meter
+        self.w_matches = 500.0
+        self.w_color = 1000.0
+        self.w_error = 1.0
+        self.w_yaw = 0.3
+        self.w_translation = 80.0
 
         # ---------- Row bonus ----------
         self.w_row = 400.0
-        self.row_max_perp_error_m = 0.01  # 10 mm
+        self.row_max_perp_error_m = 0.01
 
         # ---------- Consecutive cups bonus ----------
-        # Rewards contiguous cup usage like [cup_0,cup_1,cup_2] over scattered matches.
         self.w_consecutive = 250.0
 
         # ---------- Stability filtering ----------
-        self.required_stable_cycles = 3
+        self.required_stable_cycles = 5  # Increased from 3 for more stability
         self.stable_dx_tol_m = 0.01
         self.stable_dy_tol_m = 0.01
         self.stable_dyaw_tol_deg = 3.0
@@ -89,14 +89,14 @@ class CupBlockAligner(Node):
         self.block_history: Dict[str, List[XY]] = {}
         self.block_history_len = 10
         self.use_smoothed_blocks = True
-        self.motion_reset_threshold_m = 0.03  # reset smoothing if block moves > 3 cm
+        self.motion_reset_threshold_m = 0.03
 
         # ---------- Debug ----------
-        self.debug_candidates = True
+        self.debug_candidates = False
         self.debug_top_k = 10
         self.debug_tf_children = False
-        self.debug_geometry = True
-        self.debug_block_stability = True
+        self.debug_geometry = False
+        self.debug_block_stability = False
 
         # ---------- TF ----------
         self.tf_buffer = Buffer()
@@ -111,9 +111,19 @@ class CupBlockAligner(Node):
 
         self.timer = self.create_timer(0.2, self.tick)
 
-    # -------------------------------------------------------------------------
-    # TF + block freshness
-    # -------------------------------------------------------------------------
+        self.get_logger().info("✅ CupBlockAligner using block_* frames.")
+
+        self.pickup_goal_pub = self.create_publisher(String, "pickup_goal", 10)
+        self.block_queue_pub = self.create_publisher(String, "block_queue_cmd", 10)
+        self.pickup_state_sub = self.create_subscription(
+            String, "pickup_state", self.pickup_state_cb, 10
+        )
+
+        self.locked = False
+        self.locked_signature = None
+        self.pickup_state = "idle"  # idle / moving / arrived / picking / done
+        self.pickup_timer = None
+
     def tf_cb(self, msg: TFMessage):
         now_sec = self.get_clock().now().nanoseconds * 1e-9
 
@@ -121,23 +131,23 @@ class CupBlockAligner(Node):
             child = t.child_frame_id
             if self.debug_tf_children:
                 self.get_logger().info(f"tf child seen: {child}")
-            if "aruco" in child.lower():
-                self.aruco_last_seen[child] = now_sec
+            if child.lower().startswith("block_"):
+                self.block_last_seen[child] = now_sec
 
-    def get_recent_aruco_frames(self) -> List[str]:
+    def get_recent_block_frames(self) -> List[str]:
         now_sec = self.get_clock().now().nanoseconds * 1e-9
 
         recent = []
         stale = []
 
-        for frame, last_seen in self.aruco_last_seen.items():
+        for frame, last_seen in self.block_last_seen.items():
             if (now_sec - last_seen) <= self.block_memory_s:
                 recent.append(frame)
             else:
                 stale.append(frame)
 
         for frame in stale:
-            del self.aruco_last_seen[frame]
+            del self.block_last_seen[frame]
             if frame in self.block_history:
                 del self.block_history[frame]
 
@@ -157,9 +167,6 @@ class CupBlockAligner(Node):
         except Exception:
             return None
 
-    # -------------------------------------------------------------------------
-    # Geometry helpers
-    # -------------------------------------------------------------------------
     @staticmethod
     def rotate_xy(p: XY, yaw_rad: float) -> XY:
         c = math.cos(yaw_rad)
@@ -242,10 +249,6 @@ class CupBlockAligner(Node):
         return self.w_row * (1.0 - best_avg_perp / self.row_max_perp_error_m)
 
     def compute_consecutive_bonus(self, assignments: List[Tuple[str, str, float]]) -> float:
-        """
-        Reward contiguous cup usage:
-        cup_0,cup_1,cup_2,cup_3 is better than cup_0,cup_2,cup_3
-        """
         if len(assignments) < 2:
             return 0.0
 
@@ -271,15 +274,11 @@ class CupBlockAligner(Node):
             else:
                 current_run = 1
 
-        # bonus only for runs >=2
         if longest_run < 2:
             return 0.0
 
         return self.w_consecutive * (longest_run - 1)
 
-    # -------------------------------------------------------------------------
-    # Color helpers
-    # -------------------------------------------------------------------------
     def get_block_color(self, frame_name: str) -> str:
         try:
             parts = frame_name.split("_")
@@ -313,9 +312,6 @@ class CupBlockAligner(Node):
 
         return 0.0
 
-    # -------------------------------------------------------------------------
-    # Smoothing + jitter debug
-    # -------------------------------------------------------------------------
     def update_block_history(self, blocks: Dict[str, XY]):
         for name, xy in blocks.items():
             if name not in self.block_history:
@@ -376,9 +372,6 @@ class CupBlockAligner(Node):
 
         return smoothed
 
-    # -------------------------------------------------------------------------
-    # Scoring
-    # -------------------------------------------------------------------------
     def score_candidate(
         self,
         rotated_cups: List[Tuple[str, XY]],
@@ -434,10 +427,9 @@ class CupBlockAligner(Node):
         )
 
         return matches, weighted_score, assignments, avg_err_mm, color_score
+    
+    
 
-    # -------------------------------------------------------------------------
-    # Solver
-    # -------------------------------------------------------------------------
     def compute_best_alignment(
         self,
         cups: Dict[str, XY],
@@ -446,7 +438,7 @@ class CupBlockAligner(Node):
         best_yaw = 0.0
         best_dx = 0.0
         best_dy = 0.0
-        best_matches = -1
+        best_matches = 0
         best_score = -1e18
         best_assignments: List[Tuple[str, str, float]] = []
         best_avg_err_mm = 1e9
@@ -539,9 +531,6 @@ class CupBlockAligner(Node):
             best_color_score,
         )
 
-    # -------------------------------------------------------------------------
-    # Stability + validity
-    # -------------------------------------------------------------------------
     def solution_is_local(self, dx: float, dy: float, yaw_rad: float) -> bool:
         return (
             abs(dx) <= self.max_local_dx_m
@@ -582,15 +571,61 @@ class CupBlockAligner(Node):
                 return False
 
         return True
+    
+    def pickup_state_cb(self, msg: String):
+        s = msg.data.strip().lower()
+        if s == "arrived":
+            self.get_logger().info("pickup_state: arrived")
+            self.pickup_state = "arrived"
+        elif s == "done":
+            self.get_logger().info("pickup_state: done")
+            self.pickup_state = "done"
+            self.locked = False
+        elif s == "reset":
+            self.get_logger().info("pickup_state: reset")
+            self.locked = False
+            self.pickup_state = "idle"
 
-    # -------------------------------------------------------------------------
-    # Main loop
-    # -------------------------------------------------------------------------
+    
+    def publish_block_queue(self, assignments: List[Tuple[str, str, float]]):
+        # Cup order: 3 first, then 2, 1, 0 (as you described)
+        ordered = sorted(
+            assignments,
+            key=lambda a: int(a[0].split("_")[1]),
+            reverse=True,
+        )
+        cmd_parts = []
+        for cup, blk, _ in ordered:
+            color = "Y" if self.get_block_color(blk) == "yellow" else "B"
+            idx = cup.split("_")[1]
+            cmd_parts.append(f"C{idx}:{color}")
+        msg = String()
+        msg.data = ",".join(cmd_parts)
+        self.block_queue_pub.publish(msg)
+
+
+    def publish_pickup_goal(self, dx, dy, yaw_deg, assignments):
+        plan = {
+            "dx": dx,
+            "dy": dy,
+            "yaw_deg": yaw_deg,
+            "assignments": [
+                {
+                    "cup": cup,
+                    "block": blk,
+                    "color": self.get_block_color(blk)
+                }
+                for cup, blk, _ in assignments
+            ],
+        }
+        msg = String()
+        msg.data = json.dumps(plan)
+        self.pickup_goal_pub.publish(msg)
+
     def tick(self):
         try:
             start_t = time.time()
 
-            # ---------- Cups ----------
             cups: Dict[str, XY] = {}
             for c in self.cup_frames:
                 xy = self.lookup_xy(c)
@@ -606,9 +641,8 @@ class CupBlockAligner(Node):
                 self.prev_assignment_signature = None
                 return
 
-            # ---------- Recent blocks ----------
             raw_blocks: Dict[str, XY] = {}
-            recent_frames = self.get_recent_aruco_frames()
+            recent_frames = self.get_recent_block_frames()
 
             for b in recent_frames:
                 xy = self.lookup_xy(b)
@@ -620,7 +654,7 @@ class CupBlockAligner(Node):
             blocks = self.get_smoothed_blocks(raw_blocks)
 
             self.get_logger().info(
-                f"debug | recent_aruco_frames={len(recent_frames)} | valid_blocks={len(blocks)}"
+                f"debug | recent_block_frames={len(recent_frames)} | valid_blocks={len(blocks)}"
             )
 
             if len(blocks) == 0:
@@ -630,7 +664,6 @@ class CupBlockAligner(Node):
                 self.prev_assignment_signature = None
                 return
 
-            # ---------- Geometry debug ----------
             if self.debug_geometry:
                 self.get_logger().info("===== CUP POSITIONS =====")
                 for name, xy in cups.items():
@@ -644,7 +677,6 @@ class CupBlockAligner(Node):
                 self.debug_pairwise_spacing("CUPS", cups, sort_axis="y")
                 self.debug_pairwise_spacing("BLOCKS", blocks, sort_axis="y")
 
-            # ---------- Solve ----------
             self.get_logger().info("debug | entering compute_best_alignment()")
             (
                 best_yaw,
@@ -683,18 +715,35 @@ class CupBlockAligner(Node):
                 self.prev_assignment_signature = None
                 return
 
-            assignment_signature = tuple(sorted([blk for _, blk, _ in best_assignments]))
-            if self.prev_assignment_signature is None:
-                self.prev_assignment_signature = assignment_signature
-            elif assignment_signature != self.prev_assignment_signature:
-                self.stable_cycles = 0
-                self.prev_solution = None
-                self.prev_assignment_signature = assignment_signature
+            # Compute stability / readiness before locking
+            yaw_deg = math.degrees(best_yaw)
 
-            self.update_stability(best_dx, best_dy, best_yaw)
+            # create a stable signature for the current assignment set
+            assignment_signature = tuple(sorted([blk for _, blk, _ in best_assignments]))
+
+            # if the assignment set changed, reset stability
+            if assignment_signature != self.prev_assignment_signature:
+                self.stable_cycles = 1
+                self.prev_solution = (best_dx, best_dy, yaw_deg)
+                self.prev_assignment_signature = assignment_signature
+            else:
+                self.update_stability(best_dx, best_dy, best_yaw)
 
             ready = self.is_pickup_ready(best_matches, best_assignments)
-            yaw_deg = math.degrees(best_yaw)
+
+            # when ready and not currently locked, send a single pickup command
+            if ready and not self.locked:
+                self.locked = True
+                self.locked_signature = assignment_signature
+                self.pickup_state = "moving"
+                self.publish_block_queue(best_assignments)
+                self.publish_pickup_goal(best_dx, best_dy, yaw_deg, best_assignments)
+                self.get_logger().info("PUBLISHED pickup goal + queue, locking until done")
+
+            # while locked, do not change solution unless unlocked
+            if self.locked:
+                # clear debug output but keep solver running (optional)
+                return
 
             assign_str = ", ".join(
                 [f"{cup}->{blk} ({dist*1000:.1f} mm)" for cup, blk, dist in best_assignments]

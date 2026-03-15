@@ -1,0 +1,39 @@
+# VS Code
+.vscode/
+.vscode-server/
+
+# ROS build artifacts
+# ROS 2 colcon build artifacts
+src/build/
+src/install/
+src/log/
+build
+install
+log
+# OS / system stuff
+.DS_Store
+Thumbs.db
+
+# Git / GPG
+.gnupg/
+.github
+
+# .NET
+.dotnet/
+
+# Caches
+.cache/
+
+# Logs
+*.log
+
+# Ignore any temporary files
+*.swp
+*~
+
+# ROS-specific ignores
+*.pyc
+__pycache__/
+*.log
+
+.venv/
