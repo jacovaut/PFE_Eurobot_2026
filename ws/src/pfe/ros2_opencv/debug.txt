@@ -1,594 +1,229 @@
-INFO] [1773599345.979015704] [cup_block_aligner]: debug | recent_block_frames=0 | valid_blocks=0
-[INFO] [1773599345.981460286] [cup_block_aligner]: waiting for fresh blocks...
-[INFO] [1773599346.178726891] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773599346.181464580] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599346.398512172] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599346.401445127] [cup_block_aligner]: debug | matches=4 | score=4694.7 | color_score=1.60 | avg_err=7.0 mm
-[INFO] [1773599346.405061522] [cup_block_aligner]: BEST ALIGN | dx=-0.087 m, dy=+0.020 m, dyaw=-8.0 deg | matches=4 | score=4694.7 | color_score=1.60 | avg_err=7.0 mm | stable=1/5 | pickup_ready=False | solver_time=228.98 ms | cup_0->block_36_0 (10.5 mm), cup_1->block_47_0 (0.0 mm), cup_2->block_47_2 (5.3 mm), cup_3->block_47_3 (12.5 mm)
-[INFO] [1773599346.414464969] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773599346.417402666] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599346.632872211] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599346.635754350] [cup_block_aligner]: debug | matches=4 | score=4694.8 | color_score=1.60 | avg_err=7.1 mm
-[INFO] [1773599346.639249209] [cup_block_aligner]: BEST ALIGN | dx=-0.087 m, dy=+0.020 m, dyaw=-8.0 deg | matches=4 | score=4694.8 | color_score=1.60 | avg_err=7.1 mm | stable=2/5 | pickup_ready=False | solver_time=228.35 ms | cup_0->block_36_0 (10.5 mm), cup_1->block_47_0 (0.0 mm), cup_2->block_47_2 (5.3 mm), cup_3->block_47_3 (12.5 mm)
-[INFO] [1773599346.647106484] [cup_block_aligner]: debug | recent_block_frames=0 | valid_blocks=0
-[INFO] [1773599346.649412268] [cup_block_aligner]: waiting for fresh blocks...
-[INFO] [1773599346.777829513] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773599346.780684224] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599346.997145099] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599347.000194758] [cup_block_aligner]: debug | matches=4 | score=4695.2 | color_score=1.60 | avg_err=6.9 mm
-[INFO] [1773599347.003688324] [cup_block_aligner]: BEST ALIGN | dx=-0.087 m, dy=+0.020 m, dyaw=-8.0 deg | matches=4 | score=4695.2 | color_score=1.60 | avg_err=6.9 mm | stable=1/5 | pickup_ready=False | solver_time=227.92 ms | cup_0->block_36_0 (10.2 mm), cup_1->block_47_0 (0.0 mm), cup_2->block_47_2 (5.0 mm), cup_3->block_47_3 (12.4 mm)
-[INFO] [1773599347.011768082] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773599347.014540104] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599347.234504245] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599347.237261379] [cup_block_aligner]: debug | matches=4 | score=4695.2 | color_score=1.60 | avg_err=6.9 mm
-[INFO] [1773599347.241019488] [cup_block_aligner]: BEST ALIGN | dx=-0.087 m, dy=+0.020 m, dyaw=-8.0 deg | matches=4 | score=4695.2 | color_score=1.60 | avg_err=6.9 mm | stable=2/5 | pickup_ready=False | solver_time=231.45 ms | cup_0->block_36_0 (10.2 mm), cup_1->block_47_0 (0.0 mm), cup_2->block_47_2 (5.0 mm), cup_3->block_47_3 (12.4 mm)
-[INFO] [1773599347.249085098] [cup_block_aligner]: debug | recent_block_frames=5 | valid_blocks=5
-[INFO] [1773599347.252403932] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599347.364793951] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599347.367786716] [cup_block_aligner]: debug | matches=3 | score=4575.7 | color_score=2.20 | avg_err=6.1 mm
-[INFO] [1773599347.371392557] [cup_block_aligner]: BEST ALIGN | dx=-0.037 m, dy=+0.156 m, dyaw=+0.0 deg | matches=3 | score=4575.7 | color_score=2.20 | avg_err=6.1 mm | stable=1/5 | pickup_ready=False | solver_time=124.26 ms | cup_0->block_47_1 (9.0 mm), cup_1->block_36_2 (0.0 mm), cup_2->block_36_3 (9.2 mm)
-[INFO] [1773599347.378408412] [cup_block_aligner]: debug | recent_block_frames=1 | valid_blocks=1
-[INFO] [1773599347.380991478] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599347.398484426] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599347.401099392] [cup_block_aligner]: debug | matches=0 | score=-1000000000000000000.0 | color_score=0.00 | avg_err=1000000000.0 mm
-[INFO] [1773599347.403839463] [cup_block_aligner]: No worthwhile pickup found. best_matches=0
-[INFO] [1773599347.579481303] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773599347.582269620] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599347.800444213] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599347.803471275] [cup_block_aligner]: debug | matches=4 | score=4695.4 | color_score=1.60 | avg_err=6.8 mm
-[INFO] [1773599347.807098952] [cup_block_aligner]: BEST ALIGN | dx=-0.087 m, dy=+0.020 m, dyaw=-8.0 deg | matches=4 | score=4695.4 | color_score=1.60 | avg_err=6.8 mm | stable=1/5 | pickup_ready=False | solver_time=230.33 ms | cup_0->block_36_0 (10.2 mm), cup_1->block_47_0 (0.0 mm), cup_2->block_47_2 (5.2 mm), cup_3->block_47_3 (11.9 mm)
-[INFO] [1773599347.815697481] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773599347.818358177] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599348.042021714] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599348.044949044] [cup_block_aligner]: debug | matches=4 | score=4695.4 | color_score=1.60 | avg_err=6.8 mm
-[INFO] [1773599348.048584449] [cup_block_aligner]: BEST ALIGN | dx=-0.087 m, dy=+0.020 m, dyaw=-8.0 deg | matches=4 | score=4695.4 | color_score=1.60 | avg_err=6.8 mm | stable=2/5 | pickup_ready=False | solver_time=235.64 ms | cup_0->block_36_0 (10.2 mm), cup_1->block_47_0 (0.0 mm), cup_2->block_47_2 (5.2 mm), cup_3->block_47_3 (11.9 mm)
-[INFO] [1773599348.054817923] [cup_block_aligner]: debug | recent_block_frames=0 | valid_blocks=0
-[INFO] [1773599348.056896341] [cup_block_aligner]: waiting for fresh blocks...
-[INFO] [1773599348.180475742] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773599348.183757958] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599348.399839788] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599348.402566178] [cup_block_aligner]: debug | matches=4 | score=4695.6 | color_score=1.60 | avg_err=6.7 mm
-[INFO] [1773599348.405938796] [cup_block_aligner]: BEST ALIGN | dx=-0.087 m, dy=+0.020 m, dyaw=-8.0 deg | matches=4 | score=4695.6 | color_score=1.60 | avg_err=6.7 mm | stable=1/5 | pickup_ready=False | solver_time=228.36 ms | cup_0->block_36_0 (10.3 mm), cup_1->block_47_0 (0.0 mm), cup_2->block_47_2 (4.9 mm), cup_3->block_47_3 (11.5 mm)
-[INFO] [1773599348.414574971] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773599348.417099179] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599348.635737010] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599348.638774736] [cup_block_aligner]: debug | matches=4 | score=4695.6 | color_score=1.60 | avg_err=6.7 mm
-[INFO] [1773599348.642698882] [cup_block_aligner]: BEST ALIGN | dx=-0.087 m, dy=+0.020 m, dyaw=-8.0 deg | matches=4 | score=4695.6 | color_score=1.60 | avg_err=6.7 mm | stable=2/5 | pickup_ready=False | solver_time=230.48 ms | cup_0->block_36_0 (10.3 mm), cup_1->block_47_0 (0.0 mm), cup_2->block_47_2 (4.9 mm), cup_3->block_47_3 (11.5 mm)
-[INFO] [1773599348.651421680] [cup_block_aligner]: debug | recent_block_frames=5 | valid_blocks=5
-[INFO] [1773599348.654211065] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599348.758932337] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599348.761692834] [cup_block_aligner]: debug | matches=2 | score=2836.1 | color_score=1.20 | avg_err=5.4 mm
-[INFO] [1773599348.765229961] [cup_block_aligner]: BEST ALIGN | dx=-0.082 m, dy=+0.011 m, dyaw=-6.0 deg | matches=2 | score=2836.1 | color_score=1.20 | avg_err=5.4 mm | stable=1/5 | pickup_ready=False | solver_time=116.30 ms | cup_0->block_36_0 (0.0 mm), cup_1->block_47_0 (10.8 mm)
-[INFO] [1773599348.779682654] [cup_block_aligner]: debug | recent_block_frames=1 | valid_blocks=1
-[INFO] [1773599348.782684267] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599348.800605497] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599348.805978297] [cup_block_aligner]: debug | matches=0 | score=-1000000000000000000.0 | color_score=0.00 | avg_err=1000000000.0 mm
-[INFO] [1773599348.809046926] [cup_block_aligner]: No worthwhile pickup found. best_matches=0
-[INFO] [1773599348.978949156] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773599348.981593755] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599349.202960613] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599349.205726258] [cup_block_aligner]: debug | matches=4 | score=4695.5 | color_score=1.60 | avg_err=6.6 mm
-[INFO] [1773599349.209602743] [cup_block_aligner]: BEST ALIGN | dx=-0.087 m, dy=+0.020 m, dyaw=-8.0 deg | matches=4 | score=4695.5 | color_score=1.60 | avg_err=6.6 mm | stable=1/5 | pickup_ready=False | solver_time=232.91 ms | cup_0->block_36_0 (10.7 mm), cup_1->block_47_0 (0.0 mm), cup_2->block_47_2 (4.8 mm), cup_3->block_47_3 (11.0 mm)
-[INFO] [1773599349.217563187] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773599349.220220553] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599349.448182401] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599349.451080767] [cup_block_aligner]: debug | matches=4 | score=4695.5 | color_score=1.60 | avg_err=6.6 mm
-[INFO] [1773599349.454568253] [cup_block_aligner]: BEST ALIGN | dx=-0.087 m, dy=+0.020 m, dyaw=-8.0 deg | matches=4 | score=4695.5 | color_score=1.60 | avg_err=6.6 mm | stable=2/5 | pickup_ready=False | solver_time=239.41 ms | cup_0->block_36_0 (10.7 mm), cup_1->block_47_0 (0.0 mm), cup_2->block_47_2 (4.8 mm), cup_3->block_47_3 (10.9 mm)
-[INFO] [1773599349.461616962] [cup_block_aligner]: debug | recent_block_frames=0 | valid_blocks=0
-[INFO] [1773599349.463891843] [cup_block_aligner]: waiting for fresh blocks...
-[INFO] [1773599349.579932969] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773599349.582684493] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599349.794543441] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599349.797341456] [cup_block_aligner]: debug | matches=4 | score=4695.4 | color_score=1.60 | avg_err=6.5 mm
-[INFO] [1773599349.800870584] [cup_block_aligner]: BEST ALIGN | dx=-0.087 m, dy=+0.020 m, dyaw=-8.0 deg | matches=4 | score=4695.4 | color_score=1.60 | avg_err=6.5 mm | stable=1/5 | pickup_ready=False | solver_time=223.87 ms | cup_0->block_36_0 (10.5 mm), cup_1->block_47_0 (0.0 mm), cup_2->block_47_2 (4.9 mm), cup_3->block_47_3 (10.7 mm)
-[INFO] [1773599349.809464706] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773599349.812102538] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599350.033222596] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599350.036275520] [cup_block_aligner]: debug | matches=4 | score=4695.4 | color_score=1.60 | avg_err=6.5 mm
-[INFO] [1773599350.040241419] [cup_block_aligner]: BEST ALIGN | dx=-0.087 m, dy=+0.020 m, dyaw=-8.0 deg | matches=4 | score=4695.4 | color_score=1.60 | avg_err=6.5 mm | stable=2/5 | pickup_ready=False | solver_time=232.87 ms | cup_0->block_36_0 (10.5 mm), cup_1->block_47_0 (0.0 mm), cup_2->block_47_2 (4.9 mm), cup_3->block_47_3 (10.7 mm)
-[INFO] [1773599350.048392910] [cup_block_aligner]: debug | recent_block_frames=4 | valid_blocks=4
-[INFO] [1773599350.052846386] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599350.133248687] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599350.136015843] [cup_block_aligner]: debug | matches=2 | score=2836.0 | color_score=1.20 | avg_err=5.6 mm
-[INFO] [1773599350.139539318] [cup_block_aligner]: BEST ALIGN | dx=-0.082 m, dy=+0.011 m, dyaw=-6.0 deg | matches=2 | score=2836.0 | color_score=1.20 | avg_err=5.6 mm | stable=1/5 | pickup_ready=False | solver_time=93.20 ms | cup_0->block_36_0 (0.0 mm), cup_1->block_47_0 (11.1 mm)
-[INFO] [1773599350.179474083] [cup_block_aligner]: debug | recent_block_frames=6 | valid_blocks=6
-[INFO] [1773599350.182266114] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599350.322958330] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599350.325797845] [cup_block_aligner]: debug | matches=3 | score=3775.7 | color_score=1.40 | avg_err=5.1 mm
-[INFO] [1773599350.330102099] [cup_block_aligner]: BEST ALIGN | dx=-0.087 m, dy=+0.020 m, dyaw=-8.0 deg | matches=3 | score=3775.7 | color_score=1.40 | avg_err=5.1 mm | stable=1/5 | pickup_ready=False | solver_time=152.22 ms | cup_0->block_36_0 (10.6 mm), cup_1->block_47_0 (0.0 mm), cup_2->block_47_2 (4.8 mm)
-[INFO] [1773599350.379815665] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773599350.382488958] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599350.602719763] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599350.605437924] [cup_block_aligner]: debug | matches=4 | score=4695.5 | color_score=1.60 | avg_err=6.6 mm
-[INFO] [1773599350.609059449] [cup_block_aligner]: BEST ALIGN | dx=-0.087 m, dy=+0.020 m, dyaw=-8.0 deg | matches=4 | score=4695.5 | color_score=1.60 | avg_err=6.6 mm | stable=1/5 | pickup_ready=False | solver_time=232.10 ms | cup_0->block_36_0 (10.6 mm), cup_1->block_47_0 (0.0 mm), cup_2->block_47_2 (4.8 mm), cup_3->block_47_3 (11.0 mm)
-[INFO] [1773599350.617781496] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773599350.620489224] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599350.840467382] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599350.843515776] [cup_block_aligner]: debug | matches=4 | score=4695.4 | color_score=1.60 | avg_err=6.6 mm
-[INFO] [1773599350.847110994] [cup_block_aligner]: BEST ALIGN | dx=-0.087 m, dy=+0.020 m, dyaw=-8.0 deg | matches=4 | score=4695.4 | color_score=1.60 | avg_err=6.6 mm | stable=2/5 | pickup_ready=False | solver_time=231.91 ms | cup_0->block_36_0 (10.6 mm), cup_1->block_47_0 (0.0 mm), cup_2->block_47_2 (4.8 mm), cup_3->block_47_3 (11.0 mm)
-[INFO] [1773599350.855053572] [cup_block_aligner]: debug | recent_block_frames=5 | valid_blocks=5
-[INFO] [1773599350.857655497] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599350.964869363] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599350.968070211] [cup_block_aligner]: debug | matches=2 | score=2832.9 | color_score=1.20 | avg_err=4.3 mm
-[INFO] [1773599350.971687793] [cup_block_aligner]: BEST ALIGN | dx=-0.036 m, dy=+0.156 m, dyaw=+0.0 deg | matches=2 | score=2832.9 | color_score=1.20 | avg_err=4.3 mm | stable=1/5 | pickup_ready=False | solver_time=118.58 ms | cup_0->block_47_1 (8.6 mm), cup_1->block_36_2 (0.0 mm)
-[INFO] [1773599350.977746307] [cup_block_aligner]: debug | recent_block_frames=0 | valid_blocks=0
-[INFO] [1773599350.980008113] [cup_block_aligner]: waiting for fresh blocks...
-[INFO] [1773599351.180420689] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773599351.183412117] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599351.466080790] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599351.469173884] [cup_block_aligner]: debug | matches=4 | score=4694.8 | color_score=1.60 | avg_err=6.8 mm
-[INFO] [1773599351.473913401] [cup_block_aligner]: BEST ALIGN | dx=-0.087 m, dy=+0.020 m, dyaw=-8.0 deg | matches=4 | score=4694.8 | color_score=1.60 | avg_err=6.8 mm | stable=1/5 | pickup_ready=False | solver_time=295.36 ms | cup_0->block_36_0 (10.6 mm), cup_1->block_47_0 (0.0 mm), cup_2->block_47_2 (5.2 mm), cup_3->block_47_3 (11.6 mm)
-[INFO] [1773599351.486971387] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773599351.492173587] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599351.720416351] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599351.723321923] [cup_block_aligner]: debug | matches=4 | score=4694.8 | color_score=1.60 | avg_err=6.8 mm
-[INFO] [1773599351.726940437] [cup_block_aligner]: BEST ALIGN | dx=-0.087 m, dy=+0.020 m, dyaw=-8.0 deg | matches=4 | score=4694.8 | color_score=1.60 | avg_err=6.8 mm | stable=2/5 | pickup_ready=False | solver_time=243.96 ms | cup_0->block_36_0 (10.5 mm), cup_1->block_47_0 (0.0 mm), cup_2->block_47_2 (5.2 mm), cup_3->block_47_3 (11.6 mm)
-[INFO] [1773599351.733761041] [cup_block_aligner]: debug | recent_block_frames=0 | valid_blocks=0
-[INFO] [1773599351.736160933] [cup_block_aligner]: waiting for fresh blocks...
-[INFO] [1773599351.780558543] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773599351.783380224] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599352.004968331] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599352.007989223] [cup_block_aligner]: debug | matches=4 | score=4694.9 | color_score=1.60 | avg_err=6.9 mm
-[INFO] [1773599352.011779810] [cup_block_aligner]: BEST ALIGN | dx=-0.087 m, dy=+0.020 m, dyaw=-8.0 deg | matches=4 | score=4694.9 | color_score=1.60 | avg_err=6.9 mm | stable=1/5 | pickup_ready=False | solver_time=233.84 ms | cup_0->block_36_0 (10.4 mm), cup_1->block_47_0 (0.0 mm), cup_2->block_47_2 (5.4 mm), cup_3->block_47_3 (11.7 mm)
-[INFO] [1773599352.021266515] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773599352.024576117] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599352.257679910] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599352.260644786] [cup_block_aligner]: debug | matches=4 | score=4694.9 | color_score=1.60 | avg_err=6.9 mm
-[INFO] [1773599352.264424749] [cup_block_aligner]: BEST ALIGN | dx=-0.087 m, dy=+0.020 m, dyaw=-8.0 deg | matches=4 | score=4694.9 | color_score=1.60 | avg_err=6.9 mm | stable=2/5 | pickup_ready=False | solver_time=245.99 ms | cup_0->block_36_0 (10.4 mm), cup_1->block_47_0 (0.0 mm), cup_2->block_47_2 (5.4 mm), cup_3->block_47_3 (11.7 mm)
-[INFO] [1773599352.272644375] [cup_block_aligner]: debug | recent_block_frames=3 | valid_blocks=3
-[INFO] [1773599352.275796182] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599352.337201858] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599352.340091353] [cup_block_aligner]: debug | matches=2 | score=2836.1 | color_score=1.20 | avg_err=5.5 mm
-[INFO] [1773599352.343547445] [cup_block_aligner]: BEST ALIGN | dx=-0.082 m, dy=+0.011 m, dyaw=-6.0 deg | matches=2 | score=2836.1 | color_score=1.20 | avg_err=5.5 mm | stable=1/5 | pickup_ready=False | solver_time=72.95 ms | cup_0->block_36_0 (0.0 mm), cup_1->block_47_0 (11.0 mm)
-[INFO] [1773599352.384268417] [cup_block_aligner]: debug | recent_block_frames=5 | valid_blocks=5
-[INFO] [1773599352.388879316] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599352.500249876] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599352.503122655] [cup_block_aligner]: debug | matches=3 | score=3776.3 | color_score=1.40 | avg_err=5.3 mm
-[INFO] [1773599352.506750319] [cup_block_aligner]: BEST ALIGN | dx=-0.087 m, dy=+0.020 m, dyaw=-8.0 deg | matches=3 | score=3776.3 | color_score=1.40 | avg_err=5.3 mm | stable=1/5 | pickup_ready=False | solver_time=126.52 ms | cup_0->block_36_0 (10.4 mm), cup_1->block_47_0 (0.0 mm), cup_2->block_47_2 (5.6 mm)
-[INFO] [1773599352.579607169] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773599352.582394467] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599352.808523706] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599352.812639510] [cup_block_aligner]: debug | matches=4 | score=4694.5 | color_score=1.60 | avg_err=7.0 mm
-[INFO] [1773599352.816296679] [cup_block_aligner]: BEST ALIGN | dx=-0.087 m, dy=+0.020 m, dyaw=-8.0 deg | matches=4 | score=4694.5 | color_score=1.60 | avg_err=7.0 mm | stable=1/5 | pickup_ready=False | solver_time=239.11 ms | cup_0->block_36_0 (10.4 mm), cup_1->block_47_0 (0.0 mm), cup_2->block_47_2 (5.5 mm), cup_3->block_47_3 (12.2 mm)
-[INFO] [1773599352.826856359] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773599352.829570932] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599353.046140683] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599353.048848219] [cup_block_aligner]: debug | matches=4 | score=4694.6 | color_score=1.60 | avg_err=7.1 mm
-[INFO] [1773599353.052463708] [cup_block_aligner]: BEST ALIGN | dx=-0.087 m, dy=+0.020 m, dyaw=-8.0 deg | matches=4 | score=4694.6 | color_score=1.60 | avg_err=7.1 mm | stable=2/5 | pickup_ready=False | solver_time=228.83 ms | cup_0->block_36_0 (10.4 mm), cup_1->block_47_0 (0.0 mm), cup_2->block_47_2 (5.6 mm), cup_3->block_47_3 (12.3 mm)
-[INFO] [1773599353.059328820] [cup_block_aligner]: debug | recent_block_frames=2 | valid_blocks=2
-[INFO] [1773599353.062088840] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599353.095062767] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599353.098090967] [cup_block_aligner]: debug | matches=0 | score=-1000000000000000000.0 | color_score=0.00 | avg_err=1000000000.0 mm
-[INFO] [1773599353.100943347] [cup_block_aligner]: No worthwhile pickup found. best_matches=0
-[INFO] [1773599353.180198373] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773599353.182995313] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599353.396784018] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599353.399654714] [cup_block_aligner]: debug | matches=4 | score=4694.6 | color_score=1.60 | avg_err=6.9 mm
-[INFO] [1773599353.403188165] [cup_block_aligner]: BEST ALIGN | dx=-0.087 m, dy=+0.020 m, dyaw=-8.0 deg | matches=4 | score=4694.6 | color_score=1.60 | avg_err=6.9 mm | stable=1/5 | pickup_ready=False | solver_time=225.36 ms | cup_0->block_36_0 (10.0 mm), cup_1->block_47_0 (0.0 mm), cup_2->block_47_2 (5.3 mm), cup_3->block_47_3 (12.2 mm)
-[INFO] [1773599353.411758594] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773599353.414456135] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599353.635597739] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599353.638437064] [cup_block_aligner]: debug | matches=4 | score=4694.6 | color_score=1.60 | avg_err=6.9 mm
-[INFO] [1773599353.641957578] [cup_block_aligner]: BEST ALIGN | dx=-0.087 m, dy=+0.020 m, dyaw=-8.0 deg | matches=4 | score=4694.6 | color_score=1.60 | avg_err=6.9 mm | stable=2/5 | pickup_ready=False | solver_time=232.89 ms | cup_0->block_36_0 (10.0 mm), cup_1->block_47_0 (0.0 mm), cup_2->block_47_2 (5.3 mm), cup_3->block_47_3 (12.2 mm)
-[INFO] [1773599353.650380039] [cup_block_aligner]: debug | recent_block_frames=5 | valid_blocks=5
-[INFO] [1773599353.652938289] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599353.759026769] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599353.761934964] [cup_block_aligner]: debug | matches=2 | score=3632.8 | color_score=2.00 | avg_err=5.3 mm
-[INFO] [1773599353.765461713] [cup_block_aligner]: BEST ALIGN | dx=+0.001 m, dy=+0.141 m, dyaw=+2.0 deg | matches=2 | score=3632.8 | color_score=2.00 | avg_err=5.3 mm | stable=1/5 | pickup_ready=False | solver_time=116.89 ms | cup_0->block_36_2 (10.7 mm), cup_1->block_36_3 (0.0 mm)
-[INFO] [1773599353.776949222] [cup_block_aligner]: debug | recent_block_frames=1 | valid_blocks=1
-[INFO] [1773599353.779764166] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599353.796697791] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599353.799812485] [cup_block_aligner]: debug | matches=0 | score=-1000000000000000000.0 | color_score=0.00 | avg_err=1000000000.0 mm
-[INFO] [1773599353.804146702] [cup_block_aligner]: No worthwhile pickup found. best_matches=0
-[INFO] [1773599353.978771354] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773599353.981266126] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599354.203323650] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599354.207631352] [cup_block_aligner]: debug | matches=4 | score=4694.8 | color_score=1.60 | avg_err=6.6 mm
-[INFO] [1773599354.211377662] [cup_block_aligner]: BEST ALIGN | dx=-0.087 m, dy=+0.020 m, dyaw=-8.0 deg | matches=4 | score=4694.8 | color_score=1.60 | avg_err=6.6 mm | stable=1/5 | pickup_ready=False | solver_time=234.99 ms | cup_0->block_36_0 (10.3 mm), cup_1->block_47_0 (0.0 mm), cup_2->block_47_2 (5.1 mm), cup_3->block_47_3 (11.2 mm)
-[INFO] [1773599354.222854715] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773599354.226061164] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599354.446745447] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599354.449386332] [cup_block_aligner]: debug | matches=4 | score=4694.8 | color_score=1.60 | avg_err=6.6 mm
-[INFO] [1773599354.453057630] [cup_block_aligner]: BEST ALIGN | dx=-0.087 m, dy=+0.020 m, dyaw=-8.0 deg | matches=4 | score=4694.8 | color_score=1.60 | avg_err=6.6 mm | stable=2/5 | pickup_ready=False | solver_time=233.96 ms | cup_0->block_36_0 (10.3 mm), cup_1->block_47_0 (0.0 mm), cup_2->block_47_2 (5.1 mm), cup_3->block_47_3 (11.2 mm)
-[INFO] [1773599354.459927514] [cup_block_aligner]: debug | recent_block_frames=1 | valid_blocks=1
-[INFO] [1773599354.463906926] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599354.486099112] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599354.488923033] [cup_block_aligner]: debug | matches=0 | score=-1000000000000000000.0 | color_score=0.00 | avg_err=1000000000.0 mm
-[INFO] [1773599354.491870154] [cup_block_aligner]: No worthwhile pickup found. best_matches=0
-[INFO] [1773599354.578751332] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773599354.581299773] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599354.806649596] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599354.809376973] [cup_block_aligner]: debug | matches=4 | score=4694.7 | color_score=1.60 | avg_err=6.7 mm
-[INFO] [1773599354.813095734] [cup_block_aligner]: BEST ALIGN | dx=-0.087 m, dy=+0.020 m, dyaw=-8.0 deg | matches=4 | score=4694.7 | color_score=1.60 | avg_err=6.7 mm | stable=1/5 | pickup_ready=False | solver_time=236.97 ms | cup_0->block_36_0 (10.3 mm), cup_1->block_47_0 (0.0 mm), cup_2->block_47_2 (5.1 mm), cup_3->block_47_3 (11.2 mm)
-[INFO] [1773599354.823914893] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773599354.826823889] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599355.057414363] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599355.060429479] [cup_block_aligner]: debug | matches=4 | score=4694.8 | color_score=1.60 | avg_err=6.7 mm
-[INFO] [1773599355.064059769] [cup_block_aligner]: BEST ALIGN | dx=-0.087 m, dy=+0.020 m, dyaw=-8.0 deg | matches=4 | score=4694.8 | color_score=1.60 | avg_err=6.7 mm | stable=2/5 | pickup_ready=False | solver_time=243.20 ms | cup_0->block_36_0 (10.3 mm), cup_1->block_47_0 (0.0 mm), cup_2->block_47_2 (5.1 mm), cup_3->block_47_3 (11.3 mm)
-[INFO] [1773599355.071268756] [cup_block_aligner]: debug | recent_block_frames=2 | valid_blocks=2
-[INFO] [1773599355.073931361] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599355.107611363] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599355.110580565] [cup_block_aligner]: debug | matches=0 | score=-1000000000000000000.0 | color_score=0.00 | avg_err=1000000000.0 mm
-[INFO] [1773599355.113296435] [cup_block_aligner]: No worthwhile pickup found. best_matches=0
-[INFO] [1773599355.180013261] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773599355.182802134] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599355.398810762] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599355.401503135] [cup_block_aligner]: debug | matches=4 | score=4694.8 | color_score=1.60 | avg_err=6.7 mm
-[INFO] [1773599355.405017223] [cup_block_aligner]: BEST ALIGN | dx=-0.087 m, dy=+0.020 m, dyaw=-8.0 deg | matches=4 | score=4694.8 | color_score=1.60 | avg_err=6.7 mm | stable=1/5 | pickup_ready=False | solver_time=227.95 ms | cup_0->block_36_0 (10.2 mm), cup_1->block_47_0 (0.0 mm), cup_2->block_47_2 (5.2 mm), cup_3->block_47_3 (11.5 mm)
-[INFO] [1773599355.413694534] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773599355.416598936] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599355.646365345] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599355.649163503] [cup_block_aligner]: debug | matches=4 | score=4694.8 | color_score=1.60 | avg_err=6.7 mm
-[INFO] [1773599355.652787071] [cup_block_aligner]: BEST ALIGN | dx=-0.087 m, dy=+0.020 m, dyaw=-8.0 deg | matches=4 | score=4694.8 | color_score=1.60 | avg_err=6.7 mm | stable=2/5 | pickup_ready=False | solver_time=241.39 ms | cup_0->block_36_0 (10.2 mm), cup_1->block_47_0 (0.0 mm), cup_2->block_47_2 (5.2 mm), cup_3->block_47_3 (11.4 mm)
-[INFO] [1773599355.662658667] [cup_block_aligner]: debug | recent_block_frames=4 | valid_blocks=4
-[INFO] [1773599355.665342016] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599355.744625902] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599355.747377721] [cup_block_aligner]: debug | matches=2 | score=2836.1 | color_score=1.20 | avg_err=5.4 mm
-[INFO] [1773599355.750911772] [cup_block_aligner]: BEST ALIGN | dx=-0.082 m, dy=+0.011 m, dyaw=-6.0 deg | matches=2 | score=2836.1 | color_score=1.20 | avg_err=5.4 mm | stable=1/5 | pickup_ready=False | solver_time=91.71 ms | cup_0->block_36_0 (0.0 mm), cup_1->block_47_0 (10.8 mm)
-[INFO] [1773599355.781600357] [cup_block_aligner]: debug | recent_block_frames=5 | valid_blocks=5
-[INFO] [1773599355.786183711] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599355.899333919] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599355.902245697] [cup_block_aligner]: debug | matches=3 | score=3775.8 | color_score=1.40 | avg_err=5.2 mm
-[INFO] [1773599355.905897820] [cup_block_aligner]: BEST ALIGN | dx=-0.087 m, dy=+0.020 m, dyaw=-8.0 deg | matches=3 | score=3775.8 | color_score=1.40 | avg_err=5.2 mm | stable=1/5 | pickup_ready=False | solver_time=127.53 ms | cup_0->block_36_0 (10.2 mm), cup_1->block_47_0 (0.0 mm), cup_2->block_47_2 (5.4 mm)
-[INFO] [1773599355.979347791] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773599355.982590024] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599356.204734121] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599356.207747398] [cup_block_aligner]: debug | matches=4 | score=4694.7 | color_score=1.60 | avg_err=6.7 mm
-[INFO] [1773599356.211570768] [cup_block_aligner]: BEST ALIGN | dx=-0.087 m, dy=+0.020 m, dyaw=-8.0 deg | matches=4 | score=4694.7 | color_score=1.60 | avg_err=6.7 mm | stable=1/5 | pickup_ready=False | solver_time=234.54 ms | cup_0->block_36_0 (10.1 mm), cup_1->block_47_0 (0.0 mm), cup_2->block_47_2 (5.4 mm), cup_3->block_47_3 (11.4 mm)
-[INFO] [1773599356.220975791] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773599356.223678485] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599356.443332870] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599356.446223454] [cup_block_aligner]: debug | matches=4 | score=4694.7 | color_score=1.60 | avg_err=6.7 mm
-[INFO] [1773599356.449910765] [cup_block_aligner]: BEST ALIGN | dx=-0.087 m, dy=+0.020 m, dyaw=-8.0 deg | matches=4 | score=4694.7 | color_score=1.60 | avg_err=6.7 mm | stable=2/5 | pickup_ready=False | solver_time=231.00 ms | cup_0->block_36_0 (10.1 mm), cup_1->block_47_0 (0.0 mm), cup_2->block_47_2 (5.4 mm), cup_3->block_47_3 (11.4 mm)
-[INFO] [1773599356.457356326] [cup_block_aligner]: debug | recent_block_frames=4 | valid_blocks=4
-[INFO] [1773599356.460017337] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599356.538932466] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599356.541654956] [cup_block_aligner]: debug | matches=2 | score=2041.7 | color_score=0.40 | avg_err=2.9 mm
-[INFO] [1773599356.545145461] [cup_block_aligner]: BEST ALIGN | dx=-0.040 m, dy=+0.008 m, dyaw=-7.0 deg | matches=2 | score=2041.7 | color_score=0.40 | avg_err=2.9 mm | stable=1/5 | pickup_ready=False | solver_time=89.37 ms | cup_0->block_47_0 (0.0 mm), cup_1->block_47_2 (5.8 mm)
-[INFO] [1773599356.578542998] [cup_block_aligner]: debug | recent_block_frames=6 | valid_blocks=6
-[INFO] [1773599356.581084113] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599356.721554798] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599356.726202075] [cup_block_aligner]: debug | matches=3 | score=3503.1 | color_score=1.40 | avg_err=7.1 mm
-[INFO] [1773599356.730333604] [cup_block_aligner]: BEST ALIGN | dx=-0.090 m, dy=+0.025 m, dyaw=-9.0 deg | matches=3 | score=3503.1 | color_score=1.40 | avg_err=7.1 mm | stable=1/5 | pickup_ready=False | solver_time=153.64 ms | cup_0->block_36_0 (14.9 mm), cup_2->block_47_2 (0.0 mm), cup_3->block_47_3 (6.4 mm)
-[INFO] [1773599356.780143801] [cup_block_aligner]: debug | recent_block_frames=7 | valid_blocks=7
-[INFO] [1773599356.782834679] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599356.963808774] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599356.967242713] [cup_block_aligner]: debug | matches=4 | score=4694.6 | color_score=1.60 | avg_err=6.7 mm
-[INFO] [1773599356.971503873] [cup_block_aligner]: BEST ALIGN | dx=-0.087 m, dy=+0.020 m, dyaw=-8.0 deg | matches=4 | score=4694.6 | color_score=1.60 | avg_err=6.7 mm | stable=1/5 | pickup_ready=False | solver_time=193.63 ms | cup_0->block_36_0 (9.9 mm), cup_1->block_47_0 (0.0 mm), cup_2->block_47_2 (5.5 mm), cup_3->block_47_3 (11.3 mm)
-[INFO] [1773599356.980188810] [cup_block_aligner]: debug | recent_block_frames=7 | valid_blocks=7
-[INFO] [1773599356.983638166] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599357.178940126] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599357.181863586] [cup_block_aligner]: debug | matches=4 | score=4694.6 | color_score=1.60 | avg_err=6.6 mm
-[INFO] [1773599357.185220681] [cup_block_aligner]: BEST ALIGN | dx=-0.087 m, dy=+0.020 m, dyaw=-8.0 deg | matches=4 | score=4694.6 | color_score=1.60 | avg_err=6.6 mm | stable=2/5 | pickup_ready=False | solver_time=207.77 ms | cup_0->block_36_0 (9.9 mm), cup_1->block_47_0 (0.0 mm), cup_2->block_47_2 (5.5 mm), cup_3->block_47_3 (11.2 mm)
-[INFO] [1773599357.193747545] [cup_block_aligner]: debug | recent_block_frames=7 | valid_blocks=7
-[INFO] [1773599357.196284015] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599357.381410759] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599357.384845172] [cup_block_aligner]: debug | matches=4 | score=4694.6 | color_score=1.60 | avg_err=6.6 mm
-[INFO] [1773599357.388707934] [cup_block_aligner]: BEST ALIGN | dx=-0.087 m, dy=+0.020 m, dyaw=-8.0 deg | matches=4 | score=4694.6 | color_score=1.60 | avg_err=6.6 mm | stable=3/5 | pickup_ready=False | solver_time=197.20 ms | cup_0->block_36_0 (9.9 mm), cup_1->block_47_0 (0.0 mm), cup_2->block_47_2 (5.5 mm), cup_3->block_47_3 (11.1 mm)
-[INFO] [1773599357.395885559] [cup_block_aligner]: debug | recent_block_frames=2 | valid_blocks=2
-[INFO] [1773599357.398619813] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599357.430050002] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599357.432773470] [cup_block_aligner]: debug | matches=0 | score=-1000000000000000000.0 | color_score=0.00 | avg_err=1000000000.0 mm
-[INFO] [1773599357.435657800] [cup_block_aligner]: No worthwhile pickup found. best_matches=0
-[INFO] [1773599357.578937948] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773599357.581540409] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599357.807603917] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599357.810521641] [cup_block_aligner]: debug | matches=4 | score=4695.6 | color_score=1.60 | avg_err=6.7 mm
-[INFO] [1773599357.814620058] [cup_block_aligner]: BEST ALIGN | dx=-0.087 m, dy=+0.020 m, dyaw=-8.0 deg | matches=4 | score=4695.6 | color_score=1.60 | avg_err=6.7 mm | stable=1/5 | pickup_ready=False | solver_time=237.87 ms | cup_0->block_36_0 (10.3 mm), cup_1->block_47_0 (0.0 mm), cup_2->block_47_2 (5.0 mm), cup_3->block_47_3 (11.4 mm)
-[INFO] [1773599357.824679620] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773599357.827396525] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599358.047231338] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599358.051041105] [cup_block_aligner]: debug | matches=4 | score=4695.6 | color_score=1.60 | avg_err=6.7 mm
-[INFO] [1773599358.055696072] [cup_block_aligner]: BEST ALIGN | dx=-0.087 m, dy=+0.020 m, dyaw=-8.0 deg | matches=4 | score=4695.6 | color_score=1.60 | avg_err=6.7 mm | stable=2/5 | pickup_ready=False | solver_time=233.11 ms | cup_0->block_36_0 (10.3 mm), cup_1->block_47_0 (0.0 mm), cup_2->block_47_2 (5.0 mm), cup_3->block_47_3 (11.4 mm)
-[INFO] [1773599358.062920519] [cup_block_aligner]: debug | recent_block_frames=3 | valid_blocks=3
-[INFO] [1773599358.066217958] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599358.116415391] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599358.119347119] [cup_block_aligner]: debug | matches=0 | score=-1000000000000000000.0 | color_score=0.00 | avg_err=1000000000.0 mm
-[INFO] [1773599358.122336251] [cup_block_aligner]: No worthwhile pickup found. best_matches=0
-[INFO] [1773599358.180950826] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773599358.183781222] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599358.413544183] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599358.416912514] [cup_block_aligner]: debug | matches=4 | score=4695.4 | color_score=1.60 | avg_err=6.7 mm
-[INFO] [1773599358.422330782] [cup_block_aligner]: BEST ALIGN | dx=-0.087 m, dy=+0.020 m, dyaw=-8.0 deg | matches=4 | score=4695.4 | color_score=1.60 | avg_err=6.7 mm | stable=1/5 | pickup_ready=False | solver_time=242.32 ms | cup_0->block_36_0 (10.3 mm), cup_1->block_47_0 (0.0 mm), cup_2->block_47_2 (5.0 mm), cup_3->block_47_3 (11.4 mm)
-[INFO] [1773599358.433130541] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773599358.436459373] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599358.652027306] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599358.654887390] [cup_block_aligner]: debug | matches=4 | score=4695.4 | color_score=1.60 | avg_err=6.7 mm
-[INFO] [1773599358.658343855] [cup_block_aligner]: BEST ALIGN | dx=-0.087 m, dy=+0.020 m, dyaw=-8.0 deg | matches=4 | score=4695.4 | color_score=1.60 | avg_err=6.7 mm | stable=2/5 | pickup_ready=False | solver_time=230.16 ms | cup_0->block_36_0 (10.3 mm), cup_1->block_47_0 (0.0 mm), cup_2->block_47_2 (5.0 mm), cup_3->block_47_3 (11.4 mm)
-[INFO] [1773599358.665937839] [cup_block_aligner]: debug | recent_block_frames=5 | valid_blocks=5
-[INFO] [1773599358.668540120] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599358.788516565] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599358.791428100] [cup_block_aligner]: debug | matches=3 | score=4576.0 | color_score=2.20 | avg_err=5.9 mm
-[INFO] [1773599358.794775993] [cup_block_aligner]: BEST ALIGN | dx=-0.037 m, dy=+0.156 m, dyaw=+0.0 deg | matches=3 | score=4576.0 | color_score=2.20 | avg_err=5.9 mm | stable=1/5 | pickup_ready=False | solver_time=130.73 ms | cup_0->block_47_1 (8.8 mm), cup_1->block_36_2 (0.0 mm), cup_2->block_36_3 (8.8 mm)
-[INFO] [1773599358.801910147] [cup_block_aligner]: debug | recent_block_frames=2 | valid_blocks=2
-[INFO] [1773599358.804667746] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599358.836386733] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599358.839264356] [cup_block_aligner]: debug | matches=0 | score=-1000000000000000000.0 | color_score=0.00 | avg_err=1000000000.0 mm
-[INFO] [1773599358.842186849] [cup_block_aligner]: No worthwhile pickup found. best_matches=0
-[INFO] [1773599358.980731548] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773599358.983771559] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599359.208756988] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599359.211631231] [cup_block_aligner]: debug | matches=4 | score=4694.7 | color_score=1.60 | avg_err=6.8 mm
-[INFO] [1773599359.215194123] [cup_block_aligner]: BEST ALIGN | dx=-0.087 m, dy=+0.020 m, dyaw=-8.0 deg | matches=4 | score=4694.7 | color_score=1.60 | avg_err=6.8 mm | stable=1/5 | pickup_ready=False | solver_time=237.29 ms | cup_0->block_36_0 (10.1 mm), cup_1->block_47_0 (0.0 mm), cup_2->block_47_2 (5.3 mm), cup_3->block_47_3 (11.7 mm)
-[INFO] [1773599359.223750104] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773599359.226489755] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599359.448532714] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599359.452547935] [cup_block_aligner]: debug | matches=4 | score=4694.7 | color_score=1.60 | avg_err=6.8 mm
-[INFO] [1773599359.456615720] [cup_block_aligner]: BEST ALIGN | dx=-0.087 m, dy=+0.020 m, dyaw=-8.0 deg | matches=4 | score=4694.7 | color_score=1.60 | avg_err=6.8 mm | stable=2/5 | pickup_ready=False | solver_time=235.01 ms | cup_0->block_36_0 (10.1 mm), cup_1->block_47_0 (0.0 mm), cup_2->block_47_2 (5.3 mm), cup_3->block_47_3 (11.7 mm)
-[INFO] [1773599359.463810997] [cup_block_aligner]: debug | recent_block_frames=2 | valid_blocks=2
-[INFO] [1773599359.466567066] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599359.501117033] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599359.504510555] [cup_block_aligner]: debug | matches=0 | score=-1000000000000000000.0 | color_score=0.00 | avg_err=1000000000.0 mm
-[INFO] [1773599359.507502295] [cup_block_aligner]: No worthwhile pickup found. best_matches=0
-[INFO] [1773599359.580743046] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773599359.583429858] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599359.802821218] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599359.806880107] [cup_block_aligner]: debug | matches=4 | score=4694.9 | color_score=1.60 | avg_err=6.7 mm
-[INFO] [1773599359.810755114] [cup_block_aligner]: BEST ALIGN | dx=-0.087 m, dy=+0.020 m, dyaw=-8.0 deg | matches=4 | score=4694.9 | color_score=1.60 | avg_err=6.7 mm | stable=1/5 | pickup_ready=False | solver_time=232.30 ms | cup_0->block_36_0 (10.2 mm), cup_1->block_47_0 (0.0 mm), cup_2->block_47_2 (5.2 mm), cup_3->block_47_3 (11.4 mm)
-[INFO] [1773599359.821992200] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773599359.824700868] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599360.036016774] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599360.038971620] [cup_block_aligner]: debug | matches=4 | score=4694.9 | color_score=1.60 | avg_err=6.7 mm
-[INFO] [1773599360.042667877] [cup_block_aligner]: BEST ALIGN | dx=-0.087 m, dy=+0.020 m, dyaw=-8.0 deg | matches=4 | score=4694.9 | color_score=1.60 | avg_err=6.7 mm | stable=2/5 | pickup_ready=False | solver_time=224.40 ms | cup_0->block_36_0 (10.2 mm), cup_1->block_47_0 (0.0 mm), cup_2->block_47_2 (5.1 mm), cup_3->block_47_3 (11.4 mm)
-[INFO] [1773599360.050495797] [cup_block_aligner]: debug | recent_block_frames=6 | valid_blocks=6
-[INFO] [1773599360.054071288] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599360.181692734] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599360.184422024] [cup_block_aligner]: debug | matches=3 | score=3510.0 | color_score=1.40 | avg_err=7.4 mm
-[INFO] [1773599360.187893322] [cup_block_aligner]: BEST ALIGN | dx=-0.090 m, dy=+0.014 m, dyaw=-7.0 deg | matches=3 | score=3510.0 | color_score=1.40 | avg_err=7.4 mm | stable=1/5 | pickup_ready=False | solver_time=139.37 ms | cup_0->block_36_0 (10.5 mm), cup_1->block_47_0 (0.0 mm), cup_3->block_47_3 (11.6 mm)
-[INFO] [1773599360.194932530] [cup_block_aligner]: debug | recent_block_frames=2 | valid_blocks=2
-[INFO] [1773599360.197482081] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599360.231236591] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599360.234180968] [cup_block_aligner]: debug | matches=0 | score=-1000000000000000000.0 | color_score=0.00 | avg_err=1000000000.0 mm
-[INFO] [1773599360.236870508] [cup_block_aligner]: No worthwhile pickup found. best_matches=0
-[INFO] [1773599360.380735073] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773599360.383497259] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599360.603900789] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599360.606728892] [cup_block_aligner]: debug | matches=4 | score=4695.2 | color_score=1.60 | avg_err=6.7 mm
-[INFO] [1773599360.610247468] [cup_block_aligner]: BEST ALIGN | dx=-0.087 m, dy=+0.020 m, dyaw=-8.0 deg | matches=4 | score=4695.2 | color_score=1.60 | avg_err=6.7 mm | stable=1/5 | pickup_ready=False | solver_time=231.93 ms | cup_0->block_36_0 (10.4 mm), cup_1->block_47_0 (0.0 mm), cup_2->block_47_2 (5.1 mm), cup_3->block_47_3 (11.4 mm)
-[INFO] [1773599360.618518147] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773599360.621078037] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599360.835097550] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599360.837910266] [cup_block_aligner]: debug | matches=4 | score=4695.2 | color_score=1.60 | avg_err=6.7 mm
-[INFO] [1773599360.841320374] [cup_block_aligner]: BEST ALIGN | dx=-0.087 m, dy=+0.020 m, dyaw=-8.0 deg | matches=4 | score=4695.2 | color_score=1.60 | avg_err=6.7 mm | stable=2/5 | pickup_ready=False | solver_time=225.72 ms | cup_0->block_36_0 (10.4 mm), cup_1->block_47_0 (0.0 mm), cup_2->block_47_2 (5.1 mm), cup_3->block_47_3 (11.4 mm)
-[INFO] [1773599360.849776762] [cup_block_aligner]: debug | recent_block_frames=5 | valid_blocks=5
-[INFO] [1773599360.852352233] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599360.963525267] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599360.966886760] [cup_block_aligner]: debug | matches=2 | score=3632.7 | color_score=2.00 | avg_err=5.4 mm
-[INFO] [1773599360.970624363] [cup_block_aligner]: BEST ALIGN | dx=+0.000 m, dy=+0.141 m, dyaw=+2.0 deg | matches=2 | score=3632.7 | color_score=2.00 | avg_err=5.4 mm | stable=1/5 | pickup_ready=False | solver_time=122.52 ms | cup_0->block_36_2 (10.8 mm), cup_1->block_36_3 (0.0 mm)
-[INFO] [1773599360.977259274] [cup_block_aligner]: debug | recent_block_frames=0 | valid_blocks=0
-[INFO] [1773599360.979586441] [cup_block_aligner]: waiting for fresh blocks...
-[INFO] [1773599361.179262520] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773599361.181873079] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599361.412097714] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599361.415231025] [cup_block_aligner]: debug | matches=4 | score=4694.0 | color_score=1.60 | avg_err=7.0 mm
-[INFO] [1773599361.418880493] [cup_block_aligner]: BEST ALIGN | dx=-0.087 m, dy=+0.020 m, dyaw=-8.0 deg | matches=4 | score=4694.0 | color_score=1.60 | avg_err=7.0 mm | stable=1/5 | pickup_ready=False | solver_time=242.29 ms | cup_0->block_36_0 (11.0 mm), cup_1->block_47_0 (0.0 mm), cup_2->block_47_2 (5.1 mm), cup_3->block_47_3 (11.9 mm)
-[INFO] [1773599361.426831207] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773599361.429630385] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599361.643423302] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599361.647066776] [cup_block_aligner]: debug | matches=4 | score=4694.0 | color_score=1.60 | avg_err=7.0 mm
-[INFO] [1773599361.650898488] [cup_block_aligner]: BEST ALIGN | dx=-0.087 m, dy=+0.020 m, dyaw=-8.0 deg | matches=4 | score=4694.0 | color_score=1.60 | avg_err=7.0 mm | stable=2/5 | pickup_ready=False | solver_time=226.47 ms | cup_0->block_36_0 (11.0 mm), cup_1->block_47_0 (0.0 mm), cup_2->block_47_2 (5.1 mm), cup_3->block_47_3 (11.9 mm)
-[INFO] [1773599361.658133138] [cup_block_aligner]: debug | recent_block_frames=2 | valid_blocks=2
-[INFO] [1773599361.660778963] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599361.695395550] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599361.698379929] [cup_block_aligner]: debug | matches=0 | score=-1000000000000000000.0 | color_score=0.00 | avg_err=1000000000.0 mm
-[INFO] [1773599361.701011977] [cup_block_aligner]: No worthwhile pickup found. best_matches=0
-[INFO] [1773599361.779490566] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773599361.782396829] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599362.005831162] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599362.008719265] [cup_block_aligner]: debug | matches=4 | score=4693.9 | color_score=1.60 | avg_err=6.9 mm
-[INFO] [1773599362.012309251] [cup_block_aligner]: BEST ALIGN | dx=-0.087 m, dy=+0.020 m, dyaw=-8.0 deg | matches=4 | score=4693.9 | color_score=1.60 | avg_err=6.9 mm | stable=1/5 | pickup_ready=False | solver_time=236.03 ms | cup_0->block_36_0 (10.7 mm), cup_1->block_47_0 (0.0 mm), cup_2->block_47_2 (5.2 mm), cup_3->block_47_3 (11.9 mm)
-[INFO] [1773599362.022429492] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773599362.024991948] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599362.244917567] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599362.247993883] [cup_block_aligner]: debug | matches=4 | score=4694.0 | color_score=1.60 | avg_err=6.9 mm
-[INFO] [1773599362.251620174] [cup_block_aligner]: BEST ALIGN | dx=-0.087 m, dy=+0.020 m, dyaw=-8.0 deg | matches=4 | score=4694.0 | color_score=1.60 | avg_err=6.9 mm | stable=2/5 | pickup_ready=False | solver_time=232.17 ms | cup_0->block_36_0 (10.7 mm), cup_1->block_47_0 (0.0 mm), cup_2->block_47_2 (5.2 mm), cup_3->block_47_3 (11.9 mm)
-[INFO] [1773599362.259864678] [cup_block_aligner]: debug | recent_block_frames=5 | valid_blocks=5
-[INFO] [1773599362.262632364] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599362.373976663] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599362.376706856] [cup_block_aligner]: debug | matches=3 | score=3775.8 | color_score=1.40 | avg_err=5.3 mm
-[INFO] [1773599362.380430346] [cup_block_aligner]: BEST ALIGN | dx=-0.087 m, dy=+0.020 m, dyaw=-8.0 deg | matches=3 | score=3775.8 | color_score=1.40 | avg_err=5.3 mm | stable=1/5 | pickup_ready=False | solver_time=122.31 ms | cup_0->block_36_0 (10.7 mm), cup_1->block_47_0 (0.0 mm), cup_2->block_47_2 (5.2 mm)
-[INFO] [1773599362.387869938] [cup_block_aligner]: debug | recent_block_frames=2 | valid_blocks=2
-[INFO] [1773599362.390649194] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599362.423687648] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599362.426614945] [cup_block_aligner]: debug | matches=0 | score=-1000000000000000000.0 | color_score=0.00 | avg_err=1000000000.0 mm
-[INFO] [1773599362.429578308] [cup_block_aligner]: No worthwhile pickup found. best_matches=0
-[INFO] [1773599362.578745482] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773599362.581308325] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599362.805711000] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599362.808496951] [cup_block_aligner]: debug | matches=4 | score=4694.7 | color_score=1.60 | avg_err=6.8 mm
-[INFO] [1773599362.812197355] [cup_block_aligner]: BEST ALIGN | dx=-0.087 m, dy=+0.020 m, dyaw=-8.0 deg | matches=4 | score=4694.7 | color_score=1.60 | avg_err=6.8 mm | stable=1/5 | pickup_ready=False | solver_time=236.06 ms | cup_0->block_36_0 (10.7 mm), cup_1->block_47_0 (0.0 mm), cup_2->block_47_2 (5.2 mm), cup_3->block_47_3 (11.5 mm)
-[INFO] [1773599362.822314549] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773599362.824918025] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599363.038745404] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599363.041688671] [cup_block_aligner]: debug | matches=4 | score=4694.7 | color_score=1.60 | avg_err=6.8 mm
-[INFO] [1773599363.045242662] [cup_block_aligner]: BEST ALIGN | dx=-0.087 m, dy=+0.020 m, dyaw=-8.0 deg | matches=4 | score=4694.7 | color_score=1.60 | avg_err=6.8 mm | stable=2/5 | pickup_ready=False | solver_time=225.94 ms | cup_0->block_36_0 (10.7 mm), cup_1->block_47_0 (0.0 mm), cup_2->block_47_2 (5.1 mm), cup_3->block_47_3 (11.5 mm)
-[INFO] [1773599363.054179745] [cup_block_aligner]: debug | recent_block_frames=7 | valid_blocks=7
-[INFO] [1773599363.056726796] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599363.234501033] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599363.237218234] [cup_block_aligner]: debug | matches=4 | score=4694.7 | color_score=1.60 | avg_err=6.8 mm
-[INFO] [1773599363.240977499] [cup_block_aligner]: BEST ALIGN | dx=-0.087 m, dy=+0.020 m, dyaw=-8.0 deg | matches=4 | score=4694.7 | color_score=1.60 | avg_err=6.8 mm | stable=3/5 | pickup_ready=False | solver_time=189.62 ms | cup_0->block_36_0 (10.7 mm), cup_1->block_47_0 (0.0 mm), cup_2->block_47_2 (5.1 mm), cup_3->block_47_3 (11.5 mm)
-[INFO] [1773599363.248440759] [cup_block_aligner]: debug | recent_block_frames=1 | valid_blocks=1
-[INFO] [1773599363.251349909] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599363.271195590] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599363.274324379] [cup_block_aligner]: debug | matches=0 | score=-1000000000000000000.0 | color_score=0.00 | avg_err=1000000000.0 mm
-[INFO] [1773599363.277168566] [cup_block_aligner]: No worthwhile pickup found. best_matches=0
-[INFO] [1773599363.379673660] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773599363.382379156] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599363.600044340] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599363.602804367] [cup_block_aligner]: debug | matches=4 | score=4694.8 | color_score=1.60 | avg_err=6.7 mm
-[INFO] [1773599363.606308670] [cup_block_aligner]: BEST ALIGN | dx=-0.087 m, dy=+0.020 m, dyaw=-8.0 deg | matches=4 | score=4694.8 | color_score=1.60 | avg_err=6.7 mm | stable=1/5 | pickup_ready=False | solver_time=229.19 ms | cup_0->block_36_0 (10.5 mm), cup_1->block_47_0 (0.0 mm), cup_2->block_47_2 (5.0 mm), cup_3->block_47_3 (11.4 mm)
-[INFO] [1773599363.614954130] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773599363.617756454] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599363.841218677] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599363.844080187] [cup_block_aligner]: debug | matches=4 | score=4694.8 | color_score=1.60 | avg_err=6.7 mm
-[INFO] [1773599363.847659696] [cup_block_aligner]: BEST ALIGN | dx=-0.087 m, dy=+0.020 m, dyaw=-8.0 deg | matches=4 | score=4694.8 | color_score=1.60 | avg_err=6.7 mm | stable=2/5 | pickup_ready=False | solver_time=235.47 ms | cup_0->block_36_0 (10.5 mm), cup_1->block_47_0 (0.0 mm), cup_2->block_47_2 (5.0 mm), cup_3->block_47_3 (11.4 mm)
-[INFO] [1773599363.856062794] [cup_block_aligner]: debug | recent_block_frames=6 | valid_blocks=6
-[INFO] [1773599363.858862487] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599364.007420892] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599364.011690463] [cup_block_aligner]: debug | matches=3 | score=2972.1 | color_score=0.60 | avg_err=4.0 mm
-[INFO] [1773599364.015401852] [cup_block_aligner]: BEST ALIGN | dx=-0.046 m, dy=+0.006 m, dyaw=-7.0 deg | matches=3 | score=2972.1 | color_score=0.60 | avg_err=4.0 mm | stable=1/5 | pickup_ready=False | solver_time=161.43 ms | cup_0->block_47_0 (5.4 mm), cup_1->block_47_2 (0.0 mm), cup_2->block_47_3 (6.6 mm)
-[INFO] [1773599364.023363622] [cup_block_aligner]: debug | recent_block_frames=2 | valid_blocks=2
-[INFO] [1773599364.026771855] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599364.062458610] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599364.065218467] [cup_block_aligner]: debug | matches=0 | score=-1000000000000000000.0 | color_score=0.00 | avg_err=1000000000.0 mm
-[INFO] [1773599364.068050606] [cup_block_aligner]: No worthwhile pickup found. best_matches=0
-[INFO] [1773599364.178888415] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773599364.181590003] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599364.394755615] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599364.397597959] [cup_block_aligner]: debug | matches=4 | score=4695.2 | color_score=1.60 | avg_err=6.7 mm
-[INFO] [1773599364.400973120] [cup_block_aligner]: BEST ALIGN | dx=-0.088 m, dy=+0.020 m, dyaw=-8.0 deg | matches=4 | score=4695.2 | color_score=1.60 | avg_err=6.7 mm | stable=1/5 | pickup_ready=False | solver_time=224.96 ms | cup_0->block_36_0 (10.4 mm), cup_1->block_47_0 (0.0 mm), cup_2->block_47_2 (4.9 mm), cup_3->block_47_3 (11.4 mm)
-[INFO] [1773599364.409673443] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773599364.412267540] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599364.625248307] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599364.627889937] [cup_block_aligner]: debug | matches=4 | score=4695.3 | color_score=1.60 | avg_err=6.7 mm
-[INFO] [1773599364.631411183] [cup_block_aligner]: BEST ALIGN | dx=-0.088 m, dy=+0.020 m, dyaw=-8.0 deg | matches=4 | score=4695.3 | color_score=1.60 | avg_err=6.7 mm | stable=2/5 | pickup_ready=False | solver_time=224.44 ms | cup_0->block_36_0 (10.4 mm), cup_1->block_47_0 (0.0 mm), cup_2->block_47_2 (4.9 mm), cup_3->block_47_3 (11.4 mm)
-[INFO] [1773599364.640025533] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773599364.642725364] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599364.871396954] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599364.874209823] [cup_block_aligner]: debug | matches=4 | score=4695.3 | color_score=1.60 | avg_err=6.7 mm
-[INFO] [1773599364.877770078] [cup_block_aligner]: BEST ALIGN | dx=-0.088 m, dy=+0.020 m, dyaw=-8.0 deg | matches=4 | score=4695.3 | color_score=1.60 | avg_err=6.7 mm | stable=3/5 | pickup_ready=False | solver_time=240.34 ms | cup_0->block_36_0 (10.4 mm), cup_1->block_47_0 (0.0 mm), cup_2->block_47_2 (4.9 mm), cup_3->block_47_3 (11.4 mm)
-[INFO] [1773599364.884537768] [cup_block_aligner]: debug | recent_block_frames=2 | valid_blocks=2
-[INFO] [1773599364.887551661] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599364.924138166] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599364.927016317] [cup_block_aligner]: debug | matches=0 | score=-1000000000000000000.0 | color_score=0.00 | avg_err=1000000000.0 mm
-[INFO] [1773599364.929968472] [cup_block_aligner]: No worthwhile pickup found. best_matches=0
-[INFO] [1773599364.980370318] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773599364.983004191] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599365.204556151] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599365.207673739] [cup_block_aligner]: debug | matches=4 | score=4695.5 | color_score=1.60 | avg_err=6.7 mm
-[INFO] [1773599365.211465426] [cup_block_aligner]: BEST ALIGN | dx=-0.087 m, dy=+0.020 m, dyaw=-8.0 deg | matches=4 | score=4695.5 | color_score=1.60 | avg_err=6.7 mm | stable=1/5 | pickup_ready=False | solver_time=233.68 ms | cup_0->block_36_0 (10.3 mm), cup_1->block_47_0 (0.0 mm), cup_2->block_47_2 (4.8 mm), cup_3->block_47_3 (11.6 mm)
-[INFO] [1773599365.222142806] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773599365.224973551] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599365.451989829] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599365.454699900] [cup_block_aligner]: debug | matches=4 | score=4695.5 | color_score=1.60 | avg_err=6.7 mm
-[INFO] [1773599365.458316338] [cup_block_aligner]: BEST ALIGN | dx=-0.087 m, dy=+0.020 m, dyaw=-8.0 deg | matches=4 | score=4695.5 | color_score=1.60 | avg_err=6.7 mm | stable=2/5 | pickup_ready=False | solver_time=238.75 ms | cup_0->block_36_0 (10.3 mm), cup_1->block_47_0 (0.0 mm), cup_2->block_47_2 (4.8 mm), cup_3->block_47_3 (11.7 mm)
-[INFO] [1773599365.465549681] [cup_block_aligner]: debug | recent_block_frames=4 | valid_blocks=4
-[INFO] [1773599365.468033418] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599365.557792175] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599365.560784886] [cup_block_aligner]: debug | matches=3 | score=3510.3 | color_score=1.40 | avg_err=7.5 mm
-[INFO] [1773599365.565790202] [cup_block_aligner]: BEST ALIGN | dx=-0.090 m, dy=+0.014 m, dyaw=-7.0 deg | matches=3 | score=3510.3 | color_score=1.40 | avg_err=7.5 mm | stable=1/5 | pickup_ready=False | solver_time=100.16 ms | cup_0->block_36_0 (10.6 mm), cup_1->block_47_0 (0.0 mm), cup_3->block_47_3 (11.9 mm)
-[INFO] [1773599365.579668341] [cup_block_aligner]: debug | recent_block_frames=3 | valid_blocks=3
-[INFO] [1773599365.582495871] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599365.631485943] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599365.634304442] [cup_block_aligner]: debug | matches=0 | score=-1000000000000000000.0 | color_score=0.00 | avg_err=1000000000.0 mm
-[INFO] [1773599365.637020388] [cup_block_aligner]: No worthwhile pickup found. best_matches=0
-[INFO] [1773599365.780646122] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773599365.783733099] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599366.000354728] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599366.003120508] [cup_block_aligner]: debug | matches=4 | score=4695.5 | color_score=1.60 | avg_err=6.9 mm
-[INFO] [1773599366.006678565] [cup_block_aligner]: BEST ALIGN | dx=-0.087 m, dy=+0.020 m, dyaw=-8.0 deg | matches=4 | score=4695.5 | color_score=1.60 | avg_err=6.9 mm | stable=1/5 | pickup_ready=False | solver_time=228.94 ms | cup_0->block_36_0 (10.5 mm), cup_1->block_47_0 (0.0 mm), cup_2->block_47_2 (5.3 mm), cup_3->block_47_3 (11.9 mm)
-[INFO] [1773599366.017214488] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773599366.019878502] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599366.243573915] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599366.246491763] [cup_block_aligner]: debug | matches=4 | score=4695.5 | color_score=1.60 | avg_err=6.9 mm
-[INFO] [1773599366.249930781] [cup_block_aligner]: BEST ALIGN | dx=-0.087 m, dy=+0.020 m, dyaw=-8.0 deg | matches=4 | score=4695.5 | color_score=1.60 | avg_err=6.9 mm | stable=2/5 | pickup_ready=False | solver_time=235.28 ms | cup_0->block_36_0 (10.5 mm), cup_1->block_47_0 (0.0 mm), cup_2->block_47_2 (5.3 mm), cup_3->block_47_3 (11.9 mm)
-[INFO] [1773599366.257917789] [cup_block_aligner]: debug | recent_block_frames=5 | valid_blocks=5
-[INFO] [1773599366.260448675] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599366.373488067] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599366.376352912] [cup_block_aligner]: debug | matches=2 | score=2833.0 | color_score=1.20 | avg_err=4.2 mm
-[INFO] [1773599366.380425849] [cup_block_aligner]: BEST ALIGN | dx=-0.036 m, dy=+0.157 m, dyaw=+0.0 deg | matches=2 | score=2833.0 | color_score=1.20 | avg_err=4.2 mm | stable=1/5 | pickup_ready=False | solver_time=124.09 ms | cup_0->block_47_1 (8.4 mm), cup_1->block_36_2 (0.0 mm)
-[INFO] [1773599366.387349185] [cup_block_aligner]: debug | recent_block_frames=2 | valid_blocks=2
-[INFO] [1773599366.390100346] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599366.428028302] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599366.430884454] [cup_block_aligner]: debug | matches=2 | score=2833.0 | color_score=1.20 | avg_err=4.2 mm
-[INFO] [1773599366.434565420] [cup_block_aligner]: BEST ALIGN | dx=-0.036 m, dy=+0.157 m, dyaw=+0.0 deg | matches=2 | score=2833.0 | color_score=1.20 | avg_err=4.2 mm | stable=2/5 | pickup_ready=False | solver_time=47.97 ms | cup_0->block_47_1 (8.4 mm), cup_1->block_36_2 (0.0 mm)
-[INFO] [1773599366.579820911] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773599366.582427563] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599366.802719412] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599366.806872646] [cup_block_aligner]: debug | matches=4 | score=4695.0 | color_score=1.60 | avg_err=6.9 mm
-[INFO] [1773599366.810500101] [cup_block_aligner]: BEST ALIGN | dx=-0.087 m, dy=+0.020 m, dyaw=-8.0 deg | matches=4 | score=4695.0 | color_score=1.60 | avg_err=6.9 mm | stable=1/5 | pickup_ready=False | solver_time=233.41 ms | cup_0->block_36_0 (10.5 mm), cup_1->block_47_0 (0.0 mm), cup_2->block_47_2 (5.0 mm), cup_3->block_47_3 (12.2 mm)
-[INFO] [1773599366.822100983] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773599366.825171469] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599367.041464354] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599367.044230653] [cup_block_aligner]: debug | matches=4 | score=4695.0 | color_score=1.60 | avg_err=6.9 mm
-[INFO] [1773599367.047763527] [cup_block_aligner]: BEST ALIGN | dx=-0.087 m, dy=+0.020 m, dyaw=-8.0 deg | matches=4 | score=4695.0 | color_score=1.60 | avg_err=6.9 mm | stable=2/5 | pickup_ready=False | solver_time=229.47 ms | cup_0->block_36_0 (10.5 mm), cup_1->block_47_0 (0.0 mm), cup_2->block_47_2 (5.0 mm), cup_3->block_47_3 (12.2 mm)
-[INFO] [1773599367.055257527] [cup_block_aligner]: debug | recent_block_frames=5 | valid_blocks=5
-[INFO] [1773599367.058172203] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599367.176126085] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599367.178896000] [cup_block_aligner]: debug | matches=3 | score=2971.6 | color_score=0.60 | avg_err=4.3 mm
-[INFO] [1773599367.182380089] [cup_block_aligner]: BEST ALIGN | dx=-0.045 m, dy=+0.006 m, dyaw=-7.0 deg | matches=3 | score=2971.6 | color_score=0.60 | avg_err=4.3 mm | stable=1/5 | pickup_ready=False | solver_time=128.61 ms | cup_0->block_47_0 (5.3 mm), cup_1->block_47_2 (0.0 mm), cup_2->block_47_3 (7.5 mm)
-[INFO] [1773599367.188768170] [cup_block_aligner]: debug | recent_block_frames=1 | valid_blocks=1
-[INFO] [1773599367.191347289] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599367.211492540] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599367.214251958] [cup_block_aligner]: debug | matches=0 | score=-1000000000000000000.0 | color_score=0.00 | avg_err=1000000000.0 mm
-[INFO] [1773599367.216930015] [cup_block_aligner]: No worthwhile pickup found. best_matches=0
-[INFO] [1773599367.379538235] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773599367.382285347] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599367.615994663] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599367.618959640] [cup_block_aligner]: debug | matches=4 | score=4695.0 | color_score=1.60 | avg_err=6.8 mm
-[INFO] [1773599367.622566762] [cup_block_aligner]: BEST ALIGN | dx=-0.087 m, dy=+0.020 m, dyaw=-8.0 deg | matches=4 | score=4695.0 | color_score=1.60 | avg_err=6.8 mm | stable=1/5 | pickup_ready=False | solver_time=245.89 ms | cup_0->block_36_0 (10.8 mm), cup_1->block_47_0 (0.0 mm), cup_2->block_47_2 (4.7 mm), cup_3->block_47_3 (11.8 mm)
-[INFO] [1773599367.630808383] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773599367.633512166] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599367.852253951] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599367.855299271] [cup_block_aligner]: debug | matches=4 | score=4695.0 | color_score=1.60 | avg_err=6.8 mm
-[INFO] [1773599367.859364348] [cup_block_aligner]: BEST ALIGN | dx=-0.087 m, dy=+0.020 m, dyaw=-8.0 deg | matches=4 | score=4695.0 | color_score=1.60 | avg_err=6.8 mm | stable=2/5 | pickup_ready=False | solver_time=230.91 ms | cup_0->block_36_0 (10.8 mm), cup_1->block_47_0 (0.0 mm), cup_2->block_47_2 (4.7 mm), cup_3->block_47_3 (11.8 mm)
-[INFO] [1773599367.866430252] [cup_block_aligner]: debug | recent_block_frames=1 | valid_blocks=1
-[INFO] [1773599367.869013506] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599367.887825027] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599367.890884001] [cup_block_aligner]: debug | matches=0 | score=-1000000000000000000.0 | color_score=0.00 | avg_err=1000000000.0 mm
-[INFO] [1773599367.894704434] [cup_block_aligner]: No worthwhile pickup found. best_matches=0
-[INFO] [1773599367.980338895] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773599367.983021044] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599368.200495118] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599368.203416883] [cup_block_aligner]: debug | matches=4 | score=4695.1 | color_score=1.60 | avg_err=6.7 mm
-[INFO] [1773599368.208086925] [cup_block_aligner]: BEST ALIGN | dx=-0.087 m, dy=+0.020 m, dyaw=-8.0 deg | matches=4 | score=4695.1 | color_score=1.60 | avg_err=6.7 mm | stable=1/5 | pickup_ready=False | solver_time=229.24 ms | cup_0->block_36_0 (10.5 mm), cup_1->block_47_0 (0.0 mm), cup_2->block_47_2 (4.6 mm), cup_3->block_47_3 (11.8 mm)
-[INFO] [1773599368.218606262] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773599368.221338651] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599368.444063994] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599368.447005965] [cup_block_aligner]: debug | matches=4 | score=4695.1 | color_score=1.60 | avg_err=6.7 mm
-[INFO] [1773599368.450752959] [cup_block_aligner]: BEST ALIGN | dx=-0.087 m, dy=+0.020 m, dyaw=-8.0 deg | matches=4 | score=4695.1 | color_score=1.60 | avg_err=6.7 mm | stable=2/5 | pickup_ready=False | solver_time=236.23 ms | cup_0->block_36_0 (10.5 mm), cup_1->block_47_0 (0.0 mm), cup_2->block_47_2 (4.6 mm), cup_3->block_47_3 (11.8 mm)
-[INFO] [1773599368.459985782] [cup_block_aligner]: debug | recent_block_frames=5 | valid_blocks=5
-[INFO] [1773599368.462783788] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599368.572061564] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599368.576130217] [cup_block_aligner]: debug | matches=2 | score=3632.8 | color_score=2.00 | avg_err=5.3 mm
-[INFO] [1773599368.579916586] [cup_block_aligner]: BEST ALIGN | dx=+0.001 m, dy=+0.141 m, dyaw=+2.0 deg | matches=2 | score=3632.8 | color_score=2.00 | avg_err=5.3 mm | stable=1/5 | pickup_ready=False | solver_time=121.82 ms | cup_0->block_36_2 (10.6 mm), cup_1->block_36_3 (0.0 mm)
-[INFO] [1773599368.586889852] [cup_block_aligner]: debug | recent_block_frames=1 | valid_blocks=1
-[INFO] [1773599368.589635437] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599368.606651199] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599368.609916191] [cup_block_aligner]: debug | matches=0 | score=-1000000000000000000.0 | color_score=0.00 | avg_err=1000000000.0 mm
-[INFO] [1773599368.612794639] [cup_block_aligner]: No worthwhile pickup found. best_matches=0
-[INFO] [1773599368.779908363] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773599368.782592303] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599369.014123615] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599369.016870139] [cup_block_aligner]: debug | matches=4 | score=4695.0 | color_score=1.60 | avg_err=6.5 mm
-[INFO] [1773599369.020597670] [cup_block_aligner]: BEST ALIGN | dx=-0.087 m, dy=+0.020 m, dyaw=-8.0 deg | matches=4 | score=4695.0 | color_score=1.60 | avg_err=6.5 mm | stable=1/5 | pickup_ready=False | solver_time=242.94 ms | cup_0->block_36_0 (10.4 mm), cup_1->block_47_0 (0.0 mm), cup_2->block_47_2 (4.5 mm), cup_3->block_47_3 (11.2 mm)
-[INFO] [1773599369.028636717] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773599369.031803608] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599369.249973318] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599369.252715961] [cup_block_aligner]: debug | matches=4 | score=4695.0 | color_score=1.60 | avg_err=6.5 mm
-[INFO] [1773599369.256365061] [cup_block_aligner]: BEST ALIGN | dx=-0.087 m, dy=+0.020 m, dyaw=-8.0 deg | matches=4 | score=4695.0 | color_score=1.60 | avg_err=6.5 mm | stable=2/5 | pickup_ready=False | solver_time=230.10 ms | cup_0->block_36_0 (10.4 mm), cup_1->block_47_0 (0.0 mm), cup_2->block_47_2 (4.5 mm), cup_3->block_47_3 (11.2 mm)
-[INFO] [1773599369.263858403] [cup_block_aligner]: debug | recent_block_frames=3 | valid_blocks=3
-[INFO] [1773599369.266550151] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599369.323691245] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599369.326523617] [cup_block_aligner]: debug | matches=2 | score=3632.7 | color_score=2.00 | avg_err=5.4 mm
-[INFO] [1773599369.330630019] [cup_block_aligner]: BEST ALIGN | dx=+0.001 m, dy=+0.141 m, dyaw=+2.0 deg | matches=2 | score=3632.7 | color_score=2.00 | avg_err=5.4 mm | stable=1/5 | pickup_ready=False | solver_time=67.49 ms | cup_0->block_36_2 (10.9 mm), cup_1->block_36_3 (0.0 mm)
-[INFO] [1773599369.378606990] [cup_block_aligner]: debug | recent_block_frames=7 | valid_blocks=7
-[INFO] [1773599369.381535895] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599369.552773206] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599369.555654014] [cup_block_aligner]: debug | matches=3 | score=4578.0 | color_score=2.20 | avg_err=6.1 mm
-[INFO] [1773599369.559176872] [cup_block_aligner]: BEST ALIGN | dx=-0.036 m, dy=+0.157 m, dyaw=+0.0 deg | matches=3 | score=4578.0 | color_score=2.20 | avg_err=6.1 mm | stable=1/5 | pickup_ready=False | solver_time=183.30 ms | cup_0->block_47_1 (8.2 mm), cup_1->block_36_2 (0.0 mm), cup_2->block_36_3 (10.2 mm)
-[INFO] [1773599369.579281843] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773599369.581929794] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599369.803714725] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599369.806688425] [cup_block_aligner]: debug | matches=4 | score=4695.0 | color_score=1.60 | avg_err=6.6 mm
-[INFO] [1773599369.810311335] [cup_block_aligner]: BEST ALIGN | dx=-0.087 m, dy=+0.020 m, dyaw=-8.0 deg | matches=4 | score=4695.0 | color_score=1.60 | avg_err=6.6 mm | stable=1/5 | pickup_ready=False | solver_time=233.12 ms | cup_0->block_36_0 (10.5 mm), cup_1->block_47_0 (0.0 mm), cup_2->block_47_2 (4.7 mm), cup_3->block_47_3 (11.0 mm)
-[INFO] [1773599369.819905155] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773599369.822927451] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599370.042873899] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599370.045696179] [cup_block_aligner]: debug | matches=4 | score=4695.0 | color_score=1.60 | avg_err=6.6 mm
-[INFO] [1773599370.049048853] [cup_block_aligner]: BEST ALIGN | dx=-0.087 m, dy=+0.020 m, dyaw=-8.0 deg | matches=4 | score=4695.0 | color_score=1.60 | avg_err=6.6 mm | stable=2/5 | pickup_ready=False | solver_time=231.94 ms | cup_0->block_36_0 (10.5 mm), cup_1->block_47_0 (0.0 mm), cup_2->block_47_2 (4.7 mm), cup_3->block_47_3 (11.0 mm)
-[INFO] [1773599370.057604855] [cup_block_aligner]: debug | recent_block_frames=3 | valid_blocks=3
-[INFO] [1773599370.060214452] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599370.109740720] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599370.112826946] [cup_block_aligner]: debug | matches=0 | score=-1000000000000000000.0 | color_score=0.00 | avg_err=1000000000.0 mm
-[INFO] [1773599370.115814851] [cup_block_aligner]: No worthwhile pickup found. best_matches=0
-[INFO] [1773599370.182430372] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773599370.186618333] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773599370.409816163] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773599370.412616375] [cup_block_aligner]: debug | matches=4 | score=4695.0 | color_score=1.60 | avg_err=6.6 mm
-[INFO] [1773599370.416377397] [cup_block_aligner]: BEST ALIGN | dx=-0.087 m, dy=+0.020 m, dyaw=-8.0 deg | matches=4 | score=4695.0 | color_score=1.60 | avg_err=6.6 mm | stable=1/5 | pickup_ready=False | solver_time=237.53 ms | cup_0->block_36_0 (10.6 mm), cup_1->block_47_0 (0.0 mm), cup_2->block_47_2 (4.8 mm), cup_3->block_47_3 (11.0 mm)
-[INFO] [1773599370.425430635] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773599370.427983971] [cup_block_aligner]: debug | entering compute_best_alignment()
+(sklearn-env) pfe@jacov-HP-Beats:~/PFE_Eurobot_2026/ws$ ros2 run pfe local_pickup_solver_node 
+[INFO] [1773600052.653979637] [cup_block_aligner]: ✅ CupBlockAligner using block_* frames.
+[INFO] [1773600052.688173456] [cup_block_aligner]: debug | recent_block_frames=0 | valid_blocks=0
+[INFO] [1773600052.693896726] [cup_block_aligner]: waiting for fresh blocks...
+[INFO] [1773600052.890664669] [cup_block_aligner]: debug | recent_block_frames=0 | valid_blocks=0
+[INFO] [1773600052.895267970] [cup_block_aligner]: waiting for fresh blocks...
+[INFO] [1773600053.086130994] [cup_block_aligner]: debug | recent_block_frames=0 | valid_blocks=0
+[INFO] [1773600053.089477668] [cup_block_aligner]: waiting for fresh blocks...
+[INFO] [1773600053.287663365] [cup_block_aligner]: debug | recent_block_frames=0 | valid_blocks=0
+[INFO] [1773600053.291293832] [cup_block_aligner]: waiting for fresh blocks...
+[INFO] [1773600053.488330263] [cup_block_aligner]: debug | recent_block_frames=0 | valid_blocks=0
+[INFO] [1773600053.491005958] [cup_block_aligner]: waiting for fresh blocks...
+[INFO] [1773600053.685901887] [cup_block_aligner]: debug | recent_block_frames=0 | valid_blocks=0
+[INFO] [1773600053.688275174] [cup_block_aligner]: waiting for fresh blocks...
+[INFO] [1773600053.888057556] [cup_block_aligner]: debug | recent_block_frames=0 | valid_blocks=0
+[INFO] [1773600053.893418033] [cup_block_aligner]: waiting for fresh blocks...
+[INFO] [1773600054.097333572] [cup_block_aligner]: debug | recent_block_frames=0 | valid_blocks=0
+[INFO] [1773600054.101300111] [cup_block_aligner]: waiting for fresh blocks...
+[INFO] [1773600054.286071960] [cup_block_aligner]: debug | recent_block_frames=0 | valid_blocks=0
+[INFO] [1773600054.288120736] [cup_block_aligner]: waiting for fresh blocks...
+[INFO] [1773600054.490620756] [cup_block_aligner]: debug | recent_block_frames=0 | valid_blocks=0
+[INFO] [1773600054.501566746] [cup_block_aligner]: waiting for fresh blocks...
+[INFO] [1773600054.685412296] [cup_block_aligner]: debug | recent_block_frames=0 | valid_blocks=0
+[INFO] [1773600054.687787371] [cup_block_aligner]: waiting for fresh blocks...
+[INFO] [1773600054.885704141] [cup_block_aligner]: debug | recent_block_frames=0 | valid_blocks=0
+[INFO] [1773600054.891009213] [cup_block_aligner]: waiting for fresh blocks...
+[INFO] [1773600055.097875730] [cup_block_aligner]: debug | recent_block_frames=0 | valid_blocks=0
+[INFO] [1773600055.102881008] [cup_block_aligner]: waiting for fresh blocks...
+[INFO] [1773600055.288374370] [cup_block_aligner]: debug | recent_block_frames=0 | valid_blocks=0
+[INFO] [1773600055.290543651] [cup_block_aligner]: waiting for fresh blocks...
+[INFO] [1773600055.494294285] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
+[INFO] [1773600055.503676478] [cup_block_aligner]: debug | entering compute_best_alignment()
+[INFO] [1773600055.896740344] [cup_block_aligner]: debug | compute_best_alignment() returned
+[INFO] [1773600055.899729149] [cup_block_aligner]: debug | matches=4 | score=4693.7 | color_score=1.60 | avg_err=7.0 mm
+[INFO] [1773600055.903564763] [cup_block_aligner]: BEST ALIGN | dx=-0.088 m, dy=+0.020 m, dyaw=-8.0 deg | matches=4 | score=4693.7 | color_score=1.60 | avg_err=7.0 mm | stable=1/3 | pickup_ready=False | solver_time=416.91 ms | cup_0->block_36_0 (11.0 mm), cup_1->block_47_0 (0.0 mm), cup_2->block_47_2 (4.5 mm), cup_3->block_47_3 (12.5 mm)
+[INFO] [1773600055.910025602] [cup_block_aligner]: debug | recent_block_frames=1 | valid_blocks=1
+[INFO] [1773600055.912743092] [cup_block_aligner]: debug | entering compute_best_alignment()
+[INFO] [1773600055.932751758] [cup_block_aligner]: debug | compute_best_alignment() returned
+[INFO] [1773600055.935578351] [cup_block_aligner]: debug | matches=0 | score=-1000000000000000000.0 | color_score=0.00 | avg_err=1000000000.0 mm
+[INFO] [1773600055.938423250] [cup_block_aligner]: No worthwhile pickup found. best_matches=0
+[INFO] [1773600056.094031232] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
+[INFO] [1773600056.101842501] [cup_block_aligner]: debug | entering compute_best_alignment()
+[INFO] [1773600056.490378110] [cup_block_aligner]: debug | compute_best_alignment() returned
+[INFO] [1773600056.494785820] [cup_block_aligner]: debug | matches=4 | score=4693.9 | color_score=1.60 | avg_err=7.1 mm
+[INFO] [1773600056.498017352] [cup_block_aligner]: BEST ALIGN | dx=-0.088 m, dy=+0.020 m, dyaw=-8.0 deg | matches=4 | score=4693.9 | color_score=1.60 | avg_err=7.1 mm | stable=1/3 | pickup_ready=False | solver_time=413.30 ms | cup_0->block_36_0 (10.9 mm), cup_1->block_47_0 (0.0 mm), cup_2->block_47_2 (5.0 mm), cup_3->block_47_3 (12.5 mm)
+[INFO] [1773600056.506545276] [cup_block_aligner]: debug | recent_block_frames=7 | valid_blocks=7
+[INFO] [1773600056.509069757] [cup_block_aligner]: debug | entering compute_best_alignment()
+[INFO] [1773600056.712301772] [cup_block_aligner]: debug | compute_best_alignment() returned
+[INFO] [1773600056.715062939] [cup_block_aligner]: debug | matches=3 | score=4577.5 | color_score=2.20 | avg_err=7.1 mm
+[INFO] [1773600056.724221069] [cup_block_aligner]: BEST ALIGN | dx=-0.036 m, dy=+0.157 m, dyaw=+0.0 deg | matches=3 | score=4577.5 | color_score=2.20 | avg_err=7.1 mm | stable=1/3 | pickup_ready=False | solver_time=216.49 ms | cup_0->block_47_1 (9.5 mm), cup_1->block_36_2 (0.0 mm), cup_2->block_36_3 (11.7 mm)
+[INFO] [1773600056.747284828] [cup_block_aligner]: debug | recent_block_frames=0 | valid_blocks=0
+[INFO] [1773600056.750291961] [cup_block_aligner]: waiting for fresh blocks...
+[INFO] [1773600056.890271267] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
+[INFO] [1773600056.894966202] [cup_block_aligner]: debug | entering compute_best_alignment()
+[INFO] [1773600057.101439408] [cup_block_aligner]: debug | compute_best_alignment() returned
+[INFO] [1773600057.104478419] [cup_block_aligner]: debug | matches=4 | score=4694.2 | color_score=1.60 | avg_err=7.2 mm
+[INFO] [1773600057.108097315] [cup_block_aligner]: BEST ALIGN | dx=-0.088 m, dy=+0.020 m, dyaw=-8.0 deg | matches=4 | score=4694.2 | color_score=1.60 | avg_err=7.2 mm | stable=1/3 | pickup_ready=False | solver_time=223.02 ms | cup_0->block_36_0 (11.0 mm), cup_1->block_47_0 (0.0 mm), cup_2->block_47_2 (5.1 mm), cup_3->block_47_3 (12.5 mm)
+[INFO] [1773600057.117289301] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
+[INFO] [1773600057.120384750] [cup_block_aligner]: debug | entering compute_best_alignment()
+[INFO] [1773600057.328177563] [cup_block_aligner]: debug | compute_best_alignment() returned
+[INFO] [1773600057.330790177] [cup_block_aligner]: debug | matches=4 | score=4694.2 | color_score=1.60 | avg_err=7.2 mm
+[INFO] [1773600057.335823636] [cup_block_aligner]: BEST ALIGN | dx=-0.088 m, dy=+0.020 m, dyaw=-8.0 deg | matches=4 | score=4694.2 | color_score=1.60 | avg_err=7.2 mm | stable=2/3 | pickup_ready=False | solver_time=220.41 ms | cup_0->block_36_0 (11.0 mm), cup_1->block_47_0 (0.0 mm), cup_2->block_47_2 (5.1 mm), cup_3->block_47_3 (12.5 mm)
+[INFO] [1773600057.345905051] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
+[INFO] [1773600057.348722448] [cup_block_aligner]: debug | entering compute_best_alignment()
+[INFO] [1773600057.627358889] [cup_block_aligner]: debug | compute_best_alignment() returned
+[INFO] [1773600057.631643375] [cup_block_aligner]: debug | matches=4 | score=4694.2 | color_score=1.60 | avg_err=7.2 mm
+[INFO] [1773600057.639325779] [cup_block_aligner]: PUBLISHED pickup goal + queue, locking until done
+[INFO] [1773600057.648299194] [cup_block_aligner]: debug | recent_block_frames=0 | valid_blocks=0
+[INFO] [1773600057.650547442] [cup_block_aligner]: waiting for fresh blocks...
+[INFO] [1773600057.693995399] [cup_block_aligner]: debug | recent_block_frames=5 | valid_blocks=5
+[INFO] [1773600057.714281529] [cup_block_aligner]: debug | entering compute_best_alignment()
+[INFO] [1773600057.906766881] [cup_block_aligner]: debug | compute_best_alignment() returned
+[INFO] [1773600057.915218543] [cup_block_aligner]: debug | matches=2 | score=3631.8 | color_score=2.00 | avg_err=6.3 mm
+[INFO] [1773600057.963249019] [cup_block_aligner]: debug | recent_block_frames=5 | valid_blocks=5
+[INFO] [1773600057.983794359] [cup_block_aligner]: debug | entering compute_best_alignment()
+[INFO] [1773600058.358182854] [cup_block_aligner]: debug | compute_best_alignment() returned
+[INFO] [1773600058.361029294] [cup_block_aligner]: debug | matches=2 | score=3631.8 | color_score=2.00 | avg_err=6.3 mm
+[INFO] [1773600058.370021763] [cup_block_aligner]: debug | recent_block_frames=2 | valid_blocks=2
+[INFO] [1773600058.372596484] [cup_block_aligner]: debug | entering compute_best_alignment()
+[INFO] [1773600058.406707676] [cup_block_aligner]: debug | compute_best_alignment() returned
+[INFO] [1773600058.409484015] [cup_block_aligner]: debug | matches=0 | score=-1000000000000000000.0 | color_score=0.00 | avg_err=1000000000.0 mm
+[INFO] [1773600058.412173178] [cup_block_aligner]: No worthwhile pickup found. best_matches=0
+[INFO] [1773600058.488640038] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
+[INFO] [1773600058.494726816] [cup_block_aligner]: debug | entering compute_best_alignment()
+[INFO] [1773600058.714713437] [cup_block_aligner]: debug | compute_best_alignment() returned
+[INFO] [1773600058.717933154] [cup_block_aligner]: debug | matches=4 | score=4693.7 | color_score=1.60 | avg_err=7.1 mm
+[INFO] [1773600058.737018205] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
+[INFO] [1773600058.739914344] [cup_block_aligner]: debug | entering compute_best_alignment()
+[INFO] [1773600058.954217490] [cup_block_aligner]: debug | compute_best_alignment() returned
+[INFO] [1773600058.956775341] [cup_block_aligner]: debug | matches=4 | score=4693.7 | color_score=1.60 | avg_err=7.1 mm
+[INFO] [1773600058.964194898] [cup_block_aligner]: debug | recent_block_frames=4 | valid_blocks=4
+[INFO] [1773600058.967394296] [cup_block_aligner]: debug | entering compute_best_alignment()
+[INFO] [1773600059.041462743] [cup_block_aligner]: debug | compute_best_alignment() returned
+[INFO] [1773600059.044035692] [cup_block_aligner]: debug | matches=3 | score=4574.1 | color_score=2.20 | avg_err=7.0 mm
+[INFO] [1773600059.088292808] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
+[INFO] [1773600059.091281070] [cup_block_aligner]: debug | entering compute_best_alignment()
+[INFO] [1773600059.345337279] [cup_block_aligner]: debug | compute_best_alignment() returned
+[INFO] [1773600059.348319094] [cup_block_aligner]: debug | matches=4 | score=4694.0 | color_score=1.60 | avg_err=7.1 mm
+[INFO] [1773600059.357949493] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
+[INFO] [1773600059.360693897] [cup_block_aligner]: debug | entering compute_best_alignment()
+[INFO] [1773600059.577629817] [cup_block_aligner]: debug | compute_best_alignment() returned
+[INFO] [1773600059.580535818] [cup_block_aligner]: debug | matches=4 | score=4694.0 | color_score=1.60 | avg_err=7.1 mm
+[INFO] [1773600059.587190057] [cup_block_aligner]: debug | recent_block_frames=0 | valid_blocks=0
+[INFO] [1773600059.589521395] [cup_block_aligner]: waiting for fresh blocks...
+[INFO] [1773600059.690765107] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
+[INFO] [1773600059.693741651] [cup_block_aligner]: debug | entering compute_best_alignment()
+[INFO] [1773600059.906678443] [cup_block_aligner]: debug | compute_best_alignment() returned
+[INFO] [1773600059.909604743] [cup_block_aligner]: debug | matches=4 | score=4694.2 | color_score=1.60 | avg_err=7.1 mm
+[INFO] [1773600059.918980633] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
+[INFO] [1773600059.921799595] [cup_block_aligner]: debug | entering compute_best_alignment()
+[INFO] [1773600060.142044463] [cup_block_aligner]: debug | compute_best_alignment() returned
+[INFO] [1773600060.146034190] [cup_block_aligner]: debug | matches=4 | score=4694.2 | color_score=1.60 | avg_err=7.1 mm
+[INFO] [1773600060.160722166] [cup_block_aligner]: debug | recent_block_frames=5 | valid_blocks=5
+[INFO] [1773600060.163798717] [cup_block_aligner]: debug | entering compute_best_alignment()
+[INFO] [1773600060.270023341] [cup_block_aligner]: debug | compute_best_alignment() returned
+[INFO] [1773600060.273223866] [cup_block_aligner]: debug | matches=2 | score=2832.0 | color_score=1.20 | avg_err=5.2 mm
+[INFO] [1773600060.286106070] [cup_block_aligner]: debug | recent_block_frames=2 | valid_blocks=2
+[INFO] [1773600060.288950523] [cup_block_aligner]: debug | entering compute_best_alignment()
+[INFO] [1773600060.331490593] [cup_block_aligner]: debug | compute_best_alignment() returned
+[INFO] [1773600060.334304236] [cup_block_aligner]: debug | matches=2 | score=2835.8 | color_score=1.20 | avg_err=5.8 mm
+[INFO] [1773600060.489133091] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
+[INFO] [1773600060.491684790] [cup_block_aligner]: debug | entering compute_best_alignment()
+[INFO] [1773600060.701619826] [cup_block_aligner]: debug | compute_best_alignment() returned
+[INFO] [1773600060.704538551] [cup_block_aligner]: debug | matches=4 | score=4693.9 | color_score=1.60 | avg_err=7.1 mm
+[INFO] [1773600060.713783774] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
+[INFO] [1773600060.716387852] [cup_block_aligner]: debug | entering compute_best_alignment()
+[INFO] [1773600060.935911785] [cup_block_aligner]: debug | compute_best_alignment() returned
+[INFO] [1773600060.938738907] [cup_block_aligner]: debug | matches=4 | score=4693.9 | color_score=1.60 | avg_err=7.1 mm
+[INFO] [1773600060.947669700] [cup_block_aligner]: debug | recent_block_frames=6 | valid_blocks=6
+[INFO] [1773600060.950459951] [cup_block_aligner]: debug | entering compute_best_alignment()
+[INFO] [1773600061.078048602] [cup_block_aligner]: debug | compute_best_alignment() returned
+[INFO] [1773600061.081033223] [cup_block_aligner]: debug | matches=3 | score=3510.1 | color_score=1.40 | avg_err=8.0 mm
+[INFO] [1773600061.087329284] [cup_block_aligner]: debug | recent_block_frames=0 | valid_blocks=0
+[INFO] [1773600061.089572952] [cup_block_aligner]: waiting for fresh blocks...
+[INFO] [1773600061.288050020] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
+[INFO] [1773600061.290797384] [cup_block_aligner]: debug | entering compute_best_alignment()
+[INFO] [1773600061.507438002] [cup_block_aligner]: debug | compute_best_alignment() returned
+[INFO] [1773600061.510402192] [cup_block_aligner]: debug | matches=4 | score=4694.3 | color_score=1.60 | avg_err=7.2 mm
+[INFO] [1773600061.520403321] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
+[INFO] [1773600061.523926566] [cup_block_aligner]: debug | entering compute_best_alignment()
+[INFO] [1773600061.742140489] [cup_block_aligner]: debug | compute_best_alignment() returned
+[INFO] [1773600061.744881613] [cup_block_aligner]: debug | matches=4 | score=4694.3 | color_score=1.60 | avg_err=7.2 mm
+[INFO] [1773600061.752722523] [cup_block_aligner]: debug | recent_block_frames=3 | valid_blocks=3
+[INFO] [1773600061.755465769] [cup_block_aligner]: debug | entering compute_best_alignment()
+[INFO] [1773600061.804955827] [cup_block_aligner]: debug | compute_best_alignment() returned
+[INFO] [1773600061.807969366] [cup_block_aligner]: debug | matches=0 | score=-1000000000000000000.0 | color_score=0.00 | avg_err=1000000000.0 mm
+[INFO] [1773600061.810825848] [cup_block_aligner]: No worthwhile pickup found. best_matches=0
+[INFO] [1773600061.887842987] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
+[INFO] [1773600061.890592885] [cup_block_aligner]: debug | entering compute_best_alignment()
+[INFO] [1773600062.106393666] [cup_block_aligner]: debug | compute_best_alignment() returned
+[INFO] [1773600062.109444330] [cup_block_aligner]: debug | matches=4 | score=4694.4 | color_score=1.60 | avg_err=7.2 mm
+[INFO] [1773600062.121104284] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
+[INFO] [1773600062.124037883] [cup_block_aligner]: debug | entering compute_best_alignment()
+[INFO] [1773600062.340166528] [cup_block_aligner]: debug | compute_best_alignment() returned
+[INFO] [1773600062.343597438] [cup_block_aligner]: debug | matches=4 | score=4694.4 | color_score=1.60 | avg_err=7.2 mm
+[INFO] [1773600062.352309310] [cup_block_aligner]: debug | recent_block_frames=6 | valid_blocks=6
+[INFO] [1773600062.355292460] [cup_block_aligner]: debug | entering compute_best_alignment()
+[INFO] [1773600062.488846709] [cup_block_aligner]: debug | compute_best_alignment() returned
+[INFO] [1773600062.491723469] [cup_block_aligner]: debug | matches=2 | score=3631.8 | color_score=2.00 | avg_err=6.3 mm
+[INFO] [1773600062.499348015] [cup_block_aligner]: debug | recent_block_frames=2 | valid_blocks=2
+[INFO] [1773600062.502131063] [cup_block_aligner]: debug | entering compute_best_alignment()
+[INFO] [1773600062.534742911] [cup_block_aligner]: debug | compute_best_alignment() returned
+[INFO] [1773600062.537600486] [cup_block_aligner]: debug | matches=0 | score=-1000000000000000000.0 | color_score=0.00 | avg_err=1000000000.0 mm
+[INFO] [1773600062.540224350] [cup_block_aligner]: No worthwhile pickup found. best_matches=0
+[INFO] [1773600062.688866483] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
+[INFO] [1773600062.691578253] [cup_block_aligner]: debug | entering compute_best_alignment()
+[INFO] [1773600062.906781518] [cup_block_aligner]: debug | compute_best_alignment() returned
+[INFO] [1773600062.909718539] [cup_block_aligner]: debug | matches=4 | score=4694.3 | color_score=1.60 | avg_err=7.3 mm
+[INFO] [1773600062.920567618] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
+[INFO] [1773600062.923217716] [cup_block_aligner]: debug | entering compute_best_alignment()
+[INFO] [1773600063.143859885] [cup_block_aligner]: debug | compute_best_alignment() returned
+[INFO] [1773600063.146722455] [cup_block_aligner]: debug | matches=4 | score=4694.3 | color_score=1.60 | avg_err=7.3 mm
+[INFO] [1773600063.155128756] [cup_block_aligner]: debug | recent_block_frames=5 | valid_blocks=5
+[INFO] [1773600063.157761635] [cup_block_aligner]: debug | entering compute_best_alignment()
+[INFO] [1773600063.262545578] [cup_block_aligner]: debug | compute_best_alignment() returned
+[INFO] [1773600063.265403107] [cup_block_aligner]: debug | matches=3 | score=3510.5 | color_score=1.40 | avg_err=8.1 mm
+[INFO] [1773600063.287292420] [cup_block_aligner]: debug | recent_block_frames=2 | valid_blocks=2
+[INFO] [1773600063.290051225] [cup_block_aligner]: debug | entering compute_best_alignment()
+[INFO] [1773600063.324056702] [cup_block_aligner]: debug | compute_best_alignment() returned
+[INFO] [1773600063.327074972] [cup_block_aligner]: debug | matches=0 | score=-1000000000000000000.0 | color_score=0.00 | avg_err=1000000000.0 mm
+[INFO] [1773600063.330343767] [cup_block_aligner]: No worthwhile pickup found. best_matches=0
+[INFO] [1773600063.488377465] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
+[INFO] [1773600063.491079982] [cup_block_aligner]: debug | entering compute_best_alignment()
+[INFO] [1773600063.708370484] [cup_block_aligner]: debug | compute_best_alignment() returned
+[INFO] [1773600063.711243349] [cup_block_aligner]: debug | matches=4 | score=4693.6 | color_score=1.60 | avg_err=7.2 mm
+[INFO] [1773600063.719979829] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
+[INFO] [1773600063.722579090] [cup_block_aligner]: debug | entering compute_best_alignment()
+[INFO] [1773600063.938169478] [cup_block_aligner]: debug | compute_best_alignment() returned
+[INFO] [1773600063.940885327] [cup_block_aligner]: debug | matches=4 | score=4693.6 | color_score=1.60 | avg_err=7.2 mm
+[INFO] [1773600063.948350676] [cup_block_aligner]: debug | recent_block_frames=3 | valid_blocks=3
+[INFO] [1773600063.950947065] [cup_block_aligner]: debug | entering compute_best_alignment()
+[INFO] [1773600064.013017768] [cup_block_aligner]: debug | compute_best_alignment() returned
+[INFO] [1773600064.016216277] [cup_block_aligner]: debug | matches=2 | score=2835.9 | color_score=1.20 | avg_err=5.8 mm
+[INFO] [1773600064.088650744] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
+[INFO] [1773600064.091726796] [cup_block_aligner]: debug | entering compute_best_alignment()
+[INFO] [1773600064.305108762] [cup_block_aligner]: debug | compute_best_alignment() returned
+[INFO] [1773600064.308129673] [cup_block_aligner]: debug | matches=4 | score=4693.4 | color_score=1.60 | avg_err=7.2 mm
+[INFO] [1773600064.317250328] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
+[INFO] [1773600064.320918685] [cup_block_aligner]: debug | entering compute_best_alignment()
+[INFO] [1773600064.541684096] [cup_block_aligner]: debug | compute_best_alignment() returned
+[INFO] [1773600064.544508743] [cup_block_aligner]: debug | matches=4 | score=4693.5 | color_score=1.60 | avg_err=7.2 mm
+[INFO] [1773600064.556428170] [cup_block_aligner]: debug | recent_block_frames=7 | valid_blocks=7
+[INFO] [1773600064.559577116] [cup_block_aligner]: debug | entering compute_best_alignment()
+[INFO] [1773600064.743527396] [cup_block_aligner]: debug | compute_best_alignment() returned
+[INFO] [1773600064.746359791] [cup_block_aligner]: debug | matches=4 | score=4693.5 | color_score=1.60 | avg_err=7.2 mm
+[INFO] [1773600064.752952344] [cup_block_aligner]: debug | recent_block_frames=2 | valid_blocks=2
+[INFO] [1773600064.755694006] [cup_block_aligner]: debug | entering compute_best_alignment()
+[INFO] [1773600064.786609973] [cup_block_aligner]: debug | compute_best_alignment() returned
+[INFO] [1773600064.789303845] [cup_block_aligner]: debug | matches=0 | score=-1000000000000000000.0 | color_score=0.00 | avg_err=1000000000.0 mm
+[INFO] [1773600064.792049494] [cup_block_aligner]: No worthwhile pickup found. best_matches=0
+[INFO] [1773600064.888910108] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
+[INFO] [1773600064.891667621] [cup_block_aligner]: debug | entering compute_best_alignment()
+[INFO] [1773600065.103926279] [cup_block_aligner]: debug | compute_best_alignment() returned
+[INFO] [1773600065.106908419] [cup_block_aligner]: debug | matches=4 | score=4694.0 | color_score=1.60 | avg_err=7.1 mm
+[INFO] [1773600065.116639144] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
+[INFO] [1773600065.119643521] [cup_block_aligner]: debug | entering compute_best_alignment()
+[INFO] [1773600065.327066429] [cup_block_aligner]: debug | compute_best_alignment() returned
+[INFO] [1773600065.329740339] [cup_block_aligner]: debug | matches=4 | score=4694.0 | color_score=1.60 | avg_err=7.1 mm
+[INFO] [1773600065.339484803] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
+[INFO] [1773600065.342036183] [cup_block_aligner]: debug | entering compute_best_alignment()
+[INFO] [1773600065.551300587] [cup_block_aligner]: debug | compute_best_alignment() returned
+[INFO] [1773600065.554334138] [cup_block_aligner]: debug | matches=4 | score=4694.0 | color_score=1.60 | avg_err=7.1 mm
+[INFO] [1773600065.563738040] [cup_block_aligner]: debug | recent_block_frames=0 | valid_blocks=0
+[INFO] [1773600065.566064835] [cup_block_aligner]: waiting for fresh blocks...
+[INFO] [1773600065.690385070] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
+[INFO] [1773600065.693016990] [cup_block_aligner]: debug | entering compute_best_alignment()
 ^CTraceback (most recent call last):
   File "/home/pfe/PFE_Eurobot_2026/ws/install/pfe/lib/pfe/local_pickup_solver_node", line 33, in <module>
     sys.exit(load_entry_point('pfe==0.0.0', 'console_scripts', 'local_pickup_solver_node')())
