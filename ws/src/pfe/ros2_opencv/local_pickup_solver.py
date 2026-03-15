@@ -118,6 +118,11 @@ class CupBlockAligner(Node):
             String, "pickup_state", self.pickup_state_cb, 10
         )
 
+        # ---------- tolerate temporary block loss ----------
+        self.last_blocks: Dict[str, XY] = {}
+        self.missing_block_cycles = 0
+        self.missing_block_cycles_allowed = 3
+
         self.locked = False
         self.locked_signature = None
         self.pickup_state = "idle"  # idle / moving / arrived / picking / done
