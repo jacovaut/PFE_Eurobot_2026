@@ -11,21 +11,34 @@ import numpy as np
 import json
 import time
 import tf_transformations
-from tf2_ros import TransformBroadcaster
+
+from tf2_ros import TransformBroadcaster, Buffer, TransformListener
+
 
 # ===========================================================
-# CLASSE : CaisseNoisette (track stable per instance)
+# CLASSE : CaisseNoisette
 # ===========================================================
 class CaisseNoisette:
     def __init__(self, marker_id: int, index: int, x: float, y: float, z: float, quat, color: str):
         self.id = int(marker_id)
-        self.index = int(index)  # stable-ish per track
+        self.index = int(index)
         self.x = float(x)
         self.y = float(y)
         self.z = float(z)
-        self.quat = (float(quat[0]), float(quat[1]), float(quat[2]), float(quat[3]))  # (x,y,z,w)
+        self.quat = (
+            float(quat[0]),
+            float(quat[1]),
+            float(quat[2]),
+            float(quat[3])
+        )  # raw optical-frame quaternion
         self.color = color
         self.last_seen = time.time()
+
+        # cleaned pose in pickup_frame
+        self.pickup_x = None
+        self.pickup_y = None
+        self.pickup_z = None
+        self.pickup_quat = None
 
     def update(self, x: float, y: float, z: float, quat):
         alpha = 0.30
@@ -33,7 +46,6 @@ class CaisseNoisette:
         self.y = self.y * (1 - alpha) + float(y) * alpha
         self.z = self.z * (1 - alpha) + float(z) * alpha
 
-        # Blend quaternion a bit + normalize (good enough for visualization)
         q_old = np.array(self.quat, dtype=float)
         q_new = np.array(quat, dtype=float)
         q = q_old * (1 - alpha) + q_new * alpha
@@ -44,15 +56,55 @@ class CaisseNoisette:
 
         self.last_seen = time.time()
 
+    def update_pickup_pose(self, x: float, y: float, z: float, quat):
+        alpha = 0.30
+
+        if self.pickup_x is None:
+            self.pickup_x = float(x)
+            self.pickup_y = float(y)
+            self.pickup_z = float(z)
+            self.pickup_quat = (
+                float(quat[0]),
+                float(quat[1]),
+                float(quat[2]),
+                float(quat[3])
+            )
+            return
+
+        self.pickup_x = self.pickup_x * (1 - alpha) + float(x) * alpha
+        self.pickup_y = self.pickup_y * (1 - alpha) + float(y) * alpha
+        self.pickup_z = self.pickup_z * (1 - alpha) + float(z) * alpha
+
+        q_old = np.array(self.pickup_quat, dtype=float)
+        q_new = np.array(quat, dtype=float)
+        q = q_old * (1 - alpha) + q_new * alpha
+        n = np.linalg.norm(q)
+        if n > 1e-9:
+            q = q / n
+        self.pickup_quat = (float(q[0]), float(q[1]), float(q[2]), float(q[3]))
+
     def to_dict(self):
-        return {
+        data = {
             "id": self.id,
             "index": self.index,
-            "x": self.x,
-            "y": self.y,
-            "z": self.z,
+            "x_cam": self.x,
+            "y_cam": self.y,
+            "z_cam": self.z,
             "color": self.color
         }
+
+        if self.pickup_x is not None:
+            yaw = None
+            if self.pickup_quat is not None:
+                _, _, yaw = tf_transformations.euler_from_quaternion(self.pickup_quat)
+            data.update({
+                "x": self.pickup_x,
+                "y": self.pickup_y,
+                "z": self.pickup_z,
+                "yaw": yaw
+            })
+
+        return data
 
 
 # ===========================================================
@@ -71,38 +123,55 @@ class SubscriberNodeClass(Node):
         self.marker_pub = self.create_publisher(MarkerArray, 'aruco_markers', 10)
         self.tf_broadcaster = TransformBroadcaster(self)
 
+        self.tf_buffer = Buffer()
+        self.tf_listener = TransformListener(self.tf_buffer, self)
+
         # --- ArUco setup ---
         self.dictionary = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
         self.parameters = cv2.aruco.DetectorParameters_create()
         self.marker_length = 0.05  # meters
 
-        # --- Camera calibration (placeholder) ---
+        # --- Camera calibration ---
         self.camera_matrix = np.array([[600.0, 0.0, 320.0],
                                        [0.0, 600.0, 240.0],
                                        [0.0, 0.0, 1.0]])
         self.dist_coeffs = np.zeros((5, 1))
 
         # --- Map ID -> couleur ---
-        self.id_color_map = {47: "jaune", 36: "bleu"}  # edit as needed
+        self.id_color_map = {47: "jaune", 36: "bleu"}
 
         # --- Tracking memory ---
-        # key = (marker_id, track_index) -> CaisseNoisette
         self.memory = {}
-        self.memory_timeout = 1.0  # seconds
-        self.next_track_index = {}  # marker_id -> next new index
+        self.memory_timeout = 1.0
+        self.next_track_index = {}
 
-        # --- Association threshold (meters) ---
-        # If blocks are close together, reduce this (e.g., 0.06-0.10).
+        # --- Association threshold ---
         self.match_dist = 0.12
 
-        self.get_logger().info("✅ Subscriber node with multi-same-ID tracking + RViz markers started.")
+        # --- Block geometry ---
+        self.block_size = 0.05
+        self.block_center_z = self.block_size / 2.0
+
+        # --- Temporary flat frame relative to base_link ---
+        self.pickup_frame_parent = "base_link"
+        self.pickup_frame_name = "pickup_frame"
+
+        # Translation of pickup_frame relative to base_link
+        self.pickup_tx = 0.0
+        self.pickup_ty = 0.0
+        self.pickup_tz = 0.0
+
+        # Rotation of pickup_frame relative to base_link
+        # Tune these if the blocks still look tilted in RViz
+        self.pickup_roll = 0.0
+        self.pickup_pitch = 0.0
+        self.pickup_yaw = 0.0
+
+        self.get_logger().info(
+            "✅ Subscriber node started. Raw aruco TF + flattened block TF in pickup_frame."
+        )
 
     def _associate_track(self, marker_id: int, x: float, y: float, z: float, claimed_keys: set):
-        """
-        Find closest existing track of same marker_id within match_dist,
-        that is NOT already claimed by another detection in this same frame.
-        Returns (track_key, track_obj) or (None, None).
-        """
         best_key = None
         best = None
         best_d2 = 1e18
@@ -124,13 +193,107 @@ class SubscriberNodeClass(Node):
 
         return None, None
 
+    def _publish_pickup_frame(self, stamp):
+        q = tf_transformations.quaternion_from_euler(
+            self.pickup_roll,
+            self.pickup_pitch,
+            self.pickup_yaw
+        )
+
+        t = TransformStamped()
+        t.header.stamp = stamp
+        t.header.frame_id = self.pickup_frame_parent
+        t.child_frame_id = self.pickup_frame_name
+        t.transform.translation.x = self.pickup_tx
+        t.transform.translation.y = self.pickup_ty
+        t.transform.translation.z = self.pickup_tz
+        t.transform.rotation.x = float(q[0])
+        t.transform.rotation.y = float(q[1])
+        t.transform.rotation.z = float(q[2])
+        t.transform.rotation.w = float(q[3])
+        self.tf_broadcaster.sendTransform(t)
+
+    def _publish_raw_aruco_tf(self, track, stamp):
+        t = TransformStamped()
+        t.header.stamp = stamp
+        t.header.frame_id = "arducam_optical_frame"
+        t.child_frame_id = f"aruco_{track.id}_{track.index}"
+        t.transform.translation.x = track.x
+        t.transform.translation.y = track.y
+        t.transform.translation.z = track.z
+        t.transform.rotation.x = track.quat[0]
+        t.transform.rotation.y = track.quat[1]
+        t.transform.rotation.z = track.quat[2]
+        t.transform.rotation.w = track.quat[3]
+        self.tf_broadcaster.sendTransform(t)
+
+    def _compute_and_publish_clean_block_tf(self, track, stamp):
+        """
+        Transform raw aruco pose into pickup_frame, then flatten:
+        - keep x/y
+        - force constant z
+        - keep only yaw in pickup_frame
+        """
+        try:
+            tf_cam_to_pickup = self.tf_buffer.lookup_transform(
+                self.pickup_frame_name,
+                "arducam_optical_frame",
+                rclpy.time.Time()
+            )
+
+            t = tf_cam_to_pickup.transform.translation
+            q_tf = tf_cam_to_pickup.transform.rotation
+
+            trans = np.array([t.x, t.y, t.z], dtype=float)
+            quat_tf = np.array([q_tf.x, q_tf.y, q_tf.z, q_tf.w], dtype=float)
+
+            T = tf_transformations.quaternion_matrix(quat_tf)
+            T[0:3, 3] = trans
+
+            p_cam = np.array([track.x, track.y, track.z, 1.0], dtype=float)
+            p_pickup = T @ p_cam
+
+            quat_cam = np.array(track.quat, dtype=float)
+            quat_pickup_raw = tf_transformations.quaternion_multiply(quat_tf, quat_cam)
+
+            roll, pitch, yaw = tf_transformations.euler_from_quaternion(quat_pickup_raw)
+            q_flat = tf_transformations.quaternion_from_euler(0.0, 0.0, yaw)
+
+            track.update_pickup_pose(
+                float(p_pickup[0]),
+                float(p_pickup[1]),
+                float(self.block_center_z),
+                q_flat
+            )
+
+            tb = TransformStamped()
+            tb.header.stamp = stamp
+            tb.header.frame_id = self.pickup_frame_name
+            tb.child_frame_id = f"block_{track.id}_{track.index}"
+            tb.transform.translation.x = track.pickup_x
+            tb.transform.translation.y = track.pickup_y
+            tb.transform.translation.z = track.pickup_z
+            tb.transform.rotation.x = track.pickup_quat[0]
+            tb.transform.rotation.y = track.pickup_quat[1]
+            tb.transform.rotation.z = track.pickup_quat[2]
+            tb.transform.rotation.w = track.pickup_quat[3]
+            self.tf_broadcaster.sendTransform(tb)
+
+        except Exception as e:
+            self.get_logger().warn(
+                f"Could not transform aruco_{track.id}_{track.index} to {self.pickup_frame_name}: {e}"
+            )
+
     def listener_callback(self, image_msg):
         frame = self.bridge.imgmsg_to_cv2(image_msg, desired_encoding='bgr8')
         corners, ids, _ = cv2.aruco.detectMarkers(frame, self.dictionary, parameters=self.parameters)
         current_time = time.time()
-
-        # Track claiming set (prevents 4 -> 3 merge)
         claimed_keys = set()
+
+        stamp = self.get_clock().now().to_msg()
+
+        # Always publish temporary pickup frame
+        self._publish_pickup_frame(stamp)
 
         if ids is not None and len(ids) > 0:
             cv2.aruco.drawDetectedMarkers(frame, corners, ids)
@@ -148,47 +311,35 @@ class SubscriberNodeClass(Node):
                 tvec = tvecs[i][0]
                 x, y, z = float(tvec[0]), float(tvec[1]), float(tvec[2])
 
-                # --- Proper quaternion from rvec ---
+                # FULL quaternion from rvec
                 R, _ = cv2.Rodrigues(rvec)
+                T_rot = np.eye(4)
+                T_rot[:3, :3] = R
+                q_cam = tf_transformations.quaternion_from_matrix(T_rot)
+                quat_cam = (
+                    float(q_cam[0]),
+                    float(q_cam[1]),
+                    float(q_cam[2]),
+                    float(q_cam[3])
+                )
 
-                # Extract yaw from rotation matrix (camera frame)
-                yaw = float(np.arctan2(R[1, 0], R[0, 0]))
-
-                # Make quaternion that only rotates around Z (no roll/pitch)
-                q = tf_transformations.quaternion_from_euler(0.0, 0.0, yaw)
-                quat = (float(q[0]), float(q[1]), float(q[2]), float(q[3]))
-
-                # --- Associate to existing track (unique per frame) ---
                 track_key, track = self._associate_track(mid, x, y, z, claimed_keys)
 
                 if track is not None:
-                    track.update(x, y, z, quat)
+                    track.update(x, y, z, quat_cam)
                     claimed_keys.add(track_key)
                 else:
-                    # allocate new track index (can increase forever; OK)
                     idx = self.next_track_index.get(mid, 0)
                     self.next_track_index[mid] = idx + 1
 
-                    track = CaisseNoisette(mid, idx, x, y, z, quat, color)
+                    track = CaisseNoisette(mid, idx, x, y, z, quat_cam, color)
                     new_key = (mid, idx)
                     self.memory[new_key] = track
                     claimed_keys.add(new_key)
 
-                # --- TF publish: unique frame per tracked instance ---
-                t = TransformStamped()
-                t.header.stamp = self.get_clock().now().to_msg()
-                t.header.frame_id = "arducam_optical_frame"
-                t.child_frame_id = f"aruco_{track.id}_{track.index}"
-                t.transform.translation.x = track.x
-                t.transform.translation.y = track.y
-                t.transform.translation.z = track.z
-                t.transform.rotation.x = track.quat[0]
-                t.transform.rotation.y = track.quat[1]
-                t.transform.rotation.z = track.quat[2]
-                t.transform.rotation.w = track.quat[3]
-                self.tf_broadcaster.sendTransform(t)
+                self._publish_raw_aruco_tf(track, stamp)
+                self._compute_and_publish_clean_block_tf(track, stamp)
 
-                # Optional debug axes
                 cv2.drawFrameAxes(frame, self.camera_matrix, self.dist_coeffs, rvec, tvec, 0.03)
 
         # --- Clean memory ---
@@ -196,34 +347,33 @@ class SubscriberNodeClass(Node):
         for k in to_delete:
             del self.memory[k]
 
-        # --- MarkerArray for RViz ---
+        # --- RViz markers in pickup_frame ---
         marker_array = MarkerArray()
-        stamp = self.get_clock().now().to_msg()
 
         for c in self.memory.values():
+            if c.pickup_x is None or c.pickup_quat is None:
+                continue
+
             marker = Marker()
-            marker.header.frame_id = "arducam_optical_frame"
+            marker.header.frame_id = self.pickup_frame_name
             marker.header.stamp = stamp
-
-            # Unique marker identity in RViz is (ns, id)
-            marker.ns = f"aruco_{c.id}"
+            marker.ns = f"block_{c.id}"
             marker.id = int(c.index)
-
             marker.type = Marker.CUBE
             marker.action = Marker.ADD
 
-            marker.pose.position.x = c.x
-            marker.pose.position.y = c.y
-            marker.pose.position.z = c.z
+            marker.pose.position.x = c.pickup_x
+            marker.pose.position.y = c.pickup_y
+            marker.pose.position.z = c.pickup_z
 
-            marker.pose.orientation.x = c.quat[0]
-            marker.pose.orientation.y = c.quat[1]
-            marker.pose.orientation.z = c.quat[2]
-            marker.pose.orientation.w = c.quat[3]
+            marker.pose.orientation.x = c.pickup_quat[0]
+            marker.pose.orientation.y = c.pickup_quat[1]
+            marker.pose.orientation.z = c.pickup_quat[2]
+            marker.pose.orientation.w = c.pickup_quat[3]
 
-            marker.scale.x = 0.05
-            marker.scale.y = 0.05
-            marker.scale.z = 0.05
+            marker.scale.x = self.block_size
+            marker.scale.y = self.block_size
+            marker.scale.z = self.block_size
 
             if c.color == "jaune":
                 marker.color.r = 1.0
@@ -237,8 +387,8 @@ class SubscriberNodeClass(Node):
                 marker.color.r = 1.0
                 marker.color.g = 1.0
                 marker.color.b = 1.0
-            marker.color.a = 0.9
 
+            marker.color.a = 0.9
             marker_array.markers.append(marker)
 
         self.marker_pub.publish(marker_array)
