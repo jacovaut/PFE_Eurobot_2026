@@ -12,6 +12,8 @@ import numpy as np
 import json
 import time
 import tf_transformations
+import rclpy.duration  # add this import
+
 
 from tf2_ros import TransformBroadcaster, Buffer, TransformListener
 
@@ -291,10 +293,22 @@ class LocalCameraPerceptionNode(Node):
 
     def _compute_and_publish_clean_block_tf(self, track, stamp):
         try:
+            # wait for TF to exist (pickup_frame -> arducam_optical_frame)
+            if not self.tf_buffer.can_transform(
+                self.pickup_frame_name,
+                "arducam_optical_frame",
+                rclpy.time.Time(),
+                timeout=rclpy.duration.Duration(seconds=0.2),
+            ):
+                self.get_logger().warn(
+                    "TF not ready: pickup_frame -> arducam_optical_frame (skipping block TF)"
+                )
+                return
             tf_cam_to_pickup = self.tf_buffer.lookup_transform(
                 self.pickup_frame_name,
                 "arducam_optical_frame",
-                rclpy.time.Time()
+                rclpy.time.Time(),
+                timeout=rclpy.duration.Duration(seconds=0.2),
             )
 
             t = tf_cam_to_pickup.transform.translation
@@ -348,7 +362,9 @@ class LocalCameraPerceptionNode(Node):
             self.tf_broadcaster.sendTransform(tb)
             self.get_logger().info(f"Published block TF: block_{track.id}_{track.index}")
         except Exception as e:
-            self.get_logger().error(f"Failed to publish block TF for block_{track.id}_{track.index}: {e}")
+            self.get_logger().error(
+                f"Failed to publish block TF for block_{track.id}_{track.index}: {e}"
+            )
 
     # -------------------------------------------------------------------------
     # Main camera loop
