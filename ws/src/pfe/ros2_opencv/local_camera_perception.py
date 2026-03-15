@@ -462,6 +462,21 @@ class LocalCameraPerceptionNode(Node):
                     0.03
                 )
 
+                # Draw marker id:index on the image
+                label = f"{mid}:{track.index}"
+                corner = corners[i][0][0]  # top-left corner of the marker
+                pos = (int(corner[0]), int(corner[1]) - 10)  # slightly above marker
+                cv2.putText(
+                    frame,
+                    label,
+                    pos,
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.6,
+                    (0, 255, 0),
+                    2,
+                    cv2.LINE_AA,
+                )
+
         # Clean memory
         to_delete = [k for k, c in self.memory.items() if current_time - c.last_seen > self.memory_timeout]
         for k in to_delete:
