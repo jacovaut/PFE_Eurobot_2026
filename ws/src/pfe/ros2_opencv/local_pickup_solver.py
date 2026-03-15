@@ -655,9 +655,13 @@ class CupBlockAligner(Node):
             self.print_block_stability()
             blocks = self.get_smoothed_blocks(raw_blocks)
 
-            self.get_logger().info(
+            self.get_logger().debug(
                 f"debug | recent_block_frames={len(recent_frames)} | valid_blocks={len(blocks)}"
             )
+
+            if self.locked:
+                # Skip debug output while locked to reduce log spam
+                return
 
             if len(blocks) == 0:
                 self.get_logger().info("waiting for fresh blocks...")
