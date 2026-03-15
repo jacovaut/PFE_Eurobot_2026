@@ -61,8 +61,8 @@ class CupBlockAligner(Node):
         self.yaw_step_deg = 1.0  # Reduced from 3.0 for finer resolution
 
         # ---------- Weighted scoring ----------
-        self.w_matches = 1000.0
-        self.w_color = 120.0
+        self.w_matches = 500.0
+        self.w_color = 1000.0
         self.w_error = 1.0
         self.w_yaw = 0.3
         self.w_translation = 80.0
