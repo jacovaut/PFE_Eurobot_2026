@@ -11,6 +11,8 @@ from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
 
 from tf2_ros import Buffer, TransformListener
 from tf2_msgs.msg import TFMessage
+from std_msgs.msg import String
+import json
 
 
 @dataclass
@@ -109,6 +111,17 @@ class CupBlockAligner(Node):
         self.timer = self.create_timer(0.2, self.tick)
 
         self.get_logger().info("✅ CupBlockAligner using block_* frames.")
+
+        self.pickup_goal_pub = self.create_publisher(String, "pickup_goal", 10)
+        self.block_queue_pub = self.create_publisher(String, "block_queue_cmd", 10)
+        self.pickup_state_sub = self.create_subscription(
+            String, "pickup_state", self.pickup_state_cb, 10
+        )
+
+        self.locked = False
+        self.locked_signature = None
+        self.pickup_state = "idle"  # idle / moving / arrived / picking / done
+        self.pickup_timer = None
 
     def tf_cb(self, msg: TFMessage):
         now_sec = self.get_clock().now().nanoseconds * 1e-9
@@ -413,6 +426,8 @@ class CupBlockAligner(Node):
         )
 
         return matches, weighted_score, assignments, avg_err_mm, color_score
+    
+    
 
     def compute_best_alignment(
         self,
@@ -555,6 +570,56 @@ class CupBlockAligner(Node):
                 return False
 
         return True
+    
+    def pickup_state_cb(self, msg: String):
+        s = msg.data.strip().lower()
+        if s == "arrived":
+            self.get_logger().info("pickup_state: arrived")
+            self.pickup_state = "arrived"
+        elif s == "done":
+            self.get_logger().info("pickup_state: done")
+            self.pickup_state = "done"
+            self.locked = False
+        elif s == "reset":
+            self.get_logger().info("pickup_state: reset")
+            self.locked = False
+            self.pickup_state = "idle"
+
+    
+    def publish_block_queue(self, assignments: List[Tuple[str, str, float]]):
+        # Cup order: 3 first, then 2, 1, 0 (as you described)
+        ordered = sorted(
+            assignments,
+            key=lambda a: int(a[0].split("_")[1]),
+            reverse=True,
+        )
+        cmd_parts = []
+        for cup, blk, _ in ordered:
+            color = "Y" if self.get_block_color(blk) == "yellow" else "B"
+            idx = cup.split("_")[1]
+            cmd_parts.append(f"C{idx}:{color}")
+        msg = String()
+        msg.data = ",".join(cmd_parts)
+        self.block_queue_pub.publish(msg)
+
+
+    def publish_pickup_goal(self, dx, dy, yaw_deg, assignments):
+        plan = {
+            "dx": dx,
+            "dy": dy,
+            "yaw_deg": yaw_deg,
+            "assignments": [
+                {
+                    "cup": cup,
+                    "block": blk,
+                    "color": self.get_block_color(blk)
+                }
+                for cup, blk, _ in assignments
+            ],
+        }
+        msg = String()
+        msg.data = json.dumps(plan)
+        self.pickup_goal_pub.publish(msg)
 
     def tick(self):
         try:
@@ -650,14 +715,20 @@ class CupBlockAligner(Node):
                 return
 
             assignment_signature = tuple(sorted([blk for _, blk, _ in best_assignments]))
-            if self.prev_assignment_signature is None:
-                self.prev_assignment_signature = assignment_signature
-            elif assignment_signature != self.prev_assignment_signature:
-                self.stable_cycles = 0
-                self.prev_solution = None
-                self.prev_assignment_signature = assignment_signature
 
-            self.update_stability(best_dx, best_dy, best_yaw)
+            # when ready and not currently locked, send a single pickup command
+            if ready and not self.locked:
+                self.locked = True
+                self.locked_signature = assignment_signature
+                self.pickup_state = "moving"
+                self.publish_block_queue(best_assignments)
+                self.publish_pickup_goal(best_dx, best_dy, yaw_deg, best_assignments)
+                self.get_logger().info("PUBLISHED pickup goal + queue, locking until done")
+
+            # while locked, do not change solution unless it explicitly unlocks
+            if self.locked:
+                # clear debug output but keep solver running (optional)
+                return
 
             ready = self.is_pickup_ready(best_matches, best_assignments)
             yaw_deg = math.degrees(best_yaw)
