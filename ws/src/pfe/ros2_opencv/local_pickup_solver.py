@@ -65,7 +65,7 @@ class CupBlockAligner(Node):
 
         # ---------- Weighted scoring ----------
         self.w_matches = 500.0
-        self.w_color = 1000.0
+        self.w_color = 10000.0
         self.w_error = 1.0
         self.w_yaw = 0.3
         self.w_translation = 80.0
@@ -94,7 +94,7 @@ class CupBlockAligner(Node):
         self.motion_reset_threshold_m = 0.03
 
         # ---------- Debug ----------
-        self.debug_candidates = False
+        self.debug_candidates = True
         self.debug_top_k = 10
         self.debug_tf_children = False
         self.debug_geometry = False
