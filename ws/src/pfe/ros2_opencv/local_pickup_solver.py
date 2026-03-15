@@ -521,7 +521,7 @@ class CupBlockAligner(Node):
             four_match_candidates = [c for c in all_candidates if c["matches"] == 4]
             self.get_logger().info(f"debug | num_4_match_candidates={len(four_match_candidates)}")
             self.get_logger().info("===== TOP CANDIDATES =====")
-            for i, cand in enumerate(all_candidates[:self.debug_top_k]):
+            for i, cand in enumerate(all_candidates):  # Remove [:self.debug_top_k] to show all
                 assign_str = ", ".join(
                     [f"{cup}->{blk} ({dist*1000:.1f} mm)" for cup, blk, dist in cand["assignments"]]
                 )
