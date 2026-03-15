@@ -1,257 +1,602 @@
-[INFO] [1773598371.054728352] [cup_block_aligner]: No worthwhile pickup found. best_matches=0
-[INFO] [1773598371.167978591] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773598371.170794346] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773598371.388137313] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773598371.391008436] [cup_block_aligner]: debug | matches=4 | score=4691.4 | color_score=1.60 | avg_err=8.0 mm
-[INFO] [1773598371.396048170] [cup_block_aligner]: BEST ALIGN | dx=-0.092 m, dy=+0.019 m, dyaw=-8.0 deg | matches=4 | score=4691.4 | color_score=1.60 | avg_err=8.0 mm | stable=1/5 | pickup_ready=False | solver_time=229.11 ms | cup_0->block_36_0 (13.6 mm), cup_1->block_47_0 (7.3 mm), cup_2->block_47_2 (0.0 mm), cup_3->block_47_3 (10.9 mm)
-[INFO] [1773598371.407580669] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773598371.411993399] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773598371.627191902] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773598371.631605240] [cup_block_aligner]: debug | matches=4 | score=4691.4 | color_score=1.60 | avg_err=8.0 mm
-[INFO] [1773598371.635647128] [cup_block_aligner]: BEST ALIGN | dx=-0.092 m, dy=+0.019 m, dyaw=-8.0 deg | matches=4 | score=4691.4 | color_score=1.60 | avg_err=8.0 mm | stable=2/5 | pickup_ready=False | solver_time=233.01 ms | cup_0->block_36_0 (13.6 mm), cup_1->block_47_0 (7.3 mm), cup_2->block_47_2 (0.0 mm), cup_3->block_47_3 (10.9 mm)
-[INFO] [1773598371.643168360] [cup_block_aligner]: debug | recent_block_frames=1 | valid_blocks=1
-[INFO] [1773598371.645896500] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773598371.663868688] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773598371.666725416] [cup_block_aligner]: debug | matches=0 | score=-1000000000000000000.0 | color_score=0.00 | avg_err=1000000000.0 mm
-[INFO] [1773598371.669551239] [cup_block_aligner]: No worthwhile pickup found. best_matches=0
-[INFO] [1773598371.772063211] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773598371.774831332] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773598371.987554926] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773598371.990482387] [cup_block_aligner]: debug | matches=4 | score=4691.4 | color_score=1.60 | avg_err=8.1 mm
-[INFO] [1773598371.994039123] [cup_block_aligner]: BEST ALIGN | dx=-0.092 m, dy=+0.019 m, dyaw=-8.0 deg | matches=4 | score=4691.4 | color_score=1.60 | avg_err=8.1 mm | stable=1/5 | pickup_ready=False | solver_time=227.94 ms | cup_0->block_36_0 (13.9 mm), cup_1->block_47_0 (7.8 mm), cup_2->block_47_2 (0.0 mm), cup_3->block_47_3 (10.7 mm)
-[INFO] [1773598372.004393519] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773598372.007005100] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773598372.220830917] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773598372.223700372] [cup_block_aligner]: debug | matches=4 | score=4691.4 | color_score=1.60 | avg_err=8.1 mm
-[INFO] [1773598372.227322375] [cup_block_aligner]: BEST ALIGN | dx=-0.092 m, dy=+0.019 m, dyaw=-8.0 deg | matches=4 | score=4691.4 | color_score=1.60 | avg_err=8.1 mm | stable=2/5 | pickup_ready=False | solver_time=225.47 ms | cup_0->block_36_0 (13.9 mm), cup_1->block_47_0 (7.8 mm), cup_2->block_47_2 (0.0 mm), cup_3->block_47_3 (10.7 mm)
-[INFO] [1773598372.233463386] [cup_block_aligner]: debug | recent_block_frames=0 | valid_blocks=0
-[INFO] [1773598372.235621116] [cup_block_aligner]: waiting for fresh blocks...
-[INFO] [1773598372.370948932] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773598372.373697404] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773598372.585773609] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773598372.588553914] [cup_block_aligner]: debug | matches=4 | score=4691.6 | color_score=1.60 | avg_err=8.0 mm
-[INFO] [1773598372.592033013] [cup_block_aligner]: BEST ALIGN | dx=-0.092 m, dy=+0.019 m, dyaw=-8.0 deg | matches=4 | score=4691.6 | color_score=1.60 | avg_err=8.0 mm | stable=1/5 | pickup_ready=False | solver_time=223.87 ms | cup_0->block_36_0 (13.6 mm), cup_1->block_47_0 (7.5 mm), cup_2->block_47_2 (0.0 mm), cup_3->block_47_3 (10.9 mm)
-[INFO] [1773598372.601221367] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773598372.603972772] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773598372.824023631] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773598372.827578591] [cup_block_aligner]: debug | matches=4 | score=4691.6 | color_score=1.60 | avg_err=8.0 mm
-[INFO] [1773598372.831477286] [cup_block_aligner]: BEST ALIGN | dx=-0.092 m, dy=+0.019 m, dyaw=-8.0 deg | matches=4 | score=4691.6 | color_score=1.60 | avg_err=8.0 mm | stable=2/5 | pickup_ready=False | solver_time=232.94 ms | cup_0->block_36_0 (13.6 mm), cup_1->block_47_0 (7.5 mm), cup_2->block_47_2 (0.0 mm), cup_3->block_47_3 (10.9 mm)
-[INFO] [1773598372.838869249] [cup_block_aligner]: debug | recent_block_frames=1 | valid_blocks=1
-[INFO] [1773598372.842041010] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773598372.859623850] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773598372.862700961] [cup_block_aligner]: debug | matches=0 | score=-1000000000000000000.0 | color_score=0.00 | avg_err=1000000000.0 mm
-[INFO] [1773598372.865610634] [cup_block_aligner]: No worthwhile pickup found. best_matches=0
-[INFO] [1773598372.969188305] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773598372.971880493] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773598373.187618918] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773598373.190669497] [cup_block_aligner]: debug | matches=4 | score=4691.8 | color_score=1.60 | avg_err=8.0 mm
-[INFO] [1773598373.194405099] [cup_block_aligner]: BEST ALIGN | dx=-0.092 m, dy=+0.019 m, dyaw=-8.0 deg | matches=4 | score=4691.8 | color_score=1.60 | avg_err=8.0 mm | stable=1/5 | pickup_ready=False | solver_time=227.76 ms | cup_0->block_36_0 (13.7 mm), cup_1->block_47_0 (7.6 mm), cup_2->block_47_2 (0.0 mm), cup_3->block_47_3 (10.9 mm)
-[INFO] [1773598373.203136776] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773598373.205842531] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773598373.447682925] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773598373.450021744] [cup_block_aligner]: debug | matches=4 | score=4691.8 | color_score=1.60 | avg_err=8.0 mm
-[INFO] [1773598373.465692601] [cup_block_aligner]: BEST ALIGN | dx=-0.092 m, dy=+0.019 m, dyaw=-8.0 deg | matches=4 | score=4691.8 | color_score=1.60 | avg_err=8.0 mm | stable=2/5 | pickup_ready=False | solver_time=256.72 ms | cup_0->block_36_0 (13.7 mm), cup_1->block_47_0 (7.6 mm), cup_2->block_47_2 (0.0 mm), cup_3->block_47_3 (10.9 mm)
-[INFO] [1773598373.474838416] [cup_block_aligner]: debug | recent_block_frames=0 | valid_blocks=0
-[INFO] [1773598373.478129238] [cup_block_aligner]: waiting for fresh blocks...
-[INFO] [1773598373.587135740] [cup_block_aligner]: debug | recent_block_frames=5 | valid_blocks=5
-[INFO] [1773598373.601417063] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773598373.788865172] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773598373.791560879] [cup_block_aligner]: debug | matches=2 | score=3633.6 | color_score=2.00 | avg_err=4.6 mm
-[INFO] [1773598373.795113763] [cup_block_aligner]: BEST ALIGN | dx=-0.003 m, dy=+0.135 m, dyaw=+3.0 deg | matches=2 | score=3633.6 | color_score=2.00 | avg_err=4.6 mm | stable=1/5 | pickup_ready=False | solver_time=222.40 ms | cup_0->block_36_2 (9.3 mm), cup_1->block_36_3 (0.0 mm)
-[INFO] [1773598373.802568168] [cup_block_aligner]: debug | recent_block_frames=3 | valid_blocks=3
-[INFO] [1773598373.805231663] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773598373.908719223] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773598373.934126219] [cup_block_aligner]: debug | matches=0 | score=-1000000000000000000.0 | color_score=0.00 | avg_err=1000000000.0 mm
-[INFO] [1773598373.950871693] [cup_block_aligner]: No worthwhile pickup found. best_matches=0
-[INFO] [1773598373.981796432] [cup_block_aligner]: debug | recent_block_frames=2 | valid_blocks=2
-[INFO] [1773598373.985421033] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773598374.097967890] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773598374.107816975] [cup_block_aligner]: debug | matches=0 | score=-1000000000000000000.0 | color_score=0.00 | avg_err=1000000000.0 mm
-[INFO] [1773598374.123142030] [cup_block_aligner]: No worthwhile pickup found. best_matches=0
-[INFO] [1773598374.173441625] [cup_block_aligner]: debug | recent_block_frames=3 | valid_blocks=3
-[INFO] [1773598374.178284243] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773598374.335130706] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773598374.340822905] [cup_block_aligner]: debug | matches=0 | score=-1000000000000000000.0 | color_score=0.00 | avg_err=1000000000.0 mm
-[INFO] [1773598374.346632384] [cup_block_aligner]: No worthwhile pickup found. best_matches=0
-[INFO] [1773598374.368617085] [cup_block_aligner]: debug | recent_block_frames=3 | valid_blocks=3
-[INFO] [1773598374.371262051] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773598374.423551552] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773598374.427376910] [cup_block_aligner]: debug | matches=0 | score=-1000000000000000000.0 | color_score=0.00 | avg_err=1000000000.0 mm
-[INFO] [1773598374.431961498] [cup_block_aligner]: No worthwhile pickup found. best_matches=0
-[INFO] [1773598374.571695767] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773598374.574976094] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773598374.949027175] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773598374.953328399] [cup_block_aligner]: debug | matches=4 | score=4691.8 | color_score=1.60 | avg_err=7.9 mm
-[INFO] [1773598374.962656289] [cup_block_aligner]: BEST ALIGN | dx=-0.092 m, dy=+0.019 m, dyaw=-8.0 deg | matches=4 | score=4691.8 | color_score=1.60 | avg_err=7.9 mm | stable=1/5 | pickup_ready=False | solver_time=389.94 ms | cup_0->block_36_0 (13.5 mm), cup_1->block_47_0 (7.0 mm), cup_2->block_47_2 (0.0 mm), cup_3->block_47_3 (11.2 mm)
-[INFO] [1773598374.978280847] [cup_block_aligner]: debug | recent_block_frames=1 | valid_blocks=1
-[INFO] [1773598374.982076157] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773598375.046937211] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773598375.050509338] [cup_block_aligner]: debug | matches=0 | score=-1000000000000000000.0 | color_score=0.00 | avg_err=1000000000.0 mm
-[INFO] [1773598375.064515013] [cup_block_aligner]: No worthwhile pickup found. best_matches=0
-[INFO] [1773598375.173939851] [cup_block_aligner]: debug | recent_block_frames=3 | valid_blocks=3
-[INFO] [1773598375.188113402] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773598375.272877331] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773598375.276565426] [cup_block_aligner]: debug | matches=0 | score=-1000000000000000000.0 | color_score=0.00 | avg_err=1000000000.0 mm
-[INFO] [1773598375.280331361] [cup_block_aligner]: No worthwhile pickup found. best_matches=0
-[INFO] [1773598375.368612495] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773598375.371339918] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773598375.592703289] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773598375.595800602] [cup_block_aligner]: debug | matches=4 | score=4690.8 | color_score=1.60 | avg_err=7.9 mm
-[INFO] [1773598375.601582191] [cup_block_aligner]: BEST ALIGN | dx=-0.092 m, dy=+0.019 m, dyaw=-8.0 deg | matches=4 | score=4690.8 | color_score=1.60 | avg_err=7.9 mm | stable=1/5 | pickup_ready=False | solver_time=234.22 ms | cup_0->block_36_0 (13.9 mm), cup_1->block_47_0 (7.1 mm), cup_2->block_47_2 (0.0 mm), cup_3->block_47_3 (10.7 mm)
-[INFO] [1773598375.610253339] [cup_block_aligner]: debug | recent_block_frames=7 | valid_blocks=7
-[INFO] [1773598375.613539689] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773598375.803578767] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773598375.807126137] [cup_block_aligner]: debug | matches=4 | score=4690.7 | color_score=1.60 | avg_err=8.0 mm
-[INFO] [1773598375.810901700] [cup_block_aligner]: BEST ALIGN | dx=-0.093 m, dy=+0.019 m, dyaw=-8.0 deg | matches=4 | score=4690.7 | color_score=1.60 | avg_err=8.0 mm | stable=2/5 | pickup_ready=False | solver_time=203.06 ms | cup_0->block_36_0 (14.1 mm), cup_1->block_47_0 (7.2 mm), cup_2->block_47_2 (0.0 mm), cup_3->block_47_3 (10.6 mm)
-[INFO] [1773598375.817438743] [cup_block_aligner]: debug | recent_block_frames=1 | valid_blocks=1
-[INFO] [1773598375.820206413] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773598375.839469981] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773598375.842555034] [cup_block_aligner]: debug | matches=0 | score=-1000000000000000000.0 | color_score=0.00 | avg_err=1000000000.0 mm
-[INFO] [1773598375.845596387] [cup_block_aligner]: No worthwhile pickup found. best_matches=0
-[INFO] [1773598375.973853336] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773598375.976876649] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773598376.193091678] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773598376.195796578] [cup_block_aligner]: debug | matches=4 | score=4690.1 | color_score=1.60 | avg_err=7.9 mm
-[INFO] [1773598376.199544506] [cup_block_aligner]: BEST ALIGN | dx=-0.093 m, dy=+0.019 m, dyaw=-8.0 deg | matches=4 | score=4690.1 | color_score=1.60 | avg_err=7.9 mm | stable=1/5 | pickup_ready=False | solver_time=232.05 ms | cup_0->block_36_0 (14.3 mm), cup_1->block_47_0 (7.1 mm), cup_2->block_47_2 (0.0 mm), cup_3->block_47_3 (10.3 mm)
-[INFO] [1773598376.208207048] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773598376.210767923] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773598376.434569418] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773598376.437467060] [cup_block_aligner]: debug | matches=4 | score=4690.1 | color_score=1.60 | avg_err=7.9 mm
-[INFO] [1773598376.441202509] [cup_block_aligner]: BEST ALIGN | dx=-0.093 m, dy=+0.019 m, dyaw=-8.0 deg | matches=4 | score=4690.1 | color_score=1.60 | avg_err=7.9 mm | stable=2/5 | pickup_ready=False | solver_time=235.48 ms | cup_0->block_36_0 (14.3 mm), cup_1->block_47_0 (7.1 mm), cup_2->block_47_2 (0.0 mm), cup_3->block_47_3 (10.3 mm)
-[INFO] [1773598376.447360737] [cup_block_aligner]: debug | recent_block_frames=0 | valid_blocks=0
-[INFO] [1773598376.449666206] [cup_block_aligner]: waiting for fresh blocks...
-[INFO] [1773598376.570663835] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773598376.573462931] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773598376.789026606] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773598376.792189744] [cup_block_aligner]: debug | matches=4 | score=4690.4 | color_score=1.60 | avg_err=7.9 mm
-[INFO] [1773598376.795709800] [cup_block_aligner]: BEST ALIGN | dx=-0.092 m, dy=+0.019 m, dyaw=-8.0 deg | matches=4 | score=4690.4 | color_score=1.60 | avg_err=7.9 mm | stable=1/5 | pickup_ready=False | solver_time=227.72 ms | cup_0->block_36_0 (14.0 mm), cup_1->block_47_0 (6.7 mm), cup_2->block_47_2 (0.0 mm), cup_3->block_47_3 (10.8 mm)
-[INFO] [1773598376.804710299] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773598376.807187253] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773598377.031137744] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773598377.034311154] [cup_block_aligner]: debug | matches=4 | score=4690.4 | color_score=1.60 | avg_err=7.9 mm
-[INFO] [1773598377.038193026] [cup_block_aligner]: BEST ALIGN | dx=-0.092 m, dy=+0.019 m, dyaw=-8.0 deg | matches=4 | score=4690.4 | color_score=1.60 | avg_err=7.9 mm | stable=2/5 | pickup_ready=False | solver_time=236.00 ms | cup_0->block_36_0 (14.0 mm), cup_1->block_47_0 (6.7 mm), cup_2->block_47_2 (0.0 mm), cup_3->block_47_3 (10.8 mm)
-[INFO] [1773598377.045191836] [cup_block_aligner]: debug | recent_block_frames=1 | valid_blocks=1
-[INFO] [1773598377.047776103] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773598377.066018518] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773598377.069898966] [cup_block_aligner]: debug | matches=0 | score=-1000000000000000000.0 | color_score=0.00 | avg_err=1000000000.0 mm
-[INFO] [1773598377.072946327] [cup_block_aligner]: No worthwhile pickup found. best_matches=0
-[INFO] [1773598377.169469216] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773598377.172262361] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773598377.379420520] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773598377.382358379] [cup_block_aligner]: debug | matches=4 | score=4690.7 | color_score=1.60 | avg_err=8.0 mm
-[INFO] [1773598377.386210991] [cup_block_aligner]: BEST ALIGN | dx=-0.092 m, dy=+0.019 m, dyaw=-8.0 deg | matches=4 | score=4690.7 | color_score=1.60 | avg_err=8.0 mm | stable=1/5 | pickup_ready=False | solver_time=219.34 ms | cup_0->block_36_0 (14.0 mm), cup_1->block_47_0 (7.1 mm), cup_2->block_47_2 (0.0 mm), cup_3->block_47_3 (10.8 mm)
-[INFO] [1773598377.396130712] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773598377.398695846] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773598377.608919749] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773598377.611618656] [cup_block_aligner]: debug | matches=4 | score=4690.7 | color_score=1.60 | avg_err=8.0 mm
-[INFO] [1773598377.615207560] [cup_block_aligner]: BEST ALIGN | dx=-0.092 m, dy=+0.019 m, dyaw=-8.0 deg | matches=4 | score=4690.7 | color_score=1.60 | avg_err=8.0 mm | stable=2/5 | pickup_ready=False | solver_time=221.79 ms | cup_0->block_36_0 (14.0 mm), cup_1->block_47_0 (7.1 mm), cup_2->block_47_2 (0.0 mm), cup_3->block_47_3 (10.8 mm)
-[INFO] [1773598377.623552298] [cup_block_aligner]: debug | recent_block_frames=1 | valid_blocks=1
-[INFO] [1773598377.626327951] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773598377.647214901] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773598377.650188859] [cup_block_aligner]: debug | matches=0 | score=-1000000000000000000.0 | color_score=0.00 | avg_err=1000000000.0 mm
-[INFO] [1773598377.652987218] [cup_block_aligner]: No worthwhile pickup found. best_matches=0
-[INFO] [1773598377.770950975] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773598377.773694946] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773598377.984751988] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773598377.987541526] [cup_block_aligner]: debug | matches=4 | score=4690.8 | color_score=1.60 | avg_err=8.0 mm
-[INFO] [1773598377.991132357] [cup_block_aligner]: BEST ALIGN | dx=-0.092 m, dy=+0.019 m, dyaw=-8.0 deg | matches=4 | score=4690.8 | color_score=1.60 | avg_err=8.0 mm | stable=1/5 | pickup_ready=False | solver_time=222.81 ms | cup_0->block_36_0 (14.0 mm), cup_1->block_47_0 (7.3 mm), cup_2->block_47_2 (0.0 mm), cup_3->block_47_3 (10.7 mm)
-[INFO] [1773598377.999856819] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773598378.002503940] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773598378.219487624] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773598378.222342202] [cup_block_aligner]: debug | matches=4 | score=4690.8 | color_score=1.60 | avg_err=8.0 mm
-[INFO] [1773598378.226064184] [cup_block_aligner]: BEST ALIGN | dx=-0.092 m, dy=+0.019 m, dyaw=-8.0 deg | matches=4 | score=4690.8 | color_score=1.60 | avg_err=8.0 mm | stable=2/5 | pickup_ready=False | solver_time=228.70 ms | cup_0->block_36_0 (14.1 mm), cup_1->block_47_0 (7.4 mm), cup_2->block_47_2 (0.0 mm), cup_3->block_47_3 (10.7 mm)
-[INFO] [1773598378.232747709] [cup_block_aligner]: debug | recent_block_frames=0 | valid_blocks=0
-[INFO] [1773598378.234911930] [cup_block_aligner]: waiting for fresh blocks...
-[INFO] [1773598378.370719722] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773598378.374114495] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773598378.594834655] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773598378.598089621] [cup_block_aligner]: debug | matches=4 | score=4690.6 | color_score=1.60 | avg_err=8.2 mm
-[INFO] [1773598378.602081771] [cup_block_aligner]: BEST ALIGN | dx=-0.093 m, dy=+0.019 m, dyaw=-8.0 deg | matches=4 | score=4690.6 | color_score=1.60 | avg_err=8.2 mm | stable=1/5 | pickup_ready=False | solver_time=234.60 ms | cup_0->block_36_0 (14.3 mm), cup_1->block_47_0 (8.0 mm), cup_2->block_47_2 (0.0 mm), cup_3->block_47_3 (10.3 mm)
-[INFO] [1773598378.610758730] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773598378.613459435] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773598378.825062133] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773598378.828049059] [cup_block_aligner]: debug | matches=4 | score=4690.6 | color_score=1.60 | avg_err=8.2 mm
-[INFO] [1773598378.831400272] [cup_block_aligner]: BEST ALIGN | dx=-0.093 m, dy=+0.019 m, dyaw=-8.0 deg | matches=4 | score=4690.6 | color_score=1.60 | avg_err=8.2 mm | stable=2/5 | pickup_ready=False | solver_time=223.43 ms | cup_0->block_36_0 (14.3 mm), cup_1->block_47_0 (8.0 mm), cup_2->block_47_2 (0.0 mm), cup_3->block_47_3 (10.3 mm)
-[INFO] [1773598378.838133809] [cup_block_aligner]: debug | recent_block_frames=1 | valid_blocks=1
-[INFO] [1773598378.840952720] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773598378.858184107] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773598378.861065339] [cup_block_aligner]: debug | matches=0 | score=-1000000000000000000.0 | color_score=0.00 | avg_err=1000000000.0 mm
-[INFO] [1773598378.864060413] [cup_block_aligner]: No worthwhile pickup found. best_matches=0
-[INFO] [1773598378.969607543] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773598378.972569827] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773598379.245224382] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773598379.248242800] [cup_block_aligner]: debug | matches=4 | score=4690.2 | color_score=1.60 | avg_err=8.2 mm
-[INFO] [1773598379.252018697] [cup_block_aligner]: BEST ALIGN | dx=-0.093 m, dy=+0.019 m, dyaw=-8.0 deg | matches=4 | score=4690.2 | color_score=1.60 | avg_err=8.2 mm | stable=1/5 | pickup_ready=False | solver_time=285.44 ms | cup_0->block_36_0 (14.6 mm), cup_1->block_47_0 (8.0 mm), cup_2->block_47_2 (0.0 mm), cup_3->block_47_3 (10.2 mm)
-[INFO] [1773598379.258509387] [cup_block_aligner]: debug | recent_block_frames=0 | valid_blocks=0
-[INFO] [1773598379.262243498] [cup_block_aligner]: waiting for fresh blocks...
-[INFO] [1773598379.369249943] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773598379.371886018] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773598379.583372319] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773598379.586191671] [cup_block_aligner]: debug | matches=4 | score=4690.0 | color_score=1.60 | avg_err=8.3 mm
-[INFO] [1773598379.589716723] [cup_block_aligner]: BEST ALIGN | dx=-0.093 m, dy=+0.019 m, dyaw=-8.0 deg | matches=4 | score=4690.0 | color_score=1.60 | avg_err=8.3 mm | stable=1/5 | pickup_ready=False | solver_time=223.08 ms | cup_0->block_36_0 (14.8 mm), cup_1->block_47_0 (8.2 mm), cup_2->block_47_2 (0.0 mm), cup_3->block_47_3 (10.1 mm)
-[INFO] [1773598379.597903977] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773598379.600584012] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773598379.823572877] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773598379.826639840] [cup_block_aligner]: debug | matches=4 | score=4690.0 | color_score=1.60 | avg_err=8.3 mm
-[INFO] [1773598379.830396373] [cup_block_aligner]: BEST ALIGN | dx=-0.093 m, dy=+0.019 m, dyaw=-8.0 deg | matches=4 | score=4690.0 | color_score=1.60 | avg_err=8.3 mm | stable=2/5 | pickup_ready=False | solver_time=234.82 ms | cup_0->block_36_0 (14.8 mm), cup_1->block_47_0 (8.2 mm), cup_2->block_47_2 (0.0 mm), cup_3->block_47_3 (10.1 mm)
-[INFO] [1773598379.836721475] [cup_block_aligner]: debug | recent_block_frames=0 | valid_blocks=0
-[INFO] [1773598379.838894108] [cup_block_aligner]: waiting for fresh blocks...
-[INFO] [1773598379.969114108] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773598379.973017768] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773598380.192292202] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773598380.194970460] [cup_block_aligner]: debug | matches=4 | score=4690.4 | color_score=1.60 | avg_err=8.1 mm
-[INFO] [1773598380.198554430] [cup_block_aligner]: BEST ALIGN | dx=-0.093 m, dy=+0.019 m, dyaw=-8.0 deg | matches=4 | score=4690.4 | color_score=1.60 | avg_err=8.1 mm | stable=1/5 | pickup_ready=False | solver_time=232.47 ms | cup_0->block_36_0 (14.3 mm), cup_1->block_47_0 (7.5 mm), cup_2->block_47_2 (0.0 mm), cup_3->block_47_3 (10.6 mm)
-[INFO] [1773598380.206979005] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773598380.209681205] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773598380.425662511] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773598380.428668845] [cup_block_aligner]: debug | matches=4 | score=4690.4 | color_score=1.60 | avg_err=8.1 mm
-[INFO] [1773598380.432486730] [cup_block_aligner]: BEST ALIGN | dx=-0.093 m, dy=+0.019 m, dyaw=-8.0 deg | matches=4 | score=4690.4 | color_score=1.60 | avg_err=8.1 mm | stable=2/5 | pickup_ready=False | solver_time=227.75 ms | cup_0->block_36_0 (14.3 mm), cup_1->block_47_0 (7.5 mm), cup_2->block_47_2 (0.0 mm), cup_3->block_47_3 (10.6 mm)
-[INFO] [1773598380.440103386] [cup_block_aligner]: debug | recent_block_frames=1 | valid_blocks=1
-[INFO] [1773598380.442691142] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773598380.460569356] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773598380.463444259] [cup_block_aligner]: debug | matches=0 | score=-1000000000000000000.0 | color_score=0.00 | avg_err=1000000000.0 mm
-[INFO] [1773598380.467204816] [cup_block_aligner]: No worthwhile pickup found. best_matches=0
-[INFO] [1773598380.570767410] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773598380.573530655] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773598380.786245917] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773598380.789201550] [cup_block_aligner]: debug | matches=4 | score=4690.7 | color_score=1.60 | avg_err=8.0 mm
-[INFO] [1773598380.792916598] [cup_block_aligner]: BEST ALIGN | dx=-0.092 m, dy=+0.019 m, dyaw=-8.0 deg | matches=4 | score=4690.7 | color_score=1.60 | avg_err=8.0 mm | stable=1/5 | pickup_ready=False | solver_time=224.65 ms | cup_0->block_36_0 (14.1 mm), cup_1->block_47_0 (7.4 mm), cup_2->block_47_2 (0.0 mm), cup_3->block_47_3 (10.7 mm)
-[INFO] [1773598380.802671549] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773598380.805433214] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773598381.014425155] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773598381.017417066] [cup_block_aligner]: debug | matches=4 | score=4690.7 | color_score=1.60 | avg_err=8.0 mm
-[INFO] [1773598381.021001560] [cup_block_aligner]: BEST ALIGN | dx=-0.092 m, dy=+0.019 m, dyaw=-8.0 deg | matches=4 | score=4690.7 | color_score=1.60 | avg_err=8.0 mm | stable=2/5 | pickup_ready=False | solver_time=220.99 ms | cup_0->block_36_0 (14.1 mm), cup_1->block_47_0 (7.4 mm), cup_2->block_47_2 (0.0 mm), cup_3->block_47_3 (10.7 mm)
-[INFO] [1773598381.027513443] [cup_block_aligner]: debug | recent_block_frames=0 | valid_blocks=0
-[INFO] [1773598381.029861785] [cup_block_aligner]: waiting for fresh blocks...
-[INFO] [1773598381.170507263] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773598381.173928604] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773598381.400111800] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773598381.402876984] [cup_block_aligner]: debug | matches=4 | score=4690.4 | color_score=1.60 | avg_err=8.1 mm
-[INFO] [1773598381.406672621] [cup_block_aligner]: BEST ALIGN | dx=-0.093 m, dy=+0.019 m, dyaw=-8.0 deg | matches=4 | score=4690.4 | color_score=1.60 | avg_err=8.1 mm | stable=1/5 | pickup_ready=False | solver_time=240.72 ms | cup_0->block_36_0 (14.2 mm), cup_1->block_47_0 (8.0 mm), cup_2->block_47_2 (0.0 mm), cup_3->block_47_3 (10.3 mm)
-[INFO] [1773598381.416611301] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773598381.419401288] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773598381.634178859] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773598381.636888582] [cup_block_aligner]: debug | matches=4 | score=4690.4 | color_score=1.60 | avg_err=8.1 mm
-[INFO] [1773598381.640474450] [cup_block_aligner]: BEST ALIGN | dx=-0.093 m, dy=+0.019 m, dyaw=-8.0 deg | matches=4 | score=4690.4 | color_score=1.60 | avg_err=8.1 mm | stable=2/5 | pickup_ready=False | solver_time=227.25 ms | cup_0->block_36_0 (14.2 mm), cup_1->block_47_0 (8.0 mm), cup_2->block_47_2 (0.0 mm), cup_3->block_47_3 (10.3 mm)
-[INFO] [1773598381.646795372] [cup_block_aligner]: debug | recent_block_frames=1 | valid_blocks=1
-[INFO] [1773598381.649531190] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773598381.667427906] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773598381.670227720] [cup_block_aligner]: debug | matches=0 | score=-1000000000000000000.0 | color_score=0.00 | avg_err=1000000000.0 mm
-[INFO] [1773598381.673243721] [cup_block_aligner]: No worthwhile pickup found. best_matches=0
-[INFO] [1773598381.770547642] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773598381.773291776] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773598382.004208074] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773598382.007272089] [cup_block_aligner]: debug | matches=4 | score=4690.3 | color_score=1.60 | avg_err=8.1 mm
-[INFO] [1773598382.011199834] [cup_block_aligner]: BEST ALIGN | dx=-0.093 m, dy=+0.019 m, dyaw=-8.0 deg | matches=4 | score=4690.3 | color_score=1.60 | avg_err=8.1 mm | stable=1/5 | pickup_ready=False | solver_time=243.85 ms | cup_0->block_36_0 (14.3 mm), cup_1->block_47_0 (8.1 mm), cup_2->block_47_2 (0.0 mm), cup_3->block_47_3 (10.1 mm)
-[INFO] [1773598382.020359463] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773598382.022861227] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773598382.240670410] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773598382.243527216] [cup_block_aligner]: debug | matches=4 | score=4690.3 | color_score=1.60 | avg_err=8.1 mm
-[INFO] [1773598382.247029932] [cup_block_aligner]: BEST ALIGN | dx=-0.093 m, dy=+0.019 m, dyaw=-8.0 deg | matches=4 | score=4690.3 | color_score=1.60 | avg_err=8.1 mm | stable=2/5 | pickup_ready=False | solver_time=229.50 ms | cup_0->block_36_0 (14.3 mm), cup_1->block_47_0 (8.1 mm), cup_2->block_47_2 (0.0 mm), cup_3->block_47_3 (10.1 mm)
-[INFO] [1773598382.254968493] [cup_block_aligner]: debug | recent_block_frames=1 | valid_blocks=1
-[INFO] [1773598382.258476065] [cup_block_aligner]: debug | entering compute_best_alignment()
-[INFO] [1773598382.278597980] [cup_block_aligner]: debug | compute_best_alignment() returned
-[INFO] [1773598382.281518104] [cup_block_aligner]: debug | matches=0 | score=-1000000000000000000.0 | color_score=0.00 | avg_err=1000000000.0 mm
-[INFO] [1773598382.284667677] [cup_block_aligner]: No worthwhile pickup found. best_matches=0
-[INFO] [1773598382.375138491] [cup_block_aligner]: debug | recent_block_frames=8 | valid_blocks=8
-[INFO] [1773598382.378013848] [cup_block_aligner]: debug | entering compute_best_alignment()
+
+(sklearn-env) pfe@jacov-HP-Beats:~/PFE_Eurobot_2026/ws$ ^C
+(sklearn-env) pfe@jacov-HP-Beats:~/PFE_Eurobot_2026/ws$ colcon build --packages-select pfe
+Starting >>> pfe     
+Finished <<< pfe [7.87s]          
+
+Summary: 1 package finished [8.54s]
+(sklearn-env) pfe@jacov-HP-Beats:~/PFE_Eurobot_2026/ws$ source install/setup.bash 
+(sklearn-env) pfe@jacov-HP-Beats:~/PFE_Eurobot_2026/ws$ ros2 run pfe local_pickup_solver_node 
+[INFO] [1773598966.319124396] [cup_block_aligner]: ✅ CupBlockAligner using block_* frames.
+Traceback (most recent call last):
+  File "/home/pfe/PFE_Eurobot_2026/ws/install/pfe/lib/pfe/local_pickup_solver_node", line 33, in <module>
+    sys.exit(load_entry_point('pfe==0.0.0', 'console_scripts', 'local_pickup_solver_node')())
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pfe/PFE_Eurobot_2026/ws/install/pfe/lib/python3.12/site-packages/ros2_opencv/local_pickup_solver.py", line 770, in main
+    rclpy.spin(node)
+  File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/__init__.py", line 247, in spin
+    executor.spin_once()
+  File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/executors.py", line 923, in spin_once
+    self._spin_once_impl(timeout_sec)
+  File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/executors.py", line 915, in _spin_once_impl
+    raise handler.exception()
+  File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/task.py", line 286, in _execute_coroutine_step
+    result = coro.send(None)
+             ^^^^^^^^^^^^^^^
+  File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/executors.py", line 592, in handler
+    await call_coroutine()
+  File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/executors.py", line 480, in _execute
+    await await_or_execute(sub.callback, *msg_tuple)
+  File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/executors.py", line 115, in await_or_execute
+    return callback(*args)
+           ^^^^^^^^^^^^^^^
+  File "/home/pfe/PFE_Eurobot_2026/ws/install/pfe/lib/python3.12/site-packages/ros2_opencv/local_pickup_solver.py", line 135, in tf_cb
+    self.block_last_seen[child] = now_sec
+    ^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'CupBlockAligner' object has no attribute 'block_last_seen'
+[ros2run]: Process exited with failure 1
+(sklearn-env) pfe@jacov-HP-Beats:~/PFE_Eurobot_2026/ws$ ros2 run pfe local_pickup_solver_node 
+[INFO] [1773598982.459342459] [cup_block_aligner]: ✅ CupBlockAligner using block_* frames.
+[ERROR] [1773598982.541653676] [cup_block_aligner]: tick() crashed: AttributeError("'CupBlockAligner' object has no attribute 'block_last_seen'")
+[ERROR] [1773598982.747708680] [cup_block_aligner]: tick() crashed: AttributeError("'CupBlockAligner' object has no attribute 'block_last_seen'")
+[ERROR] [1773598982.941018181] [cup_block_aligner]: tick() crashed: AttributeError("'CupBlockAligner' object has no attribute 'block_last_seen'")
+[ERROR] [1773598983.140734662] [cup_block_aligner]: tick() crashed: AttributeError("'CupBlockAligner' object has no attribute 'block_last_seen'")
+Traceback (most recent call last):
+  File "/home/pfe/PFE_Eurobot_2026/ws/install/pfe/lib/pfe/local_pickup_solver_node", line 33, in <module>
+    sys.exit(load_entry_point('pfe==0.0.0', 'console_scripts', 'local_pickup_solver_node')())
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pfe/PFE_Eurobot_2026/ws/install/pfe/lib/python3.12/site-packages/ros2_opencv/local_pickup_solver.py", line 770, in main
+    rclpy.spin(node)
+  File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/__init__.py", line 247, in spin
+    executor.spin_once()
+  File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/executors.py", line 923, in spin_once
+    self._spin_once_impl(timeout_sec)
+  File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/executors.py", line 915, in _spin_once_impl
+    raise handler.exception()
+  File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/task.py", line 286, in _execute_coroutine_step
+    result = coro.send(None)
+             ^^^^^^^^^^^^^^^
+  File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/executors.py", line 592, in handler
+    await call_coroutine()
+  File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/executors.py", line 480, in _execute
+    await await_or_execute(sub.callback, *msg_tuple)
+  File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/executors.py", line 115, in await_or_execute
+    return callback(*args)
+           ^^^^^^^^^^^^^^^
+  File "/home/pfe/PFE_Eurobot_2026/ws/install/pfe/lib/python3.12/site-packages/ros2_opencv/local_pickup_solver.py", line 135, in tf_cb
+    self.block_last_seen[child] = now_sec
+    ^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'CupBlockAligner' object has no attribute 'block_last_seen'
+[ros2run]: Process exited with failure 1
+
+
+pfe@jacov-HP-Beats:~/PFE_Eurobot_2026/ws$ ros2 run pfe local_camera_perception_node 
+[ WARN:0@2.567] global ./modules/videoio/src/cap_gstreamer.cpp (1405) open OpenCV | GStreamer warning: Cannot query video position: status=0, value=-1, duration=-1
+[INFO] [1773599065.087544872] [local_camera_perception_node]: ✅ Using HARDCODED onboard camera calibration (1080p)
+[INFO] [1773599065.091025339] [local_camera_perception_node]: Camera matrix:
+[[457.33917579   0.         637.592287  ]
+ [  0.         453.81772548 374.90978642]
+ [  0.           0.           1.        ]]
+[INFO] [1773599065.093774019] [local_camera_perception_node]: Dist coeffs:
+[-0.0241479  -0.01872201  0.00181977 -0.00044101  0.04127062]
+[INFO] [1773599065.096533678] [local_camera_perception_node]: ✅ Merged camera + ArUco perception node started.
+[INFO] [1773599065.309798550] [local_camera_perception_node]: Detected 9 ArUco markers: [36 47 47 36 47 36 47 36 22]
+[WARN] [1773599065.530742740] [local_camera_perception_node]: TF not ready: base_link -> arducam_optical_frame (skipping block TF)
+[WARN] [1773599065.750426243] [local_camera_perception_node]: TF not ready: base_link -> arducam_optical_frame (skipping block TF)
+[WARN] [1773599065.971446827] [local_camera_perception_node]: TF not ready: base_link -> arducam_optical_frame (skipping block TF)
+[WARN] [1773599066.186889120] [local_camera_perception_node]: TF not ready: base_link -> arducam_optical_frame (skipping block TF)
+[WARN] [1773599066.400844052] [local_camera_perception_node]: TF not ready: base_link -> arducam_optical_frame (skipping block TF)
+[WARN] [1773599066.615727464] [local_camera_perception_node]: TF not ready: base_link -> arducam_optical_frame (skipping block TF)
+[WARN] [1773599066.826115167] [local_camera_perception_node]: TF not ready: base_link -> arducam_optical_frame (skipping block TF)
+[WARN] [1773599067.039968713] [local_camera_perception_node]: TF not ready: base_link -> arducam_optical_frame (skipping block TF)
+QSocketNotifier: Can only be used with threads started with QThread
+[INFO] [1773599068.043044773] [local_camera_perception_node]: Detected 9 ArUco markers: [36 47 47 36 47 36 47 36 22]
+[WARN] [1773599068.263177432] [local_camera_perception_node]: TF not ready: base_link -> arducam_optical_frame (skipping block TF)
+[WARN] [1773599068.481664841] [local_camera_perception_node]: TF not ready: base_link -> arducam_optical_frame (skipping block TF)
+[WARN] [1773599068.701405511] [local_camera_perception_node]: TF not ready: base_link -> arducam_optical_frame (skipping block TF)
+[WARN] [1773599068.917375449] [local_camera_perception_node]: TF not ready: base_link -> arducam_optical_frame (skipping block TF)
+[WARN] [1773599069.132611575] [local_camera_perception_node]: TF not ready: base_link -> arducam_optical_frame (skipping block TF)
+[WARN] [1773599069.347413416] [local_camera_perception_node]: TF not ready: base_link -> arducam_optical_frame (skipping block TF)
+[WARN] [1773599069.570591914] [local_camera_perception_node]: TF not ready: base_link -> arducam_optical_frame (skipping block TF)
+[WARN] [1773599069.785243624] [local_camera_perception_node]: TF not ready: base_link -> arducam_optical_frame (skipping block TF)
+[INFO] [1773599070.029700385] [local_camera_perception_node]: Detected 9 ArUco markers: [36 47 47 36 47 36 47 36 22]
+[INFO] [1773599070.046503657] [local_camera_perception_node]: Published block TF: block_36_0 @ (0.199, -0.129, 0.025)
+[INFO] [1773599070.063778423] [local_camera_perception_node]: Published block TF: block_47_0 @ (0.238, -0.137, 0.025)
+[INFO] [1773599070.078116687] [local_camera_perception_node]: Published block TF: block_47_1 @ (0.268, 0.053, 0.025)
+[INFO] [1773599070.086563696] [local_camera_perception_node]: Published block TF: block_36_1 @ (0.314, -0.398, 0.025)
+[INFO] [1773599070.093682192] [local_camera_perception_node]: Published block TF: block_47_2 @ (0.282, -0.145, 0.025)
+[INFO] [1773599070.100642876] [local_camera_perception_node]: Published block TF: block_36_2 @ (0.306, 0.046, 0.025)
+[INFO] [1773599070.108092725] [local_camera_perception_node]: Published block TF: block_47_3 @ (0.325, -0.149, 0.025)
+[INFO] [1773599070.115026869] [local_camera_perception_node]: Published block TF: block_36_3 @ (0.346, 0.042, 0.025)
+[INFO] [1773599070.408990962] [local_camera_perception_node]: Detected 9 ArUco markers: [36 47 47 36 47 36 47 36 22]
+[INFO] [1773599070.420774408] [local_camera_perception_node]: Published block TF: block_36_0 @ (0.199, -0.129, 0.025)
+[INFO] [1773599070.431515205] [local_camera_perception_node]: Published block TF: block_47_0 @ (0.238, -0.137, 0.025)
+[INFO] [1773599070.442544277] [local_camera_perception_node]: Published block TF: block_47_1 @ (0.268, 0.053, 0.025)
+[INFO] [1773599070.455855546] [local_camera_perception_node]: Published block TF: block_36_1 @ (0.314, -0.398, 0.025)
+[INFO] [1773599070.465803449] [local_camera_perception_node]: Published block TF: block_47_2 @ (0.283, -0.145, 0.025)
+[INFO] [1773599070.481308968] [local_camera_perception_node]: Published block TF: block_36_2 @ (0.306, 0.046, 0.025)
+[INFO] [1773599070.489978172] [local_camera_perception_node]: Published block TF: block_47_3 @ (0.325, -0.149, 0.025)
+[INFO] [1773599070.496886644] [local_camera_perception_node]: Published block TF: block_36_3 @ (0.346, 0.042, 0.025)
+[INFO] [1773599070.595028357] [local_camera_perception_node]: Detected 9 ArUco markers: [36 47 47 36 47 36 47 36 22]
+[INFO] [1773599070.607381093] [local_camera_perception_node]: Published block TF: block_36_0 @ (0.199, -0.129, 0.025)
+[INFO] [1773599070.621613847] [local_camera_perception_node]: Published block TF: block_47_0 @ (0.238, -0.137, 0.025)
+[INFO] [1773599070.631897203] [local_camera_perception_node]: Published block TF: block_47_1 @ (0.268, 0.053, 0.025)
+[INFO] [1773599070.641458521] [local_camera_perception_node]: Published block TF: block_36_1 @ (0.314, -0.398, 0.025)
+[INFO] [1773599070.651740300] [local_camera_perception_node]: Published block TF: block_47_2 @ (0.283, -0.145, 0.025)
+[INFO] [1773599070.661775292] [local_camera_perception_node]: Published block TF: block_36_2 @ (0.306, 0.046, 0.025)
+[INFO] [1773599070.672326857] [local_camera_perception_node]: Published block TF: block_47_3 @ (0.325, -0.149, 0.025)
+[INFO] [1773599070.684728310] [local_camera_perception_node]: Published block TF: block_36_3 @ (0.346, 0.042, 0.025)
+[INFO] [1773599070.772997885] [local_camera_perception_node]: Detected 9 ArUco markers: [36 47 47 36 47 36 47 36 22]
+[INFO] [1773599070.780996581] [local_camera_perception_node]: Published block TF: block_36_0 @ (0.199, -0.129, 0.025)
+[INFO] [1773599070.788288387] [local_camera_perception_node]: Published block TF: block_47_0 @ (0.238, -0.137, 0.025)
+[INFO] [1773599070.795978621] [local_camera_perception_node]: Published block TF: block_47_1 @ (0.268, 0.053, 0.025)
+[INFO] [1773599070.803088512] [local_camera_perception_node]: Published block TF: block_36_1 @ (0.314, -0.398, 0.025)
+[INFO] [1773599070.812218704] [local_camera_perception_node]: Published block TF: block_47_2 @ (0.283, -0.145, 0.025)
+[INFO] [1773599070.823772380] [local_camera_perception_node]: Published block TF: block_36_2 @ (0.306, 0.046, 0.025)
+[INFO] [1773599070.835018729] [local_camera_perception_node]: Published block TF: block_47_3 @ (0.325, -0.149, 0.025)
+[INFO] [1773599070.843639068] [local_camera_perception_node]: Published block TF: block_36_3 @ (0.346, 0.042, 0.025)
+[INFO] [1773599070.980782366] [local_camera_perception_node]: Detected 9 ArUco markers: [36 47 47 36 47 36 47 36 22]
+[INFO] [1773599070.992413362] [local_camera_perception_node]: Published block TF: block_36_0 @ (0.199, -0.129, 0.025)
+[INFO] [1773599071.005585119] [local_camera_perception_node]: Published block TF: block_47_0 @ (0.238, -0.137, 0.025)
+[INFO] [1773599071.015452807] [local_camera_perception_node]: Published block TF: block_47_1 @ (0.268, 0.053, 0.025)
+[INFO] [1773599071.023765804] [local_camera_perception_node]: Published block TF: block_36_1 @ (0.314, -0.398, 0.025)
+[INFO] [1773599071.031675898] [local_camera_perception_node]: Published block TF: block_47_2 @ (0.283, -0.145, 0.025)
+[INFO] [1773599071.042515974] [local_camera_perception_node]: Published block TF: block_36_2 @ (0.306, 0.046, 0.025)
+[INFO] [1773599071.050660461] [local_camera_perception_node]: Published block TF: block_47_3 @ (0.325, -0.149, 0.025)
+[INFO] [1773599071.059488382] [local_camera_perception_node]: Published block TF: block_36_3 @ (0.346, 0.042, 0.025)
+[INFO] [1773599071.150761362] [local_camera_perception_node]: Detected 9 ArUco markers: [36 47 47 36 47 36 47 36 22]
+[INFO] [1773599071.158727104] [local_camera_perception_node]: Published block TF: block_36_0 @ (0.200, -0.129, 0.025)
+[INFO] [1773599071.166643728] [local_camera_perception_node]: Published block TF: block_47_0 @ (0.238, -0.137, 0.025)
+[INFO] [1773599071.174033559] [local_camera_perception_node]: Published block TF: block_47_1 @ (0.268, 0.053, 0.025)
+[INFO] [1773599071.181450522] [local_camera_perception_node]: Published block TF: block_36_1 @ (0.314, -0.398, 0.025)
+[INFO] [1773599071.188315761] [local_camera_perception_node]: Published block TF: block_47_2 @ (0.283, -0.145, 0.025)
+[INFO] [1773599071.197016621] [local_camera_perception_node]: Published block TF: block_36_2 @ (0.306, 0.046, 0.025)
+[INFO] [1773599071.204446209] [local_camera_perception_node]: Published block TF: block_47_3 @ (0.325, -0.149, 0.025)
+[INFO] [1773599071.212916734] [local_camera_perception_node]: Published block TF: block_36_3 @ (0.346, 0.042, 0.025)
+[INFO] [1773599071.318977777] [local_camera_perception_node]: Detected 9 ArUco markers: [36 47 47 36 47 36 47 36 22]
+[INFO] [1773599071.328121344] [local_camera_perception_node]: Published block TF: block_36_0 @ (0.200, -0.129, 0.025)
+[INFO] [1773599071.339798672] [local_camera_perception_node]: Published block TF: block_47_0 @ (0.238, -0.137, 0.025)
+[INFO] [1773599071.347539583] [local_camera_perception_node]: Published block TF: block_47_1 @ (0.268, 0.053, 0.025)
+[INFO] [1773599071.355388444] [local_camera_perception_node]: Published block TF: block_36_1 @ (0.314, -0.398, 0.025)
+[INFO] [1773599071.362930611] [local_camera_perception_node]: Published block TF: block_47_2 @ (0.283, -0.145, 0.025)
+[INFO] [1773599071.370361979] [local_camera_perception_node]: Published block TF: block_36_2 @ (0.306, 0.046, 0.025)
+[INFO] [1773599071.379396215] [local_camera_perception_node]: Published block TF: block_47_3 @ (0.325, -0.149, 0.025)
+[INFO] [1773599071.386941935] [local_camera_perception_node]: Published block TF: block_36_3 @ (0.346, 0.042, 0.025)
+[INFO] [1773599071.477728540] [local_camera_perception_node]: Detected 9 ArUco markers: [36 47 47 36 47 36 47 36 22]
+[INFO] [1773599071.485230711] [local_camera_perception_node]: Published block TF: block_36_0 @ (0.200, -0.129, 0.025)
+[INFO] [1773599071.493221869] [local_camera_perception_node]: Published block TF: block_47_0 @ (0.238, -0.137, 0.025)
+[INFO] [1773599071.500450342] [local_camera_perception_node]: Published block TF: block_47_1 @ (0.268, 0.053, 0.025)
+[INFO] [1773599071.508438839] [local_camera_perception_node]: Published block TF: block_36_1 @ (0.314, -0.398, 0.025)
+[INFO] [1773599071.516133774] [local_camera_perception_node]: Published block TF: block_47_2 @ (0.283, -0.145, 0.025)
+[INFO] [1773599071.523541710] [local_camera_perception_node]: Published block TF: block_36_2 @ (0.306, 0.046, 0.025)
+[INFO] [1773599071.530768932] [local_camera_perception_node]: Published block TF: block_47_3 @ (0.325, -0.149, 0.025)
+[INFO] [1773599071.540111226] [local_camera_perception_node]: Published block TF: block_36_3 @ (0.346, 0.042, 0.025)
+[INFO] [1773599071.644791798] [local_camera_perception_node]: Detected 9 ArUco markers: [36 47 47 36 47 36 47 36 22]
+[INFO] [1773599071.654102903] [local_camera_perception_node]: Published block TF: block_36_0 @ (0.200, -0.129, 0.025)
+[INFO] [1773599071.663790727] [local_camera_perception_node]: Published block TF: block_47_0 @ (0.238, -0.137, 0.025)
+[INFO] [1773599071.673657643] [local_camera_perception_node]: Published block TF: block_47_1 @ (0.268, 0.053, 0.025)
+[INFO] [1773599071.683328362] [local_camera_perception_node]: Published block TF: block_36_1 @ (0.314, -0.398, 0.025)
+[INFO] [1773599071.692548122] [local_camera_perception_node]: Published block TF: block_47_2 @ (0.283, -0.145, 0.025)
+[INFO] [1773599071.702947639] [local_camera_perception_node]: Published block TF: block_36_2 @ (0.306, 0.046, 0.025)
+[INFO] [1773599071.713830720] [local_camera_perception_node]: Published block TF: block_47_3 @ (0.325, -0.149, 0.025)
+[INFO] [1773599071.722918703] [local_camera_perception_node]: Published block TF: block_36_3 @ (0.346, 0.042, 0.025)
+[INFO] [1773599071.825194841] [local_camera_perception_node]: Detected 9 ArUco markers: [36 47 47 36 47 36 47 36 22]
+[INFO] [1773599071.833587158] [local_camera_perception_node]: Published block TF: block_36_0 @ (0.200, -0.129, 0.025)
+[INFO] [1773599071.842293787] [local_camera_perception_node]: Published block TF: block_47_0 @ (0.238, -0.137, 0.025)
+[INFO] [1773599071.850582958] [local_camera_perception_node]: Published block TF: block_47_1 @ (0.268, 0.053, 0.025)
+[INFO] [1773599071.858312030] [local_camera_perception_node]: Published block TF: block_36_1 @ (0.314, -0.398, 0.025)
+[INFO] [1773599071.866184467] [local_camera_perception_node]: Published block TF: block_47_2 @ (0.283, -0.145, 0.025)
+[INFO] [1773599071.873919502] [local_camera_perception_node]: Published block TF: block_36_2 @ (0.305, 0.045, 0.025)
+[INFO] [1773599071.881974113] [local_camera_perception_node]: Published block TF: block_47_3 @ (0.324, -0.149, 0.025)
+[INFO] [1773599071.888931471] [local_camera_perception_node]: Published block TF: block_36_3 @ (0.346, 0.042, 0.025)
+[INFO] [1773599071.995689569] [local_camera_perception_node]: Detected 9 ArUco markers: [36 47 47 36 47 36 47 36 22]
+[INFO] [1773599072.002997947] [local_camera_perception_node]: Published block TF: block_36_0 @ (0.200, -0.129, 0.025)
+[INFO] [1773599072.013368265] [local_camera_perception_node]: Published block TF: block_47_0 @ (0.238, -0.137, 0.025)
+[INFO] [1773599072.020545345] [local_camera_perception_node]: Published block TF: block_47_1 @ (0.268, 0.053, 0.025)
+[INFO] [1773599072.028170991] [local_camera_perception_node]: Published block TF: block_36_1 @ (0.314, -0.398, 0.025)
+[INFO] [1773599072.035621383] [local_camera_perception_node]: Published block TF: block_47_2 @ (0.283, -0.145, 0.025)
+[INFO] [1773599072.043969506] [local_camera_perception_node]: Published block TF: block_36_2 @ (0.305, 0.045, 0.025)
+[INFO] [1773599072.051605073] [local_camera_perception_node]: Published block TF: block_47_3 @ (0.324, -0.149, 0.025)
+[INFO] [1773599072.058941726] [local_camera_perception_node]: Published block TF: block_36_3 @ (0.346, 0.042, 0.025)
+[INFO] [1773599072.149741361] [local_camera_perception_node]: Detected 9 ArUco markers: [36 47 47 36 47 36 47 36 22]
+[INFO] [1773599072.158323033] [local_camera_perception_node]: Published block TF: block_36_0 @ (0.200, -0.129, 0.025)
+[INFO] [1773599072.167113999] [local_camera_perception_node]: Published block TF: block_47_0 @ (0.238, -0.137, 0.025)
+[INFO] [1773599072.175466588] [local_camera_perception_node]: Published block TF: block_47_1 @ (0.268, 0.053, 0.025)
+[INFO] [1773599072.183281013] [local_camera_perception_node]: Published block TF: block_36_1 @ (0.314, -0.398, 0.025)
+[INFO] [1773599072.191828599] [local_camera_perception_node]: Published block TF: block_47_2 @ (0.283, -0.145, 0.025)
+[INFO] [1773599072.199802054] [local_camera_perception_node]: Published block TF: block_36_2 @ (0.305, 0.045, 0.025)
+[INFO] [1773599072.208580278] [local_camera_perception_node]: Published block TF: block_47_3 @ (0.324, -0.149, 0.025)
+[INFO] [1773599072.216483055] [local_camera_perception_node]: Published block TF: block_36_3 @ (0.346, 0.042, 0.025)
+[INFO] [1773599072.308891172] [local_camera_perception_node]: Detected 9 ArUco markers: [36 47 47 36 47 36 47 36 22]
+[INFO] [1773599072.316478541] [local_camera_perception_node]: Published block TF: block_36_0 @ (0.200, -0.129, 0.025)
+[INFO] [1773599072.323620475] [local_camera_perception_node]: Published block TF: block_47_0 @ (0.238, -0.137, 0.025)
+[INFO] [1773599072.330746984] [local_camera_perception_node]: Published block TF: block_47_1 @ (0.268, 0.053, 0.025)
+[INFO] [1773599072.337580098] [local_camera_perception_node]: Published block TF: block_36_1 @ (0.314, -0.398, 0.025)
+[INFO] [1773599072.344617406] [local_camera_perception_node]: Published block TF: block_47_2 @ (0.283, -0.145, 0.025)
+[INFO] [1773599072.351713310] [local_camera_perception_node]: Published block TF: block_36_2 @ (0.305, 0.045, 0.025)
+[INFO] [1773599072.358857376] [local_camera_perception_node]: Published block TF: block_47_3 @ (0.324, -0.149, 0.025)
+[INFO] [1773599072.366430975] [local_camera_perception_node]: Published block TF: block_36_3 @ (0.346, 0.042, 0.025)
+[INFO] [1773599072.443708105] [local_camera_perception_node]: Detected 9 ArUco markers: [36 47 47 36 47 36 47 36 22]
+[INFO] [1773599072.452544619] [local_camera_perception_node]: Published block TF: block_36_0 @ (0.200, -0.129, 0.025)
+[INFO] [1773599072.460704388] [local_camera_perception_node]: Published block TF: block_47_0 @ (0.238, -0.137, 0.025)
+[INFO] [1773599072.473458987] [local_camera_perception_node]: Published block TF: block_47_1 @ (0.268, 0.053, 0.025)
+[INFO] [1773599072.480896736] [local_camera_perception_node]: Published block TF: block_36_1 @ (0.314, -0.398, 0.025)
+[INFO] [1773599072.489766132] [local_camera_perception_node]: Published block TF: block_47_2 @ (0.283, -0.145, 0.025)
+[INFO] [1773599072.497034440] [local_camera_perception_node]: Published block TF: block_36_2 @ (0.305, 0.045, 0.025)
+[INFO] [1773599072.510421952] [local_camera_perception_node]: Published block TF: block_47_3 @ (0.324, -0.149, 0.025)
+[INFO] [1773599072.517648386] [local_camera_perception_node]: Published block TF: block_36_3 @ (0.346, 0.042, 0.025)
+[INFO] [1773599072.612424789] [local_camera_perception_node]: Detected 9 ArUco markers: [36 47 47 36 47 36 47 36 22]
+[INFO] [1773599072.621390884] [local_camera_perception_node]: Published block TF: block_36_0 @ (0.200, -0.129, 0.025)
+[INFO] [1773599072.628995668] [local_camera_perception_node]: Published block TF: block_47_0 @ (0.238, -0.137, 0.025)
+[INFO] [1773599072.636487041] [local_camera_perception_node]: Published block TF: block_47_1 @ (0.268, 0.053, 0.025)
+[INFO] [1773599072.644061191] [local_camera_perception_node]: Published block TF: block_36_1 @ (0.314, -0.398, 0.025)
+[INFO] [1773599072.651892431] [local_camera_perception_node]: Published block TF: block_47_2 @ (0.283, -0.145, 0.025)
+[INFO] [1773599072.663892119] [local_camera_perception_node]: Published block TF: block_36_2 @ (0.305, 0.045, 0.025)
+[INFO] [1773599072.677084913] [local_camera_perception_node]: Published block TF: block_47_3 @ (0.324, -0.149, 0.025)
+[INFO] [1773599072.685144023] [local_camera_perception_node]: Published block TF: block_36_3 @ (0.346, 0.042, 0.025)
+[INFO] [1773599072.785648421] [local_camera_perception_node]: Detected 9 ArUco markers: [36 47 47 36 47 36 47 36 22]
+[INFO] [1773599072.801571362] [local_camera_perception_node]: Published block TF: block_36_0 @ (0.200, -0.129, 0.025)
+[INFO] [1773599072.813572736] [local_camera_perception_node]: Published block TF: block_47_0 @ (0.238, -0.137, 0.025)
+[INFO] [1773599072.824443037] [local_camera_perception_node]: Published block TF: block_47_1 @ (0.268, 0.053, 0.025)
+[INFO] [1773599072.838976608] [local_camera_perception_node]: Published block TF: block_36_1 @ (0.314, -0.398, 0.025)
+[INFO] [1773599072.848885268] [local_camera_perception_node]: Published block TF: block_47_2 @ (0.283, -0.145, 0.025)
+[INFO] [1773599072.859053226] [local_camera_perception_node]: Published block TF: block_36_2 @ (0.304, 0.045, 0.025)
+[INFO] [1773599072.870378781] [local_camera_perception_node]: Published block TF: block_47_3 @ (0.324, -0.149, 0.025)
+[INFO] [1773599072.879722053] [local_camera_perception_node]: Published block TF: block_36_3 @ (0.346, 0.042, 0.025)
+[INFO] [1773599072.983239722] [local_camera_perception_node]: Detected 9 ArUco markers: [36 47 47 36 47 36 47 36 22]
+[INFO] [1773599072.994609340] [local_camera_perception_node]: Published block TF: block_36_0 @ (0.200, -0.129, 0.025)
+[INFO] [1773599073.003937939] [local_camera_perception_node]: Published block TF: block_47_0 @ (0.238, -0.137, 0.025)
+[INFO] [1773599073.012353028] [local_camera_perception_node]: Published block TF: block_47_1 @ (0.268, 0.053, 0.025)
+[INFO] [1773599073.019949100] [local_camera_perception_node]: Published block TF: block_36_1 @ (0.314, -0.398, 0.025)
+[INFO] [1773599073.029215758] [local_camera_perception_node]: Published block TF: block_47_2 @ (0.283, -0.145, 0.025)
+[INFO] [1773599073.038310463] [local_camera_perception_node]: Published block TF: block_36_2 @ (0.305, 0.045, 0.025)
+[INFO] [1773599073.046006171] [local_camera_perception_node]: Published block TF: block_47_3 @ (0.324, -0.149, 0.025)
+[INFO] [1773599073.053961620] [local_camera_perception_node]: Published block TF: block_36_3 @ (0.346, 0.042, 0.025)
+[INFO] [1773599073.153050288] [local_camera_perception_node]: Detected 9 ArUco markers: [36 47 47 36 47 36 47 36 22]
+[INFO] [1773599073.160798803] [local_camera_perception_node]: Published block TF: block_36_0 @ (0.199, -0.129, 0.025)
+[INFO] [1773599073.168225503] [local_camera_perception_node]: Published block TF: block_47_0 @ (0.238, -0.137, 0.025)
+[INFO] [1773599073.175174240] [local_camera_perception_node]: Published block TF: block_47_1 @ (0.268, 0.053, 0.025)
+[INFO] [1773599073.182004884] [local_camera_perception_node]: Published block TF: block_36_1 @ (0.314, -0.399, 0.025)
+[INFO] [1773599073.189648098] [local_camera_perception_node]: Published block TF: block_47_2 @ (0.283, -0.145, 0.025)
+[INFO] [1773599073.196579993] [local_camera_perception_node]: Published block TF: block_36_2 @ (0.305, 0.045, 0.025)
+[INFO] [1773599073.203579515] [local_camera_perception_node]: Published block TF: block_47_3 @ (0.324, -0.149, 0.025)
+[INFO] [1773599073.210758229] [local_camera_perception_node]: Published block TF: block_36_3 @ (0.346, 0.042, 0.025)
+[INFO] [1773599073.307433648] [local_camera_perception_node]: Detected 9 ArUco markers: [36 47 47 36 47 36 47 36 22]
+[INFO] [1773599073.319196112] [local_camera_perception_node]: Published block TF: block_36_0 @ (0.199, -0.129, 0.025)
+[INFO] [1773599073.325665803] [local_camera_perception_node]: Published block TF: block_47_0 @ (0.238, -0.137, 0.025)
+[INFO] [1773599073.333340198] [local_camera_perception_node]: Published block TF: block_47_1 @ (0.268, 0.053, 0.025)
+[INFO] [1773599073.341732162] [local_camera_perception_node]: Published block TF: block_36_1 @ (0.314, -0.399, 0.025)
+[INFO] [1773599073.351401419] [local_camera_perception_node]: Published block TF: block_47_2 @ (0.283, -0.145, 0.025)
+[INFO] [1773599073.360174199] [local_camera_perception_node]: Published block TF: block_36_2 @ (0.305, 0.045, 0.025)
+[INFO] [1773599073.368714040] [local_camera_perception_node]: Published block TF: block_47_3 @ (0.324, -0.149, 0.025)
+[INFO] [1773599073.376469180] [local_camera_perception_node]: Published block TF: block_36_3 @ (0.346, 0.042, 0.025)
+[INFO] [1773599073.469728046] [local_camera_perception_node]: Detected 9 ArUco markers: [36 47 47 36 47 36 47 36 22]
+[INFO] [1773599073.479315967] [local_camera_perception_node]: Published block TF: block_36_0 @ (0.199, -0.129, 0.025)
+[INFO] [1773599073.487652492] [local_camera_perception_node]: Published block TF: block_47_0 @ (0.238, -0.137, 0.025)
+[INFO] [1773599073.495895287] [local_camera_perception_node]: Published block TF: block_47_1 @ (0.268, 0.053, 0.025)
+[INFO] [1773599073.503927696] [local_camera_perception_node]: Published block TF: block_36_1 @ (0.314, -0.399, 0.025)
+[INFO] [1773599073.513005760] [local_camera_perception_node]: Published block TF: block_47_2 @ (0.283, -0.145, 0.025)
+[INFO] [1773599073.520758260] [local_camera_perception_node]: Published block TF: block_36_2 @ (0.305, 0.045, 0.025)
+[INFO] [1773599073.529614436] [local_camera_perception_node]: Published block TF: block_47_3 @ (0.324, -0.149, 0.025)
+[INFO] [1773599073.539797145] [local_camera_perception_node]: Published block TF: block_36_3 @ (0.346, 0.042, 0.025)
+[INFO] [1773599073.627847615] [local_camera_perception_node]: Detected 9 ArUco markers: [36 47 47 36 47 36 47 36 22]
+[INFO] [1773599073.640635157] [local_camera_perception_node]: Published block TF: block_36_0 @ (0.199, -0.129, 0.025)
+[INFO] [1773599073.655907025] [local_camera_perception_node]: Published block TF: block_47_0 @ (0.238, -0.137, 0.025)
+[INFO] [1773599073.665087586] [local_camera_perception_node]: Published block TF: block_47_1 @ (0.268, 0.053, 0.025)
+[INFO] [1773599073.672710415] [local_camera_perception_node]: Published block TF: block_36_1 @ (0.314, -0.399, 0.025)
+[INFO] [1773599073.680588725] [local_camera_perception_node]: Published block TF: block_47_2 @ (0.283, -0.145, 0.025)
+[INFO] [1773599073.688218015] [local_camera_perception_node]: Published block TF: block_36_2 @ (0.305, 0.046, 0.025)
+[INFO] [1773599073.696546938] [local_camera_perception_node]: Published block TF: block_47_3 @ (0.324, -0.149, 0.025)
+[INFO] [1773599073.704073169] [local_camera_perception_node]: Published block TF: block_36_3 @ (0.346, 0.042, 0.025)
+[INFO] [1773599073.785814199] [local_camera_perception_node]: Detected 9 ArUco markers: [36 47 47 36 47 36 47 36 22]
+[INFO] [1773599073.792907255] [local_camera_perception_node]: Published block TF: block_36_0 @ (0.200, -0.129, 0.025)
+[INFO] [1773599073.800070997] [local_camera_perception_node]: Published block TF: block_47_0 @ (0.238, -0.137, 0.025)
+[INFO] [1773599073.807390797] [local_camera_perception_node]: Published block TF: block_47_1 @ (0.268, 0.053, 0.025)
+[INFO] [1773599073.814613552] [local_camera_perception_node]: Published block TF: block_36_1 @ (0.314, -0.399, 0.025)
+[INFO] [1773599073.821695840] [local_camera_perception_node]: Published block TF: block_47_2 @ (0.283, -0.145, 0.025)
+[INFO] [1773599073.828266039] [local_camera_perception_node]: Published block TF: block_36_2 @ (0.305, 0.045, 0.025)
+[INFO] [1773599073.836104387] [local_camera_perception_node]: Published block TF: block_47_3 @ (0.324, -0.149, 0.025)
+[INFO] [1773599073.843513269] [local_camera_perception_node]: Published block TF: block_36_3 @ (0.346, 0.042, 0.025)
+[INFO] [1773599073.955495568] [local_camera_perception_node]: Detected 9 ArUco markers: [36 47 47 36 47 36 47 36 22]
+[INFO] [1773599073.967093103] [local_camera_perception_node]: Published block TF: block_36_0 @ (0.200, -0.129, 0.025)
+[INFO] [1773599073.977394850] [local_camera_perception_node]: Published block TF: block_47_0 @ (0.238, -0.137, 0.025)
+[INFO] [1773599073.988240547] [local_camera_perception_node]: Published block TF: block_47_1 @ (0.268, 0.053, 0.025)
+[INFO] [1773599073.997622434] [local_camera_perception_node]: Published block TF: block_36_1 @ (0.314, -0.398, 0.025)
+[INFO] [1773599074.008097021] [local_camera_perception_node]: Published block TF: block_47_2 @ (0.283, -0.145, 0.025)
+[INFO] [1773599074.019831498] [local_camera_perception_node]: Published block TF: block_36_2 @ (0.305, 0.046, 0.025)
+[INFO] [1773599074.035019035] [local_camera_perception_node]: Published block TF: block_47_3 @ (0.324, -0.149, 0.025)
+[INFO] [1773599074.045667222] [local_camera_perception_node]: Published block TF: block_36_3 @ (0.346, 0.042, 0.025)
+[INFO] [1773599074.131210028] [local_camera_perception_node]: Detected 9 ArUco markers: [36 47 47 36 47 36 47 36 22]
+[INFO] [1773599074.139022104] [local_camera_perception_node]: Published block TF: block_36_0 @ (0.199, -0.129, 0.025)
+[INFO] [1773599074.147960745] [local_camera_perception_node]: Published block TF: block_47_0 @ (0.238, -0.137, 0.025)
+[INFO] [1773599074.154979570] [local_camera_perception_node]: Published block TF: block_47_1 @ (0.268, 0.053, 0.025)
+[INFO] [1773599074.162479871] [local_camera_perception_node]: Published block TF: block_36_1 @ (0.314, -0.398, 0.025)
+[INFO] [1773599074.170718035] [local_camera_perception_node]: Published block TF: block_47_2 @ (0.283, -0.145, 0.025)
+[INFO] [1773599074.177827034] [local_camera_perception_node]: Published block TF: block_36_2 @ (0.306, 0.046, 0.025)
+[INFO] [1773599074.186013276] [local_camera_perception_node]: Published block TF: block_47_3 @ (0.324, -0.149, 0.025)
+[INFO] [1773599074.193641281] [local_camera_perception_node]: Published block TF: block_36_3 @ (0.346, 0.042, 0.025)
+[INFO] [1773599074.291383356] [local_camera_perception_node]: Detected 9 ArUco markers: [36 47 47 36 47 36 47 36 22]
+[INFO] [1773599074.298874882] [local_camera_perception_node]: Published block TF: block_36_0 @ (0.199, -0.129, 0.025)
+[INFO] [1773599074.306438565] [local_camera_perception_node]: Published block TF: block_47_0 @ (0.238, -0.137, 0.025)
+[INFO] [1773599074.314020576] [local_camera_perception_node]: Published block TF: block_47_1 @ (0.268, 0.053, 0.025)
+[INFO] [1773599074.321279750] [local_camera_perception_node]: Published block TF: block_36_1 @ (0.314, -0.398, 0.025)
+[INFO] [1773599074.330447200] [local_camera_perception_node]: Published block TF: block_47_2 @ (0.283, -0.145, 0.025)
+[INFO] [1773599074.339620299] [local_camera_perception_node]: Published block TF: block_36_2 @ (0.305, 0.045, 0.025)
+[INFO] [1773599074.347534810] [local_camera_perception_node]: Published block TF: block_47_3 @ (0.324, -0.149, 0.025)
+[INFO] [1773599074.355951107] [local_camera_perception_node]: Published block TF: block_36_3 @ (0.346, 0.042, 0.025)
+[INFO] [1773599074.447512097] [local_camera_perception_node]: Detected 9 ArUco markers: [36 47 47 36 47 36 47 36 22]
+[INFO] [1773599074.455331254] [local_camera_perception_node]: Published block TF: block_36_0 @ (0.199, -0.129, 0.025)
+[INFO] [1773599074.462633148] [local_camera_perception_node]: Published block TF: block_47_0 @ (0.238, -0.137, 0.025)
+[INFO] [1773599074.470145131] [local_camera_perception_node]: Published block TF: block_47_1 @ (0.268, 0.053, 0.025)
+[INFO] [1773599074.477591028] [local_camera_perception_node]: Published block TF: block_36_1 @ (0.314, -0.398, 0.025)
+[INFO] [1773599074.484614664] [local_camera_perception_node]: Published block TF: block_47_2 @ (0.283, -0.145, 0.025)
+[INFO] [1773599074.492459327] [local_camera_perception_node]: Published block TF: block_36_2 @ (0.305, 0.045, 0.025)
+[INFO] [1773599074.500444968] [local_camera_perception_node]: Published block TF: block_47_3 @ (0.325, -0.149, 0.025)
+[INFO] [1773599074.509735801] [local_camera_perception_node]: Published block TF: block_36_3 @ (0.345, 0.042, 0.025)
+[INFO] [1773599074.617002375] [local_camera_perception_node]: Detected 9 ArUco markers: [36 47 47 36 47 36 47 36 22]
+[INFO] [1773599074.626004546] [local_camera_perception_node]: Published block TF: block_36_0 @ (0.199, -0.128, 0.025)
+[INFO] [1773599074.634935101] [local_camera_perception_node]: Published block TF: block_47_0 @ (0.238, -0.137, 0.025)
+[INFO] [1773599074.643066785] [local_camera_perception_node]: Published block TF: block_47_1 @ (0.268, 0.053, 0.025)
+[INFO] [1773599074.650229350] [local_camera_perception_node]: Published block TF: block_36_1 @ (0.314, -0.398, 0.025)
+[INFO] [1773599074.657901207] [local_camera_perception_node]: Published block TF: block_47_2 @ (0.283, -0.145, 0.025)
+[INFO] [1773599074.665344642] [local_camera_perception_node]: Published block TF: block_36_2 @ (0.306, 0.046, 0.025)
+[INFO] [1773599074.671181168] [local_camera_perception_node]: Published block TF: block_47_3 @ (0.325, -0.149, 0.025)
+[INFO] [1773599074.679986393] [local_camera_perception_node]: Published block TF: block_36_3 @ (0.345, 0.042, 0.025)
+[INFO] [1773599074.777741221] [local_camera_perception_node]: Detected 9 ArUco markers: [36 47 47 36 47 36 47 36 22]
+[INFO] [1773599074.785880145] [local_camera_perception_node]: Published block TF: block_36_0 @ (0.199, -0.128, 0.025)
+[INFO] [1773599074.794589083] [local_camera_perception_node]: Published block TF: block_47_0 @ (0.238, -0.137, 0.025)
+[INFO] [1773599074.801502629] [local_camera_perception_node]: Published block TF: block_47_1 @ (0.268, 0.053, 0.025)
+[INFO] [1773599074.808880173] [local_camera_perception_node]: Published block TF: block_36_1 @ (0.314, -0.398, 0.025)
+[INFO] [1773599074.816618925] [local_camera_perception_node]: Published block TF: block_47_2 @ (0.283, -0.145, 0.025)
+[INFO] [1773599074.823332914] [local_camera_perception_node]: Published block TF: block_36_2 @ (0.306, 0.046, 0.025)
+[INFO] [1773599074.831562308] [local_camera_perception_node]: Published block TF: block_47_3 @ (0.325, -0.149, 0.025)
+[INFO] [1773599074.839860461] [local_camera_perception_node]: Published block TF: block_36_3 @ (0.345, 0.042, 0.025)
+[INFO] [1773599074.929982435] [local_camera_perception_node]: Detected 9 ArUco markers: [36 47 47 36 47 36 47 36 22]
+[INFO] [1773599074.944572232] [local_camera_perception_node]: Published block TF: block_36_0 @ (0.199, -0.128, 0.025)
+[INFO] [1773599074.952013990] [local_camera_perception_node]: Published block TF: block_47_0 @ (0.238, -0.137, 0.025)
+[INFO] [1773599074.959520203] [local_camera_perception_node]: Published block TF: block_47_1 @ (0.268, 0.053, 0.025)
+[INFO] [1773599074.966163485] [local_camera_perception_node]: Published block TF: block_36_1 @ (0.314, -0.398, 0.025)
+[INFO] [1773599074.973458757] [local_camera_perception_node]: Published block TF: block_47_2 @ (0.283, -0.145, 0.025)
+[INFO] [1773599074.980642072] [local_camera_perception_node]: Published block TF: block_36_2 @ (0.306, 0.046, 0.025)
+[INFO] [1773599074.988133692] [local_camera_perception_node]: Published block TF: block_47_3 @ (0.325, -0.149, 0.025)
+[INFO] [1773599074.996780174] [local_camera_perception_node]: Published block TF: block_36_3 @ (0.346, 0.042, 0.025)
+[INFO] [1773599075.092781577] [local_camera_perception_node]: Detected 8 ArUco markers: [36 47 47 36 47 36 47 36]
+[INFO] [1773599075.100881634] [local_camera_perception_node]: Published block TF: block_36_0 @ (0.199, -0.129, 0.025)
+[INFO] [1773599075.108752585] [local_camera_perception_node]: Published block TF: block_47_0 @ (0.238, -0.137, 0.025)
+[INFO] [1773599075.124341921] [local_camera_perception_node]: Published block TF: block_47_1 @ (0.268, 0.053, 0.025)
+[INFO] [1773599075.134410569] [local_camera_perception_node]: Published block TF: block_36_1 @ (0.314, -0.398, 0.025)
+[INFO] [1773599075.141643789] [local_camera_perception_node]: Published block TF: block_47_2 @ (0.283, -0.145, 0.025)
+[INFO] [1773599075.148476065] [local_camera_perception_node]: Published block TF: block_36_2 @ (0.306, 0.046, 0.025)
+[INFO] [1773599075.155536985] [local_camera_perception_node]: Published block TF: block_47_3 @ (0.325, -0.149, 0.025)
+[INFO] [1773599075.162481133] [local_camera_perception_node]: Published block TF: block_36_3 @ (0.346, 0.042, 0.025)
+[INFO] [1773599075.268974390] [local_camera_perception_node]: Detected 9 ArUco markers: [36 47 47 36 47 36 47 36 22]
+[INFO] [1773599075.276066664] [local_camera_perception_node]: Published block TF: block_36_0 @ (0.199, -0.129, 0.025)
+[INFO] [1773599075.282843873] [local_camera_perception_node]: Published block TF: block_47_0 @ (0.238, -0.137, 0.025)
+[INFO] [1773599075.289970809] [local_camera_perception_node]: Published block TF: block_47_1 @ (0.268, 0.053, 0.025)
+[INFO] [1773599075.296281344] [local_camera_perception_node]: Published block TF: block_36_1 @ (0.314, -0.398, 0.025)
+[INFO] [1773599075.316719248] [local_camera_perception_node]: Published block TF: block_47_2 @ (0.283, -0.145, 0.025)
+[INFO] [1773599075.323650170] [local_camera_perception_node]: Published block TF: block_36_2 @ (0.305, 0.045, 0.025)
+[INFO] [1773599075.330414880] [local_camera_perception_node]: Published block TF: block_47_3 @ (0.325, -0.149, 0.025)
+[INFO] [1773599075.337209518] [local_camera_perception_node]: Published block TF: block_36_3 @ (0.346, 0.042, 0.025)
+[INFO] [1773599075.412225543] [local_camera_perception_node]: Detected 9 ArUco markers: [36 47 47 36 47 36 47 36 22]
+[INFO] [1773599075.419439764] [local_camera_perception_node]: Published block TF: block_36_0 @ (0.199, -0.129, 0.025)
+[INFO] [1773599075.427880754] [local_camera_perception_node]: Published block TF: block_47_0 @ (0.238, -0.137, 0.025)
+[INFO] [1773599075.435818909] [local_camera_perception_node]: Published block TF: block_47_1 @ (0.268, 0.053, 0.025)
+[INFO] [1773599075.443082552] [local_camera_perception_node]: Published block TF: block_36_1 @ (0.314, -0.398, 0.025)
+[INFO] [1773599075.450480347] [local_camera_perception_node]: Published block TF: block_47_2 @ (0.283, -0.145, 0.025)
+[INFO] [1773599075.457602454] [local_camera_perception_node]: Published block TF: block_36_2 @ (0.305, 0.045, 0.025)
+[INFO] [1773599075.466253580] [local_camera_perception_node]: Published block TF: block_47_3 @ (0.325, -0.149, 0.025)
+[INFO] [1773599075.473213979] [local_camera_perception_node]: Published block TF: block_36_3 @ (0.346, 0.042, 0.025)
+[INFO] [1773599075.572557205] [local_camera_perception_node]: Detected 9 ArUco markers: [36 47 47 36 47 36 47 36 22]
+[INFO] [1773599075.583689064] [local_camera_perception_node]: Published block TF: block_36_0 @ (0.200, -0.129, 0.025)
+[INFO] [1773599075.592469543] [local_camera_perception_node]: Published block TF: block_47_0 @ (0.238, -0.137, 0.025)
+[INFO] [1773599075.598855955] [local_camera_perception_node]: Published block TF: block_47_1 @ (0.268, 0.053, 0.025)
+[INFO] [1773599075.610328822] [local_camera_perception_node]: Published block TF: block_36_1 @ (0.314, -0.398, 0.025)
+[INFO] [1773599075.620325584] [local_camera_perception_node]: Published block TF: block_47_2 @ (0.283, -0.145, 0.025)
+[INFO] [1773599075.629852830] [local_camera_perception_node]: Published block TF: block_36_2 @ (0.305, 0.045, 0.025)
+[INFO] [1773599075.637599364] [local_camera_perception_node]: Published block TF: block_47_3 @ (0.325, -0.149, 0.025)
+[INFO] [1773599075.651247140] [local_camera_perception_node]: Published block TF: block_36_3 @ (0.346, 0.042, 0.025)
+[INFO] [1773599075.734774743] [local_camera_perception_node]: Detected 9 ArUco markers: [36 47 47 36 47 36 47 36 22]
+[INFO] [1773599075.743106151] [local_camera_perception_node]: Published block TF: block_36_0 @ (0.199, -0.129, 0.025)
+[INFO] [1773599075.750689859] [local_camera_perception_node]: Published block TF: block_47_0 @ (0.238, -0.137, 0.025)
+[INFO] [1773599075.757555737] [local_camera_perception_node]: Published block TF: block_47_1 @ (0.268, 0.053, 0.025)
+[INFO] [1773599075.765244462] [local_camera_perception_node]: Published block TF: block_36_1 @ (0.314, -0.398, 0.025)
+[INFO] [1773599075.771925406] [local_camera_perception_node]: Published block TF: block_47_2 @ (0.283, -0.145, 0.025)
+[INFO] [1773599075.780259972] [local_camera_perception_node]: Published block TF: block_36_2 @ (0.306, 0.046, 0.025)
+[INFO] [1773599075.789515790] [local_camera_perception_node]: Published block TF: block_47_3 @ (0.325, -0.149, 0.025)
+[INFO] [1773599075.798777595] [local_camera_perception_node]: Published block TF: block_36_3 @ (0.346, 0.042, 0.025)
+[INFO] [1773599075.885882613] [local_camera_perception_node]: Detected 9 ArUco markers: [36 47 47 36 47 36 47 36 22]
+[INFO] [1773599075.894938813] [local_camera_perception_node]: Published block TF: block_36_0 @ (0.199, -0.129, 0.025)
+[INFO] [1773599075.902137779] [local_camera_perception_node]: Published block TF: block_47_0 @ (0.238, -0.137, 0.025)
+[INFO] [1773599075.909356462] [local_camera_perception_node]: Published block TF: block_47_1 @ (0.268, 0.053, 0.025)
+[INFO] [1773599075.915780317] [local_camera_perception_node]: Published block TF: block_36_1 @ (0.314, -0.398, 0.025)
+[INFO] [1773599075.922742057] [local_camera_perception_node]: Published block TF: block_47_2 @ (0.283, -0.145, 0.025)
+[INFO] [1773599075.929355870] [local_camera_perception_node]: Published block TF: block_36_2 @ (0.306, 0.046, 0.025)
+[INFO] [1773599075.936662598] [local_camera_perception_node]: Published block TF: block_47_3 @ (0.325, -0.149, 0.025)
+[INFO] [1773599075.944558718] [local_camera_perception_node]: Published block TF: block_36_3 @ (0.346, 0.042, 0.025)
+[INFO] [1773599076.026630918] [local_camera_perception_node]: Detected 9 ArUco markers: [36 47 47 36 47 36 47 36 22]
+[INFO] [1773599076.036137502] [local_camera_perception_node]: Published block TF: block_36_0 @ (0.199, -0.129, 0.025)
+[INFO] [1773599076.043775974] [local_camera_perception_node]: Published block TF: block_47_0 @ (0.238, -0.137, 0.025)
+[INFO] [1773599076.049932746] [local_camera_perception_node]: Published block TF: block_47_1 @ (0.268, 0.053, 0.025)
+[INFO] [1773599076.057104751] [local_camera_perception_node]: Published block TF: block_36_1 @ (0.314, -0.398, 0.025)
+[INFO] [1773599076.064990207] [local_camera_perception_node]: Published block TF: block_47_2 @ (0.283, -0.145, 0.025)
+[INFO] [1773599076.073643846] [local_camera_perception_node]: Published block TF: block_36_2 @ (0.306, 0.046, 0.025)
+[INFO] [1773599076.080893472] [local_camera_perception_node]: Published block TF: block_47_3 @ (0.325, -0.149, 0.025)
+[INFO] [1773599076.088067868] [local_camera_perception_node]: Published block TF: block_36_3 @ (0.346, 0.042, 0.025)
+[INFO] [1773599076.218188117] [local_camera_perception_node]: Detected 9 ArUco markers: [36 47 47 36 47 36 47 36 22]
+[INFO] [1773599076.228646209] [local_camera_perception_node]: Published block TF: block_36_0 @ (0.199, -0.129, 0.025)
+[INFO] [1773599076.243978639] [local_camera_perception_node]: Published block TF: block_47_0 @ (0.238, -0.137, 0.025)
+[INFO] [1773599076.252618192] [local_camera_perception_node]: Published block TF: block_47_1 @ (0.268, 0.053, 0.025)
+[INFO] [1773599076.261862052] [local_camera_perception_node]: Published block TF: block_36_1 @ (0.314, -0.398, 0.025)
+[INFO] [1773599076.271400272] [local_camera_perception_node]: Published block TF: block_47_2 @ (0.283, -0.145, 0.025)
+[INFO] [1773599076.279573704] [local_camera_perception_node]: Published block TF: block_36_2 @ (0.306, 0.046, 0.025)
+[INFO] [1773599076.292441178] [local_camera_perception_node]: Published block TF: block_47_3 @ (0.325, -0.149, 0.025)
+[INFO] [1773599076.319286323] [local_camera_perception_node]: Published block TF: block_36_3 @ (0.346, 0.042, 0.025)
+[INFO] [1773599076.431955470] [local_camera_perception_node]: Detected 9 ArUco markers: [36 47 47 36 47 36 47 36 22]
+[INFO] [1773599076.444924602] [local_camera_perception_node]: Published block TF: block_36_0 @ (0.199, -0.129, 0.025)
+[INFO] [1773599076.452866846] [local_camera_perception_node]: Published block TF: block_47_0 @ (0.238, -0.137, 0.025)
+[INFO] [1773599076.465309796] [local_camera_perception_node]: Published block TF: block_47_1 @ (0.268, 0.053, 0.025)
+[INFO] [1773599076.478415189] [local_camera_perception_node]: Published block TF: block_36_1 @ (0.314, -0.398, 0.025)
+[INFO] [1773599076.490747122] [local_camera_perception_node]: Published block TF: block_47_2 @ (0.283, -0.145, 0.025)
+[INFO] [1773599076.498061311] [local_camera_perception_node]: Published block TF: block_36_2 @ (0.306, 0.046, 0.025)
+[INFO] [1773599076.508850132] [local_camera_perception_node]: Published block TF: block_47_3 @ (0.325, -0.149, 0.025)
+[INFO] [1773599076.516936001] [local_camera_perception_node]: Published block TF: block_36_3 @ (0.346, 0.042, 0.025)
+[INFO] [1773599076.633812997] [local_camera_perception_node]: Detected 9 ArUco markers: [36 47 47 36 47 36 47 36 22]
+[INFO] [1773599076.650303201] [local_camera_perception_node]: Published block TF: block_36_0 @ (0.199, -0.129, 0.025)
+[INFO] [1773599076.665407047] [local_camera_perception_node]: Published block TF: block_47_0 @ (0.238, -0.137, 0.025)
+[INFO] [1773599076.682899510] [local_camera_perception_node]: Published block TF: block_47_1 @ (0.268, 0.053, 0.025)
+[INFO] [1773599076.691449515] [local_camera_perception_node]: Published block TF: block_36_1 @ (0.314, -0.398, 0.025)
+[INFO] [1773599076.709080141] [local_camera_perception_node]: Published block TF: block_47_2 @ (0.283, -0.145, 0.025)
+[INFO] [1773599076.723320993] [local_camera_perception_node]: Published block TF: block_36_2 @ (0.306, 0.046, 0.025)
+[INFO] [1773599076.730872307] [local_camera_perception_node]: Published block TF: block_47_3 @ (0.325, -0.149, 0.025)
+[INFO] [1773599076.739696172] [local_camera_perception_node]: Published block TF: block_36_3 @ (0.346, 0.042, 0.025)
+[INFO] [1773599076.874618333] [local_camera_perception_node]: Detected 9 ArUco markers: [36 47 47 36 47 36 47 36 22]
+[INFO] [1773599076.884478467] [local_camera_perception_node]: Published block TF: block_36_0 @ (0.199, -0.128, 0.025)
+[INFO] [1773599076.895486602] [local_camera_perception_node]: Published block TF: block_47_0 @ (0.238, -0.137, 0.025)
+[INFO] [1773599076.902682067] [local_camera_perception_node]: Published block TF: block_47_1 @ (0.268, 0.053, 0.025)
+[INFO] [1773599076.910589716] [local_camera_perception_node]: Published block TF: block_36_1 @ (0.314, -0.398, 0.025)
+[INFO] [1773599076.918070118] [local_camera_perception_node]: Published block TF: block_47_2 @ (0.283, -0.145, 0.025)
+[INFO] [1773599076.925912963] [local_camera_perception_node]: Published block TF: block_36_2 @ (0.306, 0.046, 0.025)
+[INFO] [1773599076.933850237] [local_camera_perception_node]: Published block TF: block_47_3 @ (0.325, -0.149, 0.025)
+[INFO] [1773599076.941080443] [local_camera_perception_node]: Published block TF: block_36_3 @ (0.346, 0.042, 0.025)
+[INFO] [1773599077.045265639] [local_camera_perception_node]: Detected 9 ArUco markers: [36 47 47 36 47 36 47 36 22]
+[INFO] [1773599077.053903021] [local_camera_perception_node]: Published block TF: block_36_0 @ (0.199, -0.128, 0.025)
+[INFO] [1773599077.068472928] [local_camera_perception_node]: Published block TF: block_47_0 @ (0.238, -0.137, 0.025)
+[INFO] [1773599077.078863023] [local_camera_perception_node]: Published block TF: block_47_1 @ (0.268, 0.053, 0.025)
+[INFO] [1773599077.089787902] [local_camera_perception_node]: Published block TF: block_36_1 @ (0.314, -0.398, 0.025)
+[INFO] [1773599077.098333641] [local_camera_perception_node]: Published block TF: block_47_2 @ (0.283, -0.145, 0.025)
+[INFO] [1773599077.107086637] [local_camera_perception_node]: Published block TF: block_36_2 @ (0.306, 0.046, 0.025)
+[INFO] [1773599077.115178805] [local_camera_perception_node]: Published block TF: block_47_3 @ (0.325, -0.149, 0.025)
+[INFO] [1773599077.123536011] [local_camera_perception_node]: Published block TF: block_36_3 @ (0.346, 0.042, 0.025)
+[INFO] [1773599077.217006307] [local_camera_perception_node]: Detected 9 ArUco markers: [36 47 47 36 47 36 47 36 22]
+[INFO] [1773599077.225926409] [local_camera_perception_node]: Published block TF: block_36_0 @ (0.199, -0.128, 0.025)
+[INFO] [1773599077.233318555] [local_camera_perception_node]: Published block TF: block_47_0 @ (0.238, -0.137, 0.025)
+[INFO] [1773599077.240686550] [local_camera_perception_node]: Published block TF: block_47_1 @ (0.268, 0.053, 0.025)
+[INFO] [1773599077.248001199] [local_camera_perception_node]: Published block TF: block_36_1 @ (0.314, -0.398, 0.025)
+[INFO] [1773599077.255974636] [local_camera_perception_node]: Published block TF: block_47_2 @ (0.283, -0.145, 0.025)
+[INFO] [1773599077.263443314] [local_camera_perception_node]: Published block TF: block_36_2 @ (0.306, 0.046, 0.025)
+[INFO] [1773599077.271795707] [local_camera_perception_node]: Published block TF: block_47_3 @ (0.325, -0.149, 0.025)
+[INFO] [1773599077.280504598] [local_camera_perception_node]: Published block TF: block_36_3 @ (0.346, 0.042, 0.025)
+[INFO] [1773599077.377355226] [local_camera_perception_node]: Detected 9 ArUco markers: [36 47 47 36 47 36 47 36 22]
+[INFO] [1773599077.385738468] [local_camera_perception_node]: Published block TF: block_36_0 @ (0.199, -0.129, 0.025)
+[INFO] [1773599077.393903472] [local_camera_perception_node]: Published block TF: block_47_0 @ (0.238, -0.137, 0.025)
+[INFO] [1773599077.402408823] [local_camera_perception_node]: Published block TF: block_47_1 @ (0.268, 0.053, 0.025)
+[INFO] [1773599077.410693017] [local_camera_perception_node]: Published block TF: block_36_1 @ (0.314, -0.398, 0.025)
+[INFO] [1773599077.418805020] [local_camera_perception_node]: Published block TF: block_47_2 @ (0.283, -0.145, 0.025)
+[INFO] [1773599077.426744539] [local_camera_perception_node]: Published block TF: block_36_2 @ (0.306, 0.046, 0.025)
+[INFO] [1773599077.434918218] [local_camera_perception_node]: Published block TF: block_47_3 @ (0.325, -0.149, 0.025)
+[INFO] [1773599077.442785863] [local_camera_perception_node]: Published block TF: block_36_3 @ (0.346, 0.042, 0.025)
+[INFO] [1773599077.544408547] [local_camera_perception_node]: Detected 9 ArUco markers: [36 47 47 36 47 36 47 36 22]
+[INFO] [1773599077.553039553] [local_camera_perception_node]: Published block TF: block_36_0 @ (0.200, -0.129, 0.025)
+[INFO] [1773599077.561720338] [local_camera_perception_node]: Published block TF: block_47_0 @ (0.238, -0.137, 0.025)
+[INFO] [1773599077.569472739] [local_camera_perception_node]: Published block TF: block_47_1 @ (0.268, 0.053, 0.025)
+[INFO] [1773599077.577030633] [local_camera_perception_node]: Published block TF: block_36_1 @ (0.314, -0.398, 0.025)
+[INFO] [1773599077.584077823] [local_camera_perception_node]: Published block TF: block_47_2 @ (0.283, -0.145, 0.025)
+[INFO] [1773599077.591203057] [local_camera_perception_node]: Published block TF: block_36_2 @ (0.306, 0.046, 0.025)
+[INFO] [1773599077.599414000] [local_camera_perception_node]: Published block TF: block_47_3 @ (0.325, -0.149, 0.025)
+[INFO] [1773599077.606447628] [local_camera_perception_node]: Published block TF: block_36_3 @ (0.346, 0.042, 0.025)
+[INFO] [1773599077.747169207] [local_camera_perception_node]: Detected 9 ArUco markers: [36 47 47 36 47 36 47 36 22]
+[INFO] [1773599077.755202010] [local_camera_perception_node]: Published block TF: block_36_0 @ (0.200, -0.129, 0.025)
+[INFO] [1773599077.762586598] [local_camera_perception_node]: Published block TF: block_47_0 @ (0.238, -0.137, 0.025)
+[INFO] [1773599077.770833090] [local_camera_perception_node]: Published block TF: block_47_1 @ (0.268, 0.053, 0.025)
+[INFO] [1773599077.778065860] [local_camera_perception_node]: Published block TF: block_36_1 @ (0.314, -0.398, 0.025)
+[INFO] [1773599077.785864764] [local_camera_perception_node]: Published block TF: block_47_2 @ (0.283, -0.145, 0.025)
+[INFO] [1773599077.793414385] [local_camera_perception_node]: Published block TF: block_36_2 @ (0.306, 0.046, 0.025)
+[INFO] [1773599077.800503813] [local_camera_perception_node]: Published block TF: block_47_3 @ (0.325, -0.149, 0.025)
+[INFO] [1773599077.807401286] [local_camera_perception_node]: Published block TF: block_36_3 @ (0.346, 0.042, 0.025)
+[INFO] [1773599077.899646175] [local_camera_perception_node]: Detected 9 ArUco markers: [36 47 47 36 47 36 47 36 22]
+[INFO] [1773599077.909856523] [local_camera_perception_node]: Published block TF: block_36_0 @ (0.200, -0.129, 0.025)
+[INFO] [1773599077.918893040] [local_camera_perception_node]: Published block TF: block_47_0 @ (0.238, -0.137, 0.025)
+[INFO] [1773599077.926834536] [local_camera_perception_node]: Published block TF: block_47_1 @ (0.268, 0.053, 0.025)
+[INFO] [1773599077.936540299] [local_camera_perception_node]: Published block TF: block_36_1 @ (0.314, -0.398, 0.025)
+[INFO] [1773599077.946044911] [local_camera_perception_node]: Published block TF: block_47_2 @ (0.283, -0.145, 0.025)
+[INFO] [1773599077.954807105] [local_camera_perception_node]: Published block TF: block_36_2 @ (0.306, 0.046, 0.025)
+[INFO] [1773599077.964343675] [local_camera_perception_node]: Published block TF: block_47_3 @ (0.325, -0.149, 0.025)
+[INFO] [1773599077.974958708] [local_camera_perception_node]: Published block TF: block_36_3 @ (0.346, 0.042, 0.025)
+[INFO] [1773599078.093569560] [local_camera_perception_node]: Detected 9 ArUco markers: [36 47 47 36 47 36 47 36 22]
+[INFO] [1773599078.105890314] [local_camera_perception_node]: Published block TF: block_36_0 @ (0.200, -0.129, 0.025)
+[INFO] [1773599078.117808158] [local_camera_perception_node]: Published block TF: block_47_0 @ (0.238, -0.137, 0.025)
+[INFO] [1773599078.130405668] [local_camera_perception_node]: Published block TF: block_47_1 @ (0.268, 0.053, 0.025)
+[INFO] [1773599078.138882321] [local_camera_perception_node]: Published block TF: block_36_1 @ (0.314, -0.398, 0.025)
+[INFO] [1773599078.147392915] [local_camera_perception_node]: Published block TF: block_47_2 @ (0.283, -0.145, 0.025)
+[INFO] [1773599078.155367518] [local_camera_perception_node]: Published block TF: block_36_2 @ (0.306, 0.046, 0.025)
+[INFO] [1773599078.164146192] [local_camera_perception_node]: Published block TF: block_47_3 @ (0.325, -0.149, 0.025)
+[INFO] [1773599078.172896931] [local_camera_perception_node]: Published block TF: block_36_3 @ (0.346, 0.042, 0.025)
+[INFO] [1773599078.252787872] [local_camera_perception_node]: Detected 9 ArUco markers: [36 47 47 36 47 36 47 36 22]
+[INFO] [1773599078.260905833] [local_camera_perception_node]: Published block TF: block_36_0 @ (0.200, -0.129, 0.025)
+[INFO] [1773599078.269544984] [local_camera_perception_node]: Published block TF: block_47_0 @ (0.238, -0.137, 0.025)
+[INFO] [1773599078.276920191] [local_camera_perception_node]: Published block TF: block_47_1 @ (0.268, 0.053, 0.025)
+[INFO] [1773599078.284925151] [local_camera_perception_node]: Published block TF: block_36_1 @ (0.314, -0.398, 0.025)
+[INFO] [1773599078.292538474] [local_camera_perception_node]: Published block TF: block_47_2 @ (0.283, -0.145, 0.025)
+[INFO] [1773599078.300181173] [local_camera_perception_node]: Published block TF: block_36_2 @ (0.306, 0.046, 0.025)
+[INFO] [1773599078.308584190] [local_camera_perception_node]: Published block TF: block_47_3 @ (0.325, -0.149, 0.025)
+[INFO] [1773599078.316376160] [local_camera_perception_node]: Published block TF: block_36_3 @ (0.346, 0.042, 0.025)
+[INFO] [1773599078.428144958] [local_camera_perception_node]: Detected 9 ArUco markers: [36 47 47 36 47 36 47 36 22]
+[INFO] [1773599078.436366354] [local_camera_perception_node]: Published block TF: block_36_0 @ (0.200, -0.129, 0.025)
+[INFO] [1773599078.443850590] [local_camera_perception_node]: Published block TF: block_47_0 @ (0.238, -0.137, 0.025)
+[INFO] [1773599078.451077895] [local_camera_perception_node]: Published block TF: block_47_1 @ (0.268, 0.053, 0.025)
+[INFO] [1773599078.458325403] [local_camera_perception_node]: Published block TF: block_36_1 @ (0.314, -0.398, 0.025)
+[INFO] [1773599078.466116680] [local_camera_perception_node]: Published block TF: block_47_2 @ (0.283, -0.145, 0.025)
+[INFO] [1773599078.473977223] [local_camera_perception_node]: Published block TF: block_36_2 @ (0.306, 0.046, 0.025)
+[INFO] [1773599078.483679299] [local_camera_perception_node]: Published block TF: block_47_3 @ (0.325, -0.149, 0.025)
+[INFO] [1773599078.492177042] [local_camera_perception_node]: Published block TF: block_36_3 @ (0.346, 0.042, 0.025)
+[INFO] [1773599078.597028824] [local_camera_perception_node]: Detected 9 ArUco markers: [36 47 47 36 47 36 47 36 22]
+[INFO] [1773599078.605113816] [local_camera_perception_node]: Published block TF: block_36_0 @ (0.199, -0.129, 0.025)
+[INFO] [1773599078.612995495] [local_camera_perception_node]: Published block TF: block_47_0 @ (0.238, -0.137, 0.025)
+[INFO] [1773599078.620461010] [local_camera_perception_node]: Published block TF: block_47_1 @ (0.268, 0.053, 0.025)
+[INFO] [1773599078.627341465] [local_camera_perception_node]: Published block TF: block_36_1 @ (0.314, -0.398, 0.025)
+[INFO] [1773599078.634252352] [local_camera_perception_node]: Published block TF: block_47_2 @ (0.283, -0.145, 0.025)
+[INFO] [1773599078.642745144] [local_camera_perception_node]: Published block TF: block_36_2 @ (0.307, 0.046, 0.025)
+[INFO] [1773599078.650342713] [local_camera_perception_node]: Published block TF: block_47_3 @ (0.325, -0.149, 0.025)
+[INFO] [1773599078.658099952] [local_camera_perception_node]: Published block TF: block_36_3 @ (0.346, 0.042, 0.025)
+[INFO] [1773599078.758219548] [local_camera_perception_node]: Detected 9 ArUco markers: [36 47 47 36 47 36 47 36 22]
+[INFO] [1773599078.765509760] [local_camera_perception_node]: Published block TF: block_36_0 @ (0.199, -0.129, 0.025)
+[INFO] [1773599078.771821183] [local_camera_perception_node]: Published block TF: block_47_0 @ (0.238, -0.137, 0.025)
+[INFO] [1773599078.779064361] [local_camera_perception_node]: Published block TF: block_47_1 @ (0.268, 0.053, 0.025)
+[INFO] [1773599078.786823191] [local_camera_perception_node]: Published block TF: block_36_1 @ (0.314, -0.398, 0.025)
+[INFO] [1773599078.794714705] [local_camera_perception_node]: Published block TF: block_47_2 @ (0.283, -0.145, 0.025)
+[INFO] [1773599078.802453841] [local_camera_perception_node]: Published block TF: block_36_2 @ (0.307, 0.046, 0.025)
+[INFO] [1773599078.810683102] [local_camera_perception_node]: Published block TF: block_47_3 @ (0.325, -0.149, 0.025)
+[INFO] [1773599078.818786072] [local_camera_perception_node]: Published block TF: block_36_3 @ (0.346, 0.042, 0.025)
+^CTraceback (most recent call last):
+  File "/home/pfe/PFE_Eurobot_2026/ws/install/pfe/lib/python3.12/site-packages/ros2_opencv/local_camera_perception.py", line 553, in main
+    rclpy.spin(node)
+  File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/__init__.py", line 247, in spin
+    executor.spin_once()
+  File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/executors.py", line 923, in spin_once
+    self._spin_once_impl(timeout_sec)
+  File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/executors.py", line 913, in _spin_once_impl
+    handler()
+  File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/task.py", line 270, in __call__
+    self._execute_coroutine_step(self._handler)
+  File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/task.py", line 286, in _execute_coroutine_step
+    result = coro.send(None)
+             ^^^^^^^^^^^^^^^
+  File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/executors.py", line 592, in handler
+    await call_coroutine()
+  File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/executors.py", line 454, in _execute
+    await await_or_execute(tmr.callback)
+  File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/executors.py", line 115, in await_or_execute
+    return callback(*args)
+           ^^^^^^^^^^^^^^^
+  File "/home/pfe/PFE_Eurobot_2026/ws/install/pfe/lib/python3.12/site-packages/ros2_opencv/local_camera_perception.py", line 382, in timer_callback
+    frame = cv2.resize(frame, (self.output_width, self.output_height), interpolation=cv2.INTER_CUBIC)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+KeyboardInterrupt
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/pfe/PFE_Eurobot_2026/ws/install/pfe/lib/pfe/local_camera_perception_node", line 33, in <module>
+    sys.exit(load_entry_point('pfe==0.0.0', 'console_scripts', 'local_camera_perception_node')())
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pfe/PFE_Eurobot_2026/ws/install/pfe/lib/python3.12/site-packages/ros2_opencv/local_camera_perception.py", line 561, in main
+    rclpy.shutdown()
+  File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/__init__.py", line 134, in shutdown
+    _shutdown(context=context)
+  File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/utilities.py", line 82, in shutdown
+    context.shutdown()
+  File "/opt/ros/jazzy/lib/python3.12/site-packages/rclpy/context.py", line 129, in shutdown
+    self.__context.shutdown()
+rclpy._rclpy_pybind11.RCLError: failed to shutdown: rcl_shutdown already called on the given context, at ./src/rcl/init.c:333
+[ros2run]: Process exited with failure 1
