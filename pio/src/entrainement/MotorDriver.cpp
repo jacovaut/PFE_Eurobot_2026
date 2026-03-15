@@ -25,7 +25,8 @@ void MotorDriver::begin(FastAccelStepperEngine &engine) {
     pinMode(dirPin, OUTPUT);
     digitalWrite(dirPin, HIGH);
 
-    stepper = engine.stepperConnectToPin(stepPin);
+    // Use RMT driver instead of MCPWM/PCNT to avoid conflicts with ESP32Encoder
+    stepper = engine.stepperConnectToPin(stepPin, DRIVER_RMT);
     if (!stepper) return;
 
     stepper->setDirectionPin(dirPin);
