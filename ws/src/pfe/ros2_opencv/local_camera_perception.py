@@ -302,7 +302,7 @@ class LocalCameraPerceptionNode(Node):
                 ref_frame,
                 camera_frame,
                 self.get_clock().now(),
-                timeout=Duration(seconds=0.2),
+                timeout=rclpy.duration.Duration(seconds=0.2),  # qualify Duration
             ):
                 self.get_logger().warn(
                     "TF not ready: base_link -> arducam_optical_frame (skipping block TF)"
@@ -313,7 +313,7 @@ class LocalCameraPerceptionNode(Node):
                 ref_frame,
                 camera_frame,
                 self.get_clock().now(),
-                timeout=Duration(seconds=0.2),
+                timeout=rclpy.duration.Duration(seconds=0.2),
             )
 
             t = tf_cam_to_base.transform.translation
