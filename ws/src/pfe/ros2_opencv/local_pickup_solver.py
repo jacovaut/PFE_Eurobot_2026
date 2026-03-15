@@ -156,6 +156,7 @@ class CupBlockAligner(Node):
 
         self.locked = False
         self.locked_signature = None
+        self.locked_assignments = None  # Add this
         self.pickup_state = "idle"  # idle / moving / arrived / picking / done
         self.pickup_timer = None
 
@@ -583,14 +584,22 @@ class CupBlockAligner(Node):
         if s == "arrived":
             self.get_logger().info("pickup_state: arrived")
             self.pickup_state = "arrived"
+            # Publish the block queue now that robot is at pickup location
+            if self.locked and self.locked_assignments is not None:
+                self.publish_block_queue(self.locked_assignments)
+                self.get_logger().info("PUBLISHED block queue after arrived")
         elif s == "done":
             self.get_logger().info("pickup_state: done")
             self.pickup_state = "done"
             self.locked = False
+            self.locked_signature = None
+            self.locked_assignments = None  # Clear
         elif s == "reset":
             self.get_logger().info("pickup_state: reset")
             self.locked = False
             self.pickup_state = "idle"
+            self.locked_signature = None
+            self.locked_assignments = None
 
     
     def publish_block_queue(self, assignments: List[Tuple[str, str, float]]):
@@ -745,10 +754,10 @@ class CupBlockAligner(Node):
             if ready and not self.locked:
                 self.locked = True
                 self.locked_signature = assignment_signature
+                self.locked_assignments = best_assignments  # Add this
                 self.pickup_state = "moving"
-                self.publish_block_queue(best_assignments)
                 self.publish_pickup_goal(best_dx, best_dy, yaw_deg, best_assignments)
-                self.get_logger().info("PUBLISHED pickup goal + queue, locking until done")
+                self.get_logger().info("PUBLISHED pickup goal, locking until done")
 
                 # Log the locked assignments
                 locked_assign_str = ", ".join(
