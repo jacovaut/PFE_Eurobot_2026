@@ -33,5 +33,6 @@ def generate_launch_description():
             name='ekf_global_node',
             output='screen',
             parameters=[ekf2_config],
+            remappings=[('/odometry/filtered', '/odometry/global')]
         )
     ])
