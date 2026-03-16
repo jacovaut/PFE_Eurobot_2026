@@ -5,21 +5,35 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(tf2 REQUIRED)
+find_package(OpenCV REQUIRED)
 
-add_executable(fake_camera_localization_node src/fake_camera_localization_node.cpp)
+add_executable(camera_localization_node
+  src/camera_localization_node.cpp
+)
 
-ament_target_dependencies(fake_camera_localization_node
+ament_target_dependencies(camera_localization_node
   rclcpp
   geometry_msgs
   tf2
 )
 
+target_include_directories(camera_localization_node PRIVATE
+  ${OpenCV_INCLUDE_DIRS}
+)
+
+target_link_libraries(camera_localization_node
+  ${OpenCV_LIBS}
+)
+
 install(TARGETS
-  fake_camera_localization_node
+  camera_localization_node
   DESTINATION lib/${PROJECT_NAME}
 )
 
