@@ -37,3 +37,6 @@ __pycache__/
 *.log
 
 .venv/
+
+# Ydlidar Builds
+src/YDLidar-SDK/build/
