@@ -169,19 +169,19 @@ private:
 
   void initDetector()
   {
-    detector_params_ = cv::aruco::DetectorParameters();
-    detector_params_.perspectiveRemovePixelPerCell = 8;
-    detector_params_.adaptiveThreshWinSizeMin = 3;
-    detector_params_.adaptiveThreshWinSizeMax = 23;
-    detector_params_.adaptiveThreshWinSizeStep = 3;
-    detector_params_.adaptiveThreshConstant = 7;
-    detector_params_.minMarkerPerimeterRate = 0.005;
-    detector_params_.maxMarkerPerimeterRate = 4.0;
-    detector_params_.errorCorrectionRate = 0.2f;
-    detector_params_.cornerRefinementMethod = cv::aruco::CORNER_REFINE_SUBPIX;
+    detector_params_ = cv::aruco::DetectorParameters::create();
+
+    detector_params_->perspectiveRemovePixelPerCell = 8;
+    detector_params_->adaptiveThreshWinSizeMin = 3;
+    detector_params_->adaptiveThreshWinSizeMax = 23;
+    detector_params_->adaptiveThreshWinSizeStep = 3;
+    detector_params_->adaptiveThreshConstant = 7;
+    detector_params_->minMarkerPerimeterRate = 0.005;
+    detector_params_->maxMarkerPerimeterRate = 4.0;
+    detector_params_->errorCorrectionRate = 0.2f;
+    detector_params_->cornerRefinementMethod = cv::aruco::CORNER_REFINE_SUBPIX;
 
     dictionary_ = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_4X4_50);
-    detector_ = cv::aruco::ArucoDetector(dictionary_, detector_params_);
   }
 
   void cameraTick()
@@ -203,7 +203,7 @@ private:
     std::vector<int> ids;
     std::vector<std::vector<cv::Point2f>> corners;
     std::vector<std::vector<cv::Point2f>> rejected;
-    detector_.detectMarkers(gray, corners, ids, rejected);
+    cv::aruco::detectMarkers(gray, dictionary_, corners, ids, detector_params_, rejected);
 
     cv::Mat debug_image;
     if (debug_view_) {
@@ -525,9 +525,8 @@ private:
   cv::Mat dist_coeffs_;
 
   // ArUco
-  cv::aruco::DetectorParameters detector_params_;
-  cv::aruco::Dictionary dictionary_;
-  cv::aruco::ArucoDetector detector_;
+  cv::Ptr<cv::aruco::Dictionary> dictionary_;
+  cv::Ptr<cv::aruco::DetectorParameters> detector_params_;
 
   // Marker geometry
   cv::Mat obj_points_table_;
