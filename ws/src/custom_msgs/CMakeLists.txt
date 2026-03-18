@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(deadwheel_msgs)
+project(custom_msgs)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
@@ -13,6 +13,7 @@ find_package(builtin_interfaces REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/DeadwheelTicks.msg"
+  "msg/Blocks.msg"
   DEPENDENCIES std_msgs builtin_interfaces
 )
 
