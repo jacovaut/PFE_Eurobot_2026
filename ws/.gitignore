@@ -1,39 +1,43 @@
-# VS Code
+# Editors
 .vscode/
 .vscode-server/
+.idea/
 
-# ROS build artifacts
-# ROS 2 colcon build artifacts
+# ROS 2 / colcon build artifacts
+build/
+install/
+log/
 src/build/
 src/install/
 src/log/
-build
-install
-log
-# OS / system stuff
-.DS_Store
-Thumbs.db
 
-# Git / GPG
-.gnupg/
-.github
+# External SDK checkout
+src/YDLidar-SDK/
 
-# .NET
-.dotnet/
+# PlatformIO build artifacts
+.pio/
+.pioenvs/
+.piolibdeps/
 
-# Caches
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Generated metadata / caches
 .cache/
+compile_commands.json
 
-# Logs
+# Logs and temp files
 *.log
-
-# Ignore any temporary files
 *.swp
 *~
 
-# ROS-specific ignores
-*.pyc
-__pycache__/
-*.log
+# OS / system files
+.DS_Store
+Thumbs.db
 
-.venv/
+# Misc local-only directories
+.gnupg/
+.github/
+.dotnet/
