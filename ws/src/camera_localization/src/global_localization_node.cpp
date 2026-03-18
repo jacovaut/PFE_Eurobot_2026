@@ -12,6 +12,7 @@
 #include <unordered_set>
 #include <vector>
 #include <stdexcept>
+#include <ament_index_cpp/get_package_share_directory.hpp>
 
 class CameraLocalizationNode : public rclcpp::Node
 {
@@ -22,14 +23,21 @@ public:
     // ----------------------------
     // Parameters
     // ----------------------------
-    device_ = declare_parameter<std::string>("device", "/dev/eurobot2026-ELPcamera");
+    // Camera device: prefer a by-id path for stability, fall back to index.
+    // Pass --ros-args -p camera_path:=/dev/video4  OR  -p camera_index:=4
+    const auto camera_path  = declare_parameter<std::string>("camera_path", "");
+    const auto camera_index = declare_parameter<int>("camera_index", 4);
+    device_ = camera_path.empty() ? "/dev/video" + std::to_string(camera_index) : camera_path;
+
     width_ = declare_parameter<int>("width", 3840);
     height_ = declare_parameter<int>("height", 2160);
     fps_ = declare_parameter<int>("fps", 30);
     fourcc_ = declare_parameter<std::string>("fourcc", "MJPG");
-    calibration_file_ = declare_parameter<std::string>(
-      "calibration_file",
-      "camera_calibration/real/3840_2160_ELM12MP.yml");
+
+    // Calibration file: default resolves automatically from the installed pfe share dir.
+    const auto calib_default = ament_index_cpp::get_package_share_directory("pfe")
+      + "/camera_calibration/3840_2160_ELM12MP.yml";
+    calibration_file_ = declare_parameter<std::string>("calibration_file", calib_default);
 
     map_frame_ = declare_parameter<std::string>("map_frame", "map");
     pose_topic_ = declare_parameter<std::string>("pose_topic", "/camera/global_pose");

@@ -2,13 +2,7 @@
 	path = ws/src/micro_ros_setup
 	url = https://github.com/micro-ROS/micro_ros_setup.git
 	branch = jazzy
-[submodule "ws/YDLidar-SDK"]
-	path = ws/YDLidar-SDK
-	url = https://github.com/YDLIDAR/YDLidar-SDK
 [submodule "ws/src/YDLidar-SDK"]
 	path = ws/src/YDLidar-SDK
 	url = https://github.com/YDLIDAR/YDLidar-SDK
-[submodule "ws/src/ydlidar_ros2_driver"]
-	path = ws/src/ydlidar_ros2_driver
-	url = https://github.com/YDLIDAR/ydlidar_ros2_driver.git
-	branch = jazzy
+	ignore = dirty
