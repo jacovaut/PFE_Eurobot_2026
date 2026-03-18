@@ -118,12 +118,25 @@ class LocalCameraPerceptionNode(Node):
         super().__init__('local_camera_perception_node')
 
         # ---------- Camera ----------
-        self.cameraDeviceNumber = 0
-        self.camera = cv2.VideoCapture(self.cameraDeviceNumber)
+        self.declare_parameter('camera_device', 4) # Place proper camera device number here (check with v4l2-ctl --list-devices)
+        self.declare_parameter('camera_path', '')
+        self.declare_parameter('show_debug_window', True)
+
+        self.cameraDeviceNumber = int(self.get_parameter('camera_device').value)
+        self.camera_path = str(self.get_parameter('camera_path').value).strip()
+        self.show_debug_window = bool(self.get_parameter('show_debug_window').value)
+
+        camera_source = self.camera_path if self.camera_path else self.cameraDeviceNumber
+        self.camera = cv2.VideoCapture(camera_source, cv2.CAP_V4L2)
+        if not self.camera.isOpened():
+            self.camera = cv2.VideoCapture(camera_source)
 
         if not self.camera.isOpened():
-            self.get_logger().error(f"Could not open camera index {self.cameraDeviceNumber}")
+            self.get_logger().error(f"Could not open camera source {camera_source}")
             raise RuntimeError("Camera open failed")
+
+        self.get_logger().info(f"Using camera source: {camera_source}")
+        self.get_logger().info(f"Debug preview window enabled: {self.show_debug_window}")
 
         # Keep this consistent with your current setup
         self.output_width = 1280
@@ -381,7 +394,18 @@ class LocalCameraPerceptionNode(Node):
 
         frame = cv2.resize(frame, (self.output_width, self.output_height), interpolation=cv2.INTER_CUBIC)
 
-        gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        if frame.ndim == 2:
+            gray_frame = frame
+            display_frame = cv2.cvtColor(gray_frame, cv2.COLOR_GRAY2BGR)
+        elif frame.ndim == 3 and frame.shape[2] == 1:
+            gray_frame = frame[:, :, 0]
+            display_frame = cv2.cvtColor(gray_frame, cv2.COLOR_GRAY2BGR)
+        elif frame.ndim == 3 and frame.shape[2] >= 3:
+            gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            display_frame = frame
+        else:
+            self.get_logger().warn(f"Unsupported frame shape from camera: {frame.shape}")
+            return
 
         # Optional image publish
         ros_img = self.bridge.cv2_to_imgmsg(gray_frame, encoding="mono8")
@@ -399,7 +423,7 @@ class LocalCameraPerceptionNode(Node):
 
         if ids is not None and len(ids) > 0:
             self.get_logger().info(f"Detected {len(ids)} ArUco markers: {ids.flatten()}")
-            cv2.aruco.drawDetectedMarkers(frame, corners, ids)
+            cv2.aruco.drawDetectedMarkers(display_frame, corners, ids)
 
             for i, marker_id in enumerate(ids.flatten()):
                 mid = int(marker_id)
@@ -454,7 +478,7 @@ class LocalCameraPerceptionNode(Node):
                 self._compute_and_publish_clean_block_tf(track, stamp)
 
                 cv2.drawFrameAxes(
-                    frame,
+                    display_frame,
                     self.camera_matrix,
                     self.dist_coeffs,
                     rvec,
@@ -467,7 +491,7 @@ class LocalCameraPerceptionNode(Node):
                 corner = corners[i][0][0]  # top-left corner of the marker
                 pos = (int(corner[0]), int(corner[1]) - 10)  # slightly above marker
                 cv2.putText(
-                    frame,
+                    display_frame,
                     label,
                     pos,
                     cv2.FONT_HERSHEY_SIMPLEX,
@@ -539,8 +563,9 @@ class LocalCameraPerceptionNode(Node):
         self.pub_blocks.publish(msg)
 
         # Debug view
-        cv2.imshow("Merged Camera + Tracking", frame)
-        cv2.waitKey(1)
+        if self.show_debug_window:
+            cv2.imshow("Merged Camera + Tracking", display_frame)
+            cv2.waitKey(1)
 
 
 # ===========================================================
