@@ -18,15 +18,15 @@ class CameraLocalizationNode : public rclcpp::Node
 {
 public:
   CameraLocalizationNode()
-  : Node("camera_localization_node")
+  : Node("global_localization_node")
   {
     // ----------------------------
     // Parameters
     // ----------------------------
     // Camera device: prefer a by-id path for stability, fall back to index.
-    // Pass --ros-args -p camera_path:=/dev/video4  OR  -p camera_index:=4
+    // Pass --ros-args -p camera_path:=/dev/video2  OR  -p camera_index:=2
     const auto camera_path  = declare_parameter<std::string>("camera_path", "");
-    const auto camera_index = declare_parameter<int>("camera_index", 4);
+    const auto camera_index = declare_parameter<int>("camera_index", 0);
     device_ = camera_path.empty() ? "/dev/video" + std::to_string(camera_index) : camera_path;
 
     width_ = declare_parameter<int>("width", 3840);
@@ -86,7 +86,7 @@ public:
       std::chrono::milliseconds(period_ms),
       std::bind(&CameraLocalizationNode::cameraTick, this));
 
-    RCLCPP_INFO(get_logger(), "camera_localization_node started");
+    RCLCPP_INFO(get_logger(), "global_localization_node started");
     RCLCPP_INFO(get_logger(), "Publishing global pose on %s", pose_topic_.c_str());
   }
 
