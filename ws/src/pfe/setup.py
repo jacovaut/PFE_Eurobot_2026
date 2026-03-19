@@ -41,6 +41,7 @@ setup(
             'csi_camera_publisher_node = ros2_opencv.csi_camera_publisher:main',
             'local_camera_perception_node = ros2_opencv.local_camera_perception:main',
             'local_pickup_solver_node = ros2_opencv.local_pickup_solver:main',
+            'cluster_analyze_node = pfe.strategy.clusterAnalyze:main',
         ],
     },
 )

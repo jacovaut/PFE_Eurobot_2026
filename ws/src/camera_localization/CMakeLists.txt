@@ -11,6 +11,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(std_msgs REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(ament_index_cpp REQUIRED)
@@ -22,6 +23,7 @@ add_executable(global_localization_node
 ament_target_dependencies(global_localization_node
   rclcpp
   geometry_msgs
+  std_msgs
   tf2
   ament_index_cpp
 )

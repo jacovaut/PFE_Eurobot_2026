@@ -1,5 +1,6 @@
 #include <rclcpp/rclcpp.hpp>
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
+#include <std_msgs/msg/string.hpp>
 #include <opencv2/opencv.hpp>
 #include <opencv2/aruco.hpp>
 #include <opencv2/calib3d.hpp>
@@ -13,6 +14,8 @@
 #include <unordered_set>
 #include <vector>
 #include <stdexcept>
+#include <sstream>
+#include <iomanip>
 #include <ament_index_cpp/get_package_share_directory.hpp>
 
 class CameraLocalizationNode : public rclcpp::Node
@@ -42,12 +45,35 @@ public:
 
     map_frame_ = declare_parameter<std::string>("map_frame", "map");
     pose_topic_ = declare_parameter<std::string>("pose_topic", "/camera/global_pose");
+    detected_blocks_topic_ = declare_parameter<std::string>("detected_blocks_topic", "/detected_blocks");
     debug_view_ = declare_parameter<bool>("debug_view", true);
 
     // Marker IDs / sizes
     robot_marker_id_ = declare_parameter<int>("robot_marker_id", 7);
     table_marker_length_m_ = declare_parameter<double>("table_marker_length_m", 0.10);
     robot_marker_length_m_ = declare_parameter<double>("robot_marker_length_m", 0.07);
+    block_marker_length_m_ = declare_parameter<double>("block_marker_length_m", 0.03);
+    block_size_x_m_ = declare_parameter<double>("block_size_x_m", 0.15);
+    block_size_y_m_ = declare_parameter<double>("block_size_y_m", 0.05);
+    block_center_z_m_ = declare_parameter<double>("block_center_z_m", 0.03);
+
+    const auto block_marker_ids =
+      declare_parameter<std::vector<int64_t>>("block_marker_ids", std::vector<int64_t>{36, 47});
+    const auto block_marker_colors =
+      declare_parameter<std::vector<std::string>>("block_marker_colors", std::vector<std::string>{"bleu", "jaune"});
+
+    if (block_marker_ids.size() != block_marker_colors.size()) {
+      throw std::runtime_error(
+              "block_marker_ids and block_marker_colors must have the same size");
+    }
+
+    block_ids_.clear();
+    block_color_by_id_.clear();
+    for (std::size_t i = 0; i < block_marker_ids.size(); ++i) {
+      const int id = static_cast<int>(block_marker_ids[i]);
+      block_ids_.insert(id);
+      block_color_by_id_[id] = block_marker_colors[i];
+    }
 
     // Fixed transform from robot marker frame to base_link frame.
     // Expressed in the MARKER frame.
@@ -68,6 +94,8 @@ public:
     // ----------------------------
     pose_pub_ = create_publisher<geometry_msgs::msg::PoseWithCovarianceStamped>(
       pose_topic_, 10);
+    detected_blocks_pub_ = create_publisher<std_msgs::msg::String>(
+      detected_blocks_topic_, 10);
 
     // ----------------------------
     // Camera
@@ -103,6 +131,17 @@ private:
   {
     cv::Matx33d R_global_marker;
     cv::Vec3d t_global_marker;
+  };
+
+  struct DetectedEntity
+  {
+    int marker_id{0};
+    std::string color;
+    cv::Vec3d position_map{0.0, 0.0, 0.0};
+    double yaw_rad{0.0};
+    double size_x_m{0.0};
+    double size_y_m{0.0};
+    bool is_dynamic{true};
   };
 
   void openCamera()
@@ -152,6 +191,7 @@ private:
   {
     obj_points_table_ = makeSquareObjectPoints(table_marker_length_m_);
     obj_points_robot_ = makeSquareObjectPoints(robot_marker_length_m_);
+    obj_points_block_ = makeSquareObjectPoints(block_marker_length_m_);
   }
 
   cv::Mat makeSquareObjectPoints(double side_m) const
@@ -273,6 +313,7 @@ private:
     }
 
     if (ids.empty()) {
+      publishDetectedEntities({});
       showDebug(debug_image);
       return;
     }
@@ -308,6 +349,7 @@ private:
       RCLCPP_WARN_THROTTLE(
         get_logger(), *get_clock(), 2000,
         "Not enough table markers for camera pose");
+      publishDetectedEntities({});
       showDebug(debug_image);
       return;
     }
@@ -333,6 +375,7 @@ private:
     if (!ok_camera) {
       have_camera_pose_guess_ = false;
       RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 2000, "Camera solvePnP failed");
+      publishDetectedEntities({});
       showDebug(debug_image);
       return;
     }
@@ -349,6 +392,33 @@ private:
     const cv::Matx33d R_map_camera = R_camera_map.t();
     const cv::Vec3d t_map_camera = -(R_map_camera * tvec_camera_map);
 
+    std::vector<DetectedEntity> detected_entities;
+    detected_entities.reserve(ids.size());
+
+    for (size_t i = 0; i < ids.size(); ++i) {
+      const int id = ids[i];
+      if (!block_ids_.count(id)) {
+        continue;
+      }
+
+      cv::Matx33d R_map_block;
+      cv::Vec3d t_map_block;
+      if (!estimateMarkerPoseInMap(
+            obj_points_block_, corners[i], R_map_camera, t_map_camera, R_map_block, t_map_block)) {
+        continue;
+      }
+
+      DetectedEntity e;
+      e.marker_id = id;
+      e.color = block_color_by_id_[id];
+      e.position_map = cv::Vec3d(t_map_block[0], t_map_block[1], block_center_z_m_);
+      e.yaw_rad = std::atan2(R_map_block(1, 0), R_map_block(0, 0));
+      e.size_x_m = block_size_x_m_;
+      e.size_y_m = block_size_y_m_;
+      e.is_dynamic = true;
+      detected_entities.push_back(e);
+    }
+
     // -------------------------------------------------------
     // Step 2: Find OUR robot marker
     // -------------------------------------------------------
@@ -364,6 +434,7 @@ private:
       RCLCPP_WARN_THROTTLE(
         get_logger(), *get_clock(), 1000,
         "Robot marker ID %d not visible", robot_marker_id_);
+      publishDetectedEntities(detected_entities);
       showDebug(debug_image);
       return;
     }
@@ -385,6 +456,7 @@ private:
 
     if (!ok_robot) {
       RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 1000, "Robot marker solvePnP failed");
+      publishDetectedEntities(detected_entities);
       showDebug(debug_image);
       return;
     }
@@ -416,7 +488,18 @@ private:
     // Extract planar yaw in ROS ENU map frame
     const double yaw_map_base = std::atan2(R_map_base(1, 0), R_map_base(0, 0));
 
+    DetectedEntity robot_entity;
+    robot_entity.marker_id = robot_marker_id_;
+    robot_entity.color = "robot";
+    robot_entity.position_map = cv::Vec3d(t_map_base[0], t_map_base[1], t_map_base[2]);
+    robot_entity.yaw_rad = yaw_map_base;
+    robot_entity.size_x_m = 0.0;
+    robot_entity.size_y_m = 0.0;
+    robot_entity.is_dynamic = true;
+    detected_entities.push_back(robot_entity);
+
     publishPose(t_map_base, yaw_map_base);
+    publishDetectedEntities(detected_entities);
 
     if (debug_view_) {
       drawAxes(debug_image, rvec_camera_map, tvec_camera_map, 0.25f);
@@ -432,6 +515,86 @@ private:
     }
 
     showDebug(debug_image);
+  }
+
+  bool estimateMarkerPoseInMap(
+    const cv::Mat &obj_points,
+    const std::vector<cv::Point2f> &img_corners,
+    const cv::Matx33d &R_map_camera,
+    const cv::Vec3d &t_map_camera,
+    cv::Matx33d &R_map_marker,
+    cv::Vec3d &t_map_marker) const
+  {
+    cv::Vec3d rvec_camera_marker;
+    cv::Vec3d tvec_camera_marker;
+    const bool ok = cv::solvePnP(
+      obj_points,
+      img_corners,
+      camera_matrix_,
+      dist_coeffs_,
+      rvec_camera_marker,
+      tvec_camera_marker,
+      false,
+      cv::SOLVEPNP_IPPE_SQUARE);
+
+    if (!ok) {
+      return false;
+    }
+
+    cv::Mat Rcv_camera_marker;
+    cv::Rodrigues(rvec_camera_marker, Rcv_camera_marker);
+    const cv::Matx33d R_camera_marker(Rcv_camera_marker);
+
+    R_map_marker = R_map_camera * R_camera_marker;
+    t_map_marker = R_map_camera * tvec_camera_marker + t_map_camera;
+    return true;
+  }
+
+  static std::string jsonEscape(const std::string &value)
+  {
+    std::string escaped;
+    escaped.reserve(value.size());
+    for (char c : value) {
+      if (c == '"' || c == '\\') {
+        escaped.push_back('\\');
+      }
+      escaped.push_back(c);
+    }
+    return escaped;
+  }
+
+  void publishDetectedEntities(const std::vector<DetectedEntity> &entities)
+  {
+    std::ostringstream ss;
+    ss << std::fixed << std::setprecision(6) << "[";
+
+    for (std::size_t i = 0; i < entities.size(); ++i) {
+      const auto &e = entities[i];
+      if (i > 0) {
+        ss << ",";
+      }
+
+      const double angle_z_deg = e.yaw_rad * 180.0 / M_PI;
+
+      ss << "{";
+      ss << "\"marker_id\":" << e.marker_id << ",";
+      ss << "\"color\":\"" << jsonEscape(e.color) << "\",";
+      ss << "\"x\":" << e.position_map[0] << ",";
+      ss << "\"y\":" << e.position_map[1] << ",";
+      ss << "\"z\":" << e.position_map[2] << ",";
+      ss << "\"yaw\":" << e.yaw_rad << ",";
+      ss << "\"angle_z_deg\":" << angle_z_deg << ",";
+      ss << "\"size_x_m\":" << e.size_x_m << ",";
+      ss << "\"size_y_m\":" << e.size_y_m << ",";
+      ss << "\"dynamic\":" << (e.is_dynamic ? "true" : "false");
+      ss << "}";
+    }
+
+    ss << "]";
+
+    std_msgs::msg::String msg;
+    msg.data = ss.str();
+    detected_blocks_pub_->publish(msg);
   }
 
   cv::Matx33d rotationZ(double yaw) const
@@ -576,6 +739,7 @@ private:
 
   // ROS
   rclcpp::Publisher<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr pose_pub_;
+  rclcpp::Publisher<std_msgs::msg::String>::SharedPtr detected_blocks_pub_;
   rclcpp::TimerBase::SharedPtr timer_;
 
   // Camera / calibration
@@ -590,9 +754,12 @@ private:
   // Marker geometry
   cv::Mat obj_points_table_;
   cv::Mat obj_points_robot_;
+  cv::Mat obj_points_block_;
 
   // Known map markers
   std::unordered_set<int> table_ids_;
+  std::unordered_set<int> block_ids_;
+  std::unordered_map<int, std::string> block_color_by_id_;
   std::unordered_map<int, PoseGlobal> table_pose_global_;
 
   // Camera pose guess for faster/stabler solvePnP
@@ -606,6 +773,7 @@ private:
   std::string calibration_file_;
   std::string map_frame_;
   std::string pose_topic_;
+  std::string detected_blocks_topic_;
   int width_{0};
   int height_{0};
   int fps_{30};
@@ -616,6 +784,10 @@ private:
 
   double table_marker_length_m_{0.10};
   double robot_marker_length_m_{0.07};
+  double block_marker_length_m_{0.03};
+  double block_size_x_m_{0.15};
+  double block_size_y_m_{0.05};
+  double block_center_z_m_{0.03};
 
   double marker_to_base_x_{0.0};
   double marker_to_base_y_{0.0};

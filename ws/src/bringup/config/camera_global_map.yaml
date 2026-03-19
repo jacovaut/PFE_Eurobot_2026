@@ -11,11 +11,18 @@ global_localization_node:
     # Frames / topics
     map_frame: "map"
     pose_topic: "/camera/global_pose"
+    detected_blocks_topic: "/detected_blocks"
 
     # Marker setup
     robot_marker_id: 7
     table_marker_length_m: 0.10
     robot_marker_length_m: 0.07
+    block_marker_length_m: 0.03
+    block_marker_ids: [36, 47]
+    block_marker_colors: ["bleu", "jaune"]
+    block_size_x_m: 0.15
+    block_size_y_m: 0.05
+    block_center_z_m: 0.03
     min_table_markers: 1
 
     # Marker -> base_link transform (in marker frame)
@@ -40,3 +47,23 @@ global_localization_node:
     table_marker_y_m: [1.4, 1.4, 0.6, 0.6]
     table_marker_z_m: [0.0, 0.0, 0.0, 0.0]
     table_marker_yaw_rad: [0.0, 0.0, 0.0, 0.0]
+
+    # -----------------------------
+    # Zones de score (fixes, map frame)
+    # -----------------------------
+    # Nids (zones d'equipe), dimensions: 600 x 450 mm
+    nids_noms: ["nid_jaune", "nid_bleu"]
+    nids_centre_x_m: [0.300, 2.700]
+    nids_centre_y_m: [1.775, 1.775]
+    nids_taille_x_m: [0.600, 0.600]
+    nids_taille_y_m: [0.450, 0.450]
+
+    # Garde-manger (zones communes), dimensions: 200 x 200 mm
+    garde_manger_noms: [
+      "garde_manger_1", "garde_manger_2", "garde_manger_3", "garde_manger_4",
+      "garde_manger_5", "garde_manger_6", "garde_manger_7", "garde_manger_8"
+    ]
+    garde_manger_centre_x_m: [0.700, 1.500, 2.300, 2.200, 1.500, 0.800, 1.750, 1.250]
+    garde_manger_centre_y_m: [0.100, 0.100, 0.100, 0.800, 0.800, 0.800, 1.450, 1.450]
+    garde_manger_taille_x_m: [0.200, 0.200, 0.200, 0.200, 0.200, 0.200, 0.200, 0.200]
+    garde_manger_taille_y_m: [0.200, 0.200, 0.200, 0.200, 0.200, 0.200, 0.200, 0.200]
