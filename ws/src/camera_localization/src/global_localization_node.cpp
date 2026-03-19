@@ -6,6 +6,7 @@
 #include <tf2/LinearMath/Quaternion.h>
 
 #include <array>
+#include <cstdint>
 #include <cmath>
 #include <string>
 #include <unordered_map>
@@ -18,13 +19,13 @@ class CameraLocalizationNode : public rclcpp::Node
 {
 public:
   CameraLocalizationNode()
-  : Node("camera_localization_node")
+  : Node("global_localization_node")
   {
     // ----------------------------
     // Parameters
     // ----------------------------
     // Camera device: prefer a by-id path for stability, fall back to index.
-    // Pass --ros-args -p camera_path:=/dev/video4  OR  -p camera_index:=4
+    // Pass --ros-args -p camera_path:=/dev/video2  OR  -p camera_index:=2
     const auto camera_path  = declare_parameter<std::string>("camera_path", "");
     const auto camera_index = declare_parameter<int>("camera_index", 4);
     device_ = camera_path.empty() ? "/dev/video" + std::to_string(camera_index) : camera_path;
@@ -44,7 +45,7 @@ public:
     debug_view_ = declare_parameter<bool>("debug_view", true);
 
     // Marker IDs / sizes
-    robot_marker_id_ = declare_parameter<int>("robot_marker_id", 1);
+    robot_marker_id_ = declare_parameter<int>("robot_marker_id", 7);
     table_marker_length_m_ = declare_parameter<double>("table_marker_length_m", 0.10);
     robot_marker_length_m_ = declare_parameter<double>("robot_marker_length_m", 0.07);
 
@@ -86,7 +87,7 @@ public:
       std::chrono::milliseconds(period_ms),
       std::bind(&CameraLocalizationNode::cameraTick, this));
 
-    RCLCPP_INFO(get_logger(), "camera_localization_node started");
+    RCLCPP_INFO(get_logger(), "global_localization_node started");
     RCLCPP_INFO(get_logger(), "Publishing global pose on %s", pose_topic_.c_str());
   }
 
@@ -165,14 +166,64 @@ private:
 
   void initTableMarkerMap()
   {
-    table_ids_ = {20, 21, 22, 23};
+    const auto marker_ids =
+      declare_parameter<std::vector<int64_t>>("table_marker_ids", std::vector<int64_t>{});
+    const auto marker_x_m =
+      declare_parameter<std::vector<double>>("table_marker_x_m", std::vector<double>{});
+    const auto marker_y_m =
+      declare_parameter<std::vector<double>>("table_marker_y_m", std::vector<double>{});
+    const auto marker_z_m =
+      declare_parameter<std::vector<double>>("table_marker_z_m", std::vector<double>{});
+    const auto marker_yaw_rad =
+      declare_parameter<std::vector<double>>("table_marker_yaw_rad", std::vector<double>{});
 
-    // Assumes marker axes are aligned with map axes.
-    const auto R_identity = cv::Matx33d::eye();
-    table_pose_global_[20] = PoseGlobal{R_identity, cv::Vec3d(0.6, 1.4, 0.0)};
-    table_pose_global_[21] = PoseGlobal{R_identity, cv::Vec3d(2.4, 1.4, 0.0)};
-    table_pose_global_[22] = PoseGlobal{R_identity, cv::Vec3d(0.6, 0.6, 0.0)};
-    table_pose_global_[23] = PoseGlobal{R_identity, cv::Vec3d(2.4, 0.6, 0.0)};
+    table_ids_.clear();
+    table_pose_global_.clear();
+
+    if (marker_ids.empty()) {
+      RCLCPP_WARN(
+        get_logger(),
+        "No table_marker_ids provided; using built-in default table marker map");
+
+      // Assumes marker axes are aligned with map axes.
+      const auto R_identity = cv::Matx33d::eye();
+      table_ids_ = {20, 21, 22, 23};
+      table_pose_global_[20] = PoseGlobal{R_identity, cv::Vec3d(0.6, 1.4, 0.0)};
+      table_pose_global_[21] = PoseGlobal{R_identity, cv::Vec3d(2.4, 1.4, 0.0)};
+      table_pose_global_[22] = PoseGlobal{R_identity, cv::Vec3d(0.6, 0.6, 0.0)};
+      table_pose_global_[23] = PoseGlobal{R_identity, cv::Vec3d(2.4, 0.6, 0.0)};
+      return;
+    }
+
+    const std::size_t count = marker_ids.size();
+    if (marker_x_m.size() != count || marker_y_m.size() != count) {
+      throw std::runtime_error(
+              "table_marker_x_m and table_marker_y_m must have the same size as table_marker_ids");
+    }
+
+    if (!marker_z_m.empty() && marker_z_m.size() != count) {
+      throw std::runtime_error(
+              "table_marker_z_m must be empty or have the same size as table_marker_ids");
+    }
+
+    if (!marker_yaw_rad.empty() && marker_yaw_rad.size() != count) {
+      throw std::runtime_error(
+              "table_marker_yaw_rad must be empty or have the same size as table_marker_ids");
+    }
+
+    for (std::size_t i = 0; i < count; ++i) {
+      const int id = static_cast<int>(marker_ids[i]);
+      const double z = marker_z_m.empty() ? 0.0 : marker_z_m[i];
+      const double yaw = marker_yaw_rad.empty() ? 0.0 : marker_yaw_rad[i];
+
+      table_ids_.insert(id);
+      table_pose_global_[id] = PoseGlobal{
+        rotationZ(yaw),
+        cv::Vec3d(marker_x_m[i], marker_y_m[i], z)
+      };
+    }
+
+    RCLCPP_INFO(get_logger(), "Loaded %zu table markers from parameters", table_ids_.size());
   }
 
   void initDetector()
