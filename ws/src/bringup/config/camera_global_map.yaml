@@ -1,7 +1,7 @@
 global_localization_node:
   ros__parameters:
     # Camera and detection settings
-    camera_index: 4 ###CHANGES!!!! IF NEEDED
+    camera_index: 0 ###CHANGE IF NEEDED, command for cameras: v4l2-ctl --list-devices
     width: 3840
     height: 2160
     fps: 30

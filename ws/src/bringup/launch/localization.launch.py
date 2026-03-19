@@ -19,7 +19,7 @@ def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument(
             'use_camera_global_localization',
-            default_value='true',
+            default_value='true', ##set to false for testing without the overhead camera
             description='Launch overhead camera global localization node'
         ),
         DeclareLaunchArgument(
