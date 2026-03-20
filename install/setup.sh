@@ -7,7 +7,11 @@
 # since a plain shell script can't determine its own path when being sourced
 # either use the provided COLCON_CURRENT_PREFIX
 # or fall back to the build time prefix (if it exists)
+<<<<<<< HEAD
 _colcon_prefix_chain_sh_COLCON_CURRENT_PREFIX=/home/com2001/PFE_Eurobot_2026/install
+=======
+_colcon_prefix_chain_sh_COLCON_CURRENT_PREFIX=/home/isaac/PFE_Eurobot_2026/install
+>>>>>>> 6056fc2f89527dc0d2ecdf48f4828842f805b9b3
 if [ ! -z "$COLCON_CURRENT_PREFIX" ]; then
   _colcon_prefix_chain_sh_COLCON_CURRENT_PREFIX="$COLCON_CURRENT_PREFIX"
 elif [ ! -d "$_colcon_prefix_chain_sh_COLCON_CURRENT_PREFIX" ]; then
@@ -34,10 +38,13 @@ _colcon_prefix_chain_sh_source_script() {
 COLCON_CURRENT_PREFIX="/opt/ros/jazzy"
 _colcon_prefix_chain_sh_source_script "$COLCON_CURRENT_PREFIX/local_setup.sh"
 
+<<<<<<< HEAD
 # setting COLCON_CURRENT_PREFIX avoids relying on the build time prefix of the sourced script
 COLCON_CURRENT_PREFIX="/home/com2001/PFE_Eurobot_2026/ws/install"
 _colcon_prefix_chain_sh_source_script "$COLCON_CURRENT_PREFIX/local_setup.sh"
 
+=======
+>>>>>>> 6056fc2f89527dc0d2ecdf48f4828842f805b9b3
 
 # source this prefix
 # setting COLCON_CURRENT_PREFIX avoids relying on the build time prefix of the sourced script

@@ -1,5 +1,5 @@
 #include <rclcpp/rclcpp.hpp>
-#include "deadwheel_msgs/msg/deadwheel_ticks.hpp"
+#include "custom_msgs/msg/deadwheel_ticks.hpp"
 #include <cmath>
 #include <nav_msgs/msg/odometry.hpp>
 #include <tf2/LinearMath/Quaternion.h>
@@ -14,7 +14,7 @@ double normalizeAngleSigned(double angle) {
 class TicksListener : public rclcpp::Node
 {
   private : 
-    rclcpp::Subscription<deadwheel_msgs::msg::DeadwheelTicks>::SharedPtr subscription_;
+    rclcpp::Subscription<custom_msgs::msg::DeadwheelTicks>::SharedPtr subscription_;
     rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_pub_;
     //std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
 
@@ -94,8 +94,8 @@ class TicksListener : public rclcpp::Node
       odom_pub_ = this->create_publisher<nav_msgs::msg::Odometry>("odom_deadwheels", 10);
       //tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
 
-      subscription_ = this->create_subscription<deadwheel_msgs::msg::DeadwheelTicks>(
-      "deadwheel_ticks", 50,[this](deadwheel_msgs::msg::DeadwheelTicks::SharedPtr msg)
+      subscription_ = this->create_subscription<custom_msgs::msg::DeadwheelTicks>(
+      "deadwheel_ticks", 50,[this](custom_msgs::msg::DeadwheelTicks::SharedPtr msg)
       {
         std::lock_guard<std::mutex> lock(mtx_);
 

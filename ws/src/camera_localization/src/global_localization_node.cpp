@@ -1,44 +1,80 @@
 #include <rclcpp/rclcpp.hpp>
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
+#include <std_msgs/msg/string.hpp>
 #include <opencv2/opencv.hpp>
 #include <opencv2/aruco.hpp>
 #include <opencv2/calib3d.hpp>
 #include <tf2/LinearMath/Quaternion.h>
 
 #include <array>
+#include <cstdint>
 #include <cmath>
+#include <algorithm>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
 #include <stdexcept>
+#include <sstream>
+#include <iomanip>
+#include <ament_index_cpp/get_package_share_directory.hpp>
 
 class CameraLocalizationNode : public rclcpp::Node
 {
 public:
   CameraLocalizationNode()
-  : Node("camera_localization_node")
+  : Node("global_localization_node")
   {
     // ----------------------------
     // Parameters
     // ----------------------------
-    device_ = declare_parameter<std::string>("device", "/dev/eurobot2026-ELPcamera");
+    // Camera device: prefer a by-id path for stability, fall back to index.
+    // Pass --ros-args -p camera_path:=/dev/video2  OR  -p camera_index:=2
+    const auto camera_path  = declare_parameter<std::string>("camera_path", "");
+    const auto camera_index = declare_parameter<int>("camera_index", 0);
+    device_ = camera_path.empty() ? "/dev/video" + std::to_string(camera_index) : camera_path;
+
     width_ = declare_parameter<int>("width", 3840);
     height_ = declare_parameter<int>("height", 2160);
     fps_ = declare_parameter<int>("fps", 30);
     fourcc_ = declare_parameter<std::string>("fourcc", "MJPG");
-    calibration_file_ = declare_parameter<std::string>(
-      "calibration_file",
-      "camera_calibration/real/3840_2160_ELM12MP.yml");
+
+    // Calibration file: default resolves automatically from the installed pfe share dir.
+    const auto calib_default = ament_index_cpp::get_package_share_directory("pfe")
+      + "/camera_calibration/3840_2160_ELM12MP.yml";
+    calibration_file_ = declare_parameter<std::string>("calibration_file", calib_default);
 
     map_frame_ = declare_parameter<std::string>("map_frame", "map");
     pose_topic_ = declare_parameter<std::string>("pose_topic", "/camera/global_pose");
+    detected_blocks_topic_ = declare_parameter<std::string>("detected_blocks_topic", "/detected_blocks");
     debug_view_ = declare_parameter<bool>("debug_view", true);
 
     // Marker IDs / sizes
-    robot_marker_id_ = declare_parameter<int>("robot_marker_id", 1);
+    robot_marker_id_ = declare_parameter<int>("robot_marker_id", 7);
     table_marker_length_m_ = declare_parameter<double>("table_marker_length_m", 0.10);
     robot_marker_length_m_ = declare_parameter<double>("robot_marker_length_m", 0.07);
+    block_marker_length_m_ = declare_parameter<double>("block_marker_length_m", 0.03);
+    block_size_x_m_ = declare_parameter<double>("block_size_x_m", 0.15);
+    block_size_y_m_ = declare_parameter<double>("block_size_y_m", 0.05);
+    block_center_z_m_ = declare_parameter<double>("block_center_z_m", 0.03);
+
+    const auto block_marker_ids =
+      declare_parameter<std::vector<int64_t>>("block_marker_ids", std::vector<int64_t>{36, 47});
+    const auto block_marker_colors =
+      declare_parameter<std::vector<std::string>>("block_marker_colors", std::vector<std::string>{"bleu", "jaune"});
+
+    if (block_marker_ids.size() != block_marker_colors.size()) {
+      throw std::runtime_error(
+              "block_marker_ids and block_marker_colors must have the same size");
+    }
+
+    block_ids_.clear();
+    block_color_by_id_.clear();
+    for (std::size_t i = 0; i < block_marker_ids.size(); ++i) {
+      const int id = static_cast<int>(block_marker_ids[i]);
+      block_ids_.insert(id);
+      block_color_by_id_[id] = block_marker_colors[i];
+    }
 
     // Fixed transform from robot marker frame to base_link frame.
     // Expressed in the MARKER frame.
@@ -54,11 +90,47 @@ public:
 
     min_table_markers_ = declare_parameter<int>("min_table_markers", 1);
 
+    // ArUco detector tuning (configurable from YAML)
+    detector_perspective_remove_pixel_per_cell_ =
+      declare_parameter<int>("detector_perspective_remove_pixel_per_cell", 8);
+    detector_adaptive_thresh_win_size_min_ =
+      declare_parameter<int>("detector_adaptive_thresh_win_size_min", 3);
+    detector_adaptive_thresh_win_size_max_ =
+      declare_parameter<int>("detector_adaptive_thresh_win_size_max", 61);
+    detector_adaptive_thresh_win_size_step_ =
+      declare_parameter<int>("detector_adaptive_thresh_win_size_step", 10);
+    detector_adaptive_thresh_constant_ =
+      declare_parameter<double>("detector_adaptive_thresh_constant", 7.0);
+    detector_min_marker_perimeter_rate_ =
+      declare_parameter<double>("detector_min_marker_perimeter_rate", 0.005);
+    detector_max_marker_perimeter_rate_ =
+      declare_parameter<double>("detector_max_marker_perimeter_rate", 4.0);
+    detector_error_correction_rate_ =
+      declare_parameter<double>("detector_error_correction_rate", 0.35);
+    detector_use_corner_refinement_subpix_ =
+      declare_parameter<bool>("detector_use_corner_refinement_subpix", true);
+
+    // Optional rescue pass focused on large table markers (IDs 20-23)
+    enable_table_marker_rescue_pass_ =
+      declare_parameter<bool>("enable_table_marker_rescue_pass", true);
+    rescue_clahe_clip_limit_ =
+      declare_parameter<double>("rescue_clahe_clip_limit", 2.0);
+    rescue_adaptive_thresh_win_size_max_ =
+      declare_parameter<int>("rescue_adaptive_thresh_win_size_max", 121);
+    rescue_adaptive_thresh_win_size_step_ =
+      declare_parameter<int>("rescue_adaptive_thresh_win_size_step", 20);
+    rescue_min_marker_perimeter_rate_ =
+      declare_parameter<double>("rescue_min_marker_perimeter_rate", 0.01);
+    rescue_error_correction_rate_ =
+      declare_parameter<double>("rescue_error_correction_rate", 0.5);
+
     // ----------------------------
     // Publisher
     // ----------------------------
     pose_pub_ = create_publisher<geometry_msgs::msg::PoseWithCovarianceStamped>(
       pose_topic_, 10);
+    detected_blocks_pub_ = create_publisher<std_msgs::msg::String>(
+      detected_blocks_topic_, 10);
 
     // ----------------------------
     // Camera
@@ -78,7 +150,7 @@ public:
       std::chrono::milliseconds(period_ms),
       std::bind(&CameraLocalizationNode::cameraTick, this));
 
-    RCLCPP_INFO(get_logger(), "camera_localization_node started");
+    RCLCPP_INFO(get_logger(), "global_localization_node started");
     RCLCPP_INFO(get_logger(), "Publishing global pose on %s", pose_topic_.c_str());
   }
 
@@ -94,6 +166,17 @@ private:
   {
     cv::Matx33d R_global_marker;
     cv::Vec3d t_global_marker;
+  };
+
+  struct DetectedEntity
+  {
+    int marker_id{0};
+    std::string color;
+    cv::Vec3d position_map{0.0, 0.0, 0.0};
+    double yaw_rad{0.0};
+    double size_x_m{0.0};
+    double size_y_m{0.0};
+    bool is_dynamic{true};
   };
 
   void openCamera()
@@ -143,6 +226,7 @@ private:
   {
     obj_points_table_ = makeSquareObjectPoints(table_marker_length_m_);
     obj_points_robot_ = makeSquareObjectPoints(robot_marker_length_m_);
+    obj_points_block_ = makeSquareObjectPoints(block_marker_length_m_);
   }
 
   cv::Mat makeSquareObjectPoints(double side_m) const
@@ -157,31 +241,83 @@ private:
 
   void initTableMarkerMap()
   {
-    table_ids_ = {20, 21, 22, 23};
+    const auto marker_ids =
+      declare_parameter<std::vector<int64_t>>("table_marker_ids", std::vector<int64_t>{});
+    const auto marker_x_m =
+      declare_parameter<std::vector<double>>("table_marker_x_m", std::vector<double>{});
+    const auto marker_y_m =
+      declare_parameter<std::vector<double>>("table_marker_y_m", std::vector<double>{});
+    const auto marker_z_m =
+      declare_parameter<std::vector<double>>("table_marker_z_m", std::vector<double>{});
+    const auto marker_yaw_rad =
+      declare_parameter<std::vector<double>>("table_marker_yaw_rad", std::vector<double>{});
 
-    // Assumes marker axes are aligned with map axes.
-    const auto R_identity = cv::Matx33d::eye();
-    table_pose_global_[20] = PoseGlobal{R_identity, cv::Vec3d(0.6, 1.4, 0.0)};
-    table_pose_global_[21] = PoseGlobal{R_identity, cv::Vec3d(2.4, 1.4, 0.0)};
-    table_pose_global_[22] = PoseGlobal{R_identity, cv::Vec3d(0.6, 0.6, 0.0)};
-    table_pose_global_[23] = PoseGlobal{R_identity, cv::Vec3d(2.4, 0.6, 0.0)};
+    table_ids_.clear();
+    table_pose_global_.clear();
+
+    if (marker_ids.empty()) {
+      RCLCPP_WARN(
+        get_logger(),
+        "No table_marker_ids provided; using built-in default table marker map");
+
+      // Assumes marker axes are aligned with map axes.
+      const auto R_identity = cv::Matx33d::eye();
+      table_ids_ = {20, 21, 22, 23};
+      table_pose_global_[20] = PoseGlobal{R_identity, cv::Vec3d(0.6, 1.4, 0.0)};
+      table_pose_global_[21] = PoseGlobal{R_identity, cv::Vec3d(2.4, 1.4, 0.0)};
+      table_pose_global_[22] = PoseGlobal{R_identity, cv::Vec3d(0.6, 0.6, 0.0)};
+      table_pose_global_[23] = PoseGlobal{R_identity, cv::Vec3d(2.4, 0.6, 0.0)};
+      return;
+    }
+
+    const std::size_t count = marker_ids.size();
+    if (marker_x_m.size() != count || marker_y_m.size() != count) {
+      throw std::runtime_error(
+              "table_marker_x_m and table_marker_y_m must have the same size as table_marker_ids");
+    }
+
+    if (!marker_z_m.empty() && marker_z_m.size() != count) {
+      throw std::runtime_error(
+              "table_marker_z_m must be empty or have the same size as table_marker_ids");
+    }
+
+    if (!marker_yaw_rad.empty() && marker_yaw_rad.size() != count) {
+      throw std::runtime_error(
+              "table_marker_yaw_rad must be empty or have the same size as table_marker_ids");
+    }
+
+    for (std::size_t i = 0; i < count; ++i) {
+      const int id = static_cast<int>(marker_ids[i]);
+      const double z = marker_z_m.empty() ? 0.0 : marker_z_m[i];
+      const double yaw = marker_yaw_rad.empty() ? 0.0 : marker_yaw_rad[i];
+
+      table_ids_.insert(id);
+      table_pose_global_[id] = PoseGlobal{
+        rotationZ(yaw),
+        cv::Vec3d(marker_x_m[i], marker_y_m[i], z)
+      };
+    }
+
+    RCLCPP_INFO(get_logger(), "Loaded %zu table markers from parameters", table_ids_.size());
   }
 
   void initDetector()
   {
-    detector_params_ = cv::aruco::DetectorParameters();
-    detector_params_.perspectiveRemovePixelPerCell = 8;
-    detector_params_.adaptiveThreshWinSizeMin = 3;
-    detector_params_.adaptiveThreshWinSizeMax = 23;
-    detector_params_.adaptiveThreshWinSizeStep = 3;
-    detector_params_.adaptiveThreshConstant = 7;
-    detector_params_.minMarkerPerimeterRate = 0.005;
-    detector_params_.maxMarkerPerimeterRate = 4.0;
-    detector_params_.errorCorrectionRate = 0.2f;
-    detector_params_.cornerRefinementMethod = cv::aruco::CORNER_REFINE_SUBPIX;
+    detector_params_ = cv::aruco::DetectorParameters::create();
+
+    detector_params_->perspectiveRemovePixelPerCell = detector_perspective_remove_pixel_per_cell_;
+    detector_params_->adaptiveThreshWinSizeMin = detector_adaptive_thresh_win_size_min_;
+    detector_params_->adaptiveThreshWinSizeMax = detector_adaptive_thresh_win_size_max_;
+    detector_params_->adaptiveThreshWinSizeStep = detector_adaptive_thresh_win_size_step_;
+    detector_params_->adaptiveThreshConstant = detector_adaptive_thresh_constant_;
+    detector_params_->minMarkerPerimeterRate = detector_min_marker_perimeter_rate_;
+    detector_params_->maxMarkerPerimeterRate = detector_max_marker_perimeter_rate_;
+    detector_params_->errorCorrectionRate = static_cast<float>(detector_error_correction_rate_);
+    detector_params_->cornerRefinementMethod = detector_use_corner_refinement_subpix_
+      ? cv::aruco::CORNER_REFINE_SUBPIX
+      : cv::aruco::CORNER_REFINE_NONE;
 
     dictionary_ = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_4X4_50);
-    detector_ = cv::aruco::ArucoDetector(dictionary_, detector_params_);
   }
 
   void cameraTick()
@@ -191,7 +327,6 @@ private:
       RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 2000, "Empty camera frame");
       return;
     }
-
     processFrame(frame);
   }
 
@@ -203,7 +338,9 @@ private:
     std::vector<int> ids;
     std::vector<std::vector<cv::Point2f>> corners;
     std::vector<std::vector<cv::Point2f>> rejected;
-    detector_.detectMarkers(gray, corners, ids, rejected);
+    cv::aruco::detectMarkers(gray, dictionary_, corners, ids, detector_params_, rejected);
+
+    runTableMarkerRescuePass(gray, ids, corners);
 
     cv::Mat debug_image;
     if (debug_view_) {
@@ -214,6 +351,7 @@ private:
     }
 
     if (ids.empty()) {
+      publishDetectedEntities({});
       showDebug(debug_image);
       return;
     }
@@ -249,6 +387,7 @@ private:
       RCLCPP_WARN_THROTTLE(
         get_logger(), *get_clock(), 2000,
         "Not enough table markers for camera pose");
+      publishDetectedEntities({});
       showDebug(debug_image);
       return;
     }
@@ -274,6 +413,7 @@ private:
     if (!ok_camera) {
       have_camera_pose_guess_ = false;
       RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 2000, "Camera solvePnP failed");
+      publishDetectedEntities({});
       showDebug(debug_image);
       return;
     }
@@ -290,6 +430,33 @@ private:
     const cv::Matx33d R_map_camera = R_camera_map.t();
     const cv::Vec3d t_map_camera = -(R_map_camera * tvec_camera_map);
 
+    std::vector<DetectedEntity> detected_entities;
+    detected_entities.reserve(ids.size());
+
+    for (size_t i = 0; i < ids.size(); ++i) {
+      const int id = ids[i];
+      if (!block_ids_.count(id)) {
+        continue;
+      }
+
+      cv::Matx33d R_map_block;
+      cv::Vec3d t_map_block;
+      if (!estimateMarkerPoseInMap(
+            obj_points_block_, corners[i], R_map_camera, t_map_camera, R_map_block, t_map_block)) {
+        continue;
+      }
+
+      DetectedEntity e;
+      e.marker_id = id;
+      e.color = block_color_by_id_[id];
+      e.position_map = cv::Vec3d(t_map_block[0], t_map_block[1], block_center_z_m_);
+      e.yaw_rad = std::atan2(R_map_block(1, 0), R_map_block(0, 0));
+      e.size_x_m = block_size_x_m_;
+      e.size_y_m = block_size_y_m_;
+      e.is_dynamic = true;
+      detected_entities.push_back(e);
+    }
+
     // -------------------------------------------------------
     // Step 2: Find OUR robot marker
     // -------------------------------------------------------
@@ -305,6 +472,7 @@ private:
       RCLCPP_WARN_THROTTLE(
         get_logger(), *get_clock(), 1000,
         "Robot marker ID %d not visible", robot_marker_id_);
+      publishDetectedEntities(detected_entities);
       showDebug(debug_image);
       return;
     }
@@ -326,6 +494,7 @@ private:
 
     if (!ok_robot) {
       RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 1000, "Robot marker solvePnP failed");
+      publishDetectedEntities(detected_entities);
       showDebug(debug_image);
       return;
     }
@@ -357,7 +526,18 @@ private:
     // Extract planar yaw in ROS ENU map frame
     const double yaw_map_base = std::atan2(R_map_base(1, 0), R_map_base(0, 0));
 
+    DetectedEntity robot_entity;
+    robot_entity.marker_id = robot_marker_id_;
+    robot_entity.color = "robot";
+    robot_entity.position_map = cv::Vec3d(t_map_base[0], t_map_base[1], t_map_base[2]);
+    robot_entity.yaw_rad = yaw_map_base;
+    robot_entity.size_x_m = 0.0;
+    robot_entity.size_y_m = 0.0;
+    robot_entity.is_dynamic = true;
+    detected_entities.push_back(robot_entity);
+
     publishPose(t_map_base, yaw_map_base);
+    publishDetectedEntities(detected_entities);
 
     if (debug_view_) {
       drawAxes(debug_image, rvec_camera_map, tvec_camera_map, 0.25f);
@@ -373,6 +553,151 @@ private:
     }
 
     showDebug(debug_image);
+  }
+
+  void runTableMarkerRescuePass(
+    const cv::Mat &gray,
+    std::vector<int> &ids,
+    std::vector<std::vector<cv::Point2f>> &corners)
+  {
+    if (!enable_table_marker_rescue_pass_) {
+      return;
+    }
+
+    bool has_missing_table_markers = false;
+    for (const int table_id : table_ids_) {
+      if (std::find(ids.begin(), ids.end(), table_id) == ids.end()) {
+        has_missing_table_markers = true;
+        break;
+      }
+    }
+
+    if (!has_missing_table_markers) {
+      return;
+    }
+
+    cv::Mat gray_rescue;
+    cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE(rescue_clahe_clip_limit_, cv::Size(16, 16));
+    clahe->apply(gray, gray_rescue);
+
+    cv::Ptr<cv::aruco::DetectorParameters> rescue_params = cv::aruco::DetectorParameters::create();
+    *rescue_params = *detector_params_;
+    rescue_params->adaptiveThreshWinSizeMax = rescue_adaptive_thresh_win_size_max_;
+    rescue_params->adaptiveThreshWinSizeStep = rescue_adaptive_thresh_win_size_step_;
+    rescue_params->minMarkerPerimeterRate = rescue_min_marker_perimeter_rate_;
+    rescue_params->errorCorrectionRate = static_cast<float>(rescue_error_correction_rate_);
+
+    std::vector<int> rescue_ids;
+    std::vector<std::vector<cv::Point2f>> rescue_corners;
+    std::vector<std::vector<cv::Point2f>> rescue_rejected;
+    cv::aruco::detectMarkers(
+      gray_rescue,
+      dictionary_,
+      rescue_corners,
+      rescue_ids,
+      rescue_params,
+      rescue_rejected);
+
+    int recovered_count = 0;
+    for (std::size_t i = 0; i < rescue_ids.size(); ++i) {
+      const int id = rescue_ids[i];
+      if (!table_ids_.count(id)) {
+        continue;
+      }
+      if (std::find(ids.begin(), ids.end(), id) != ids.end()) {
+        continue;
+      }
+
+      ids.push_back(id);
+      corners.push_back(rescue_corners[i]);
+      recovered_count++;
+    }
+
+    if (recovered_count > 0) {
+      RCLCPP_INFO_THROTTLE(
+        get_logger(), *get_clock(), 2000,
+        "Recovered %d table marker(s) in rescue pass", recovered_count);
+    }
+  }
+
+  bool estimateMarkerPoseInMap(
+    const cv::Mat &obj_points,
+    const std::vector<cv::Point2f> &img_corners,
+    const cv::Matx33d &R_map_camera,
+    const cv::Vec3d &t_map_camera,
+    cv::Matx33d &R_map_marker,
+    cv::Vec3d &t_map_marker) const
+  {
+    cv::Vec3d rvec_camera_marker;
+    cv::Vec3d tvec_camera_marker;
+    const bool ok = cv::solvePnP(
+      obj_points,
+      img_corners,
+      camera_matrix_,
+      dist_coeffs_,
+      rvec_camera_marker,
+      tvec_camera_marker,
+      false,
+      cv::SOLVEPNP_IPPE_SQUARE);
+
+    if (!ok) {
+      return false;
+    }
+
+    cv::Mat Rcv_camera_marker;
+    cv::Rodrigues(rvec_camera_marker, Rcv_camera_marker);
+    const cv::Matx33d R_camera_marker(Rcv_camera_marker);
+
+    R_map_marker = R_map_camera * R_camera_marker;
+    t_map_marker = R_map_camera * tvec_camera_marker + t_map_camera;
+    return true;
+  }
+
+  static std::string jsonEscape(const std::string &value)
+  {
+    std::string escaped;
+    escaped.reserve(value.size());
+    for (char c : value) {
+      if (c == '"' || c == '\\') {
+        escaped.push_back('\\');
+      }
+      escaped.push_back(c);
+    }
+    return escaped;
+  }
+
+  void publishDetectedEntities(const std::vector<DetectedEntity> &entities)
+  {
+    std::ostringstream ss;
+    ss << std::fixed << std::setprecision(6) << "[";
+
+    for (std::size_t i = 0; i < entities.size(); ++i) {
+      const auto &e = entities[i];
+      if (i > 0) {
+        ss << ",";
+      }
+
+      const double angle_z_deg = e.yaw_rad * 180.0 / M_PI;
+
+      ss << "{";
+      ss << "\"marker_id\":" << e.marker_id << ",";
+      ss << "\"color\":\"" << jsonEscape(e.color) << "\",";
+      ss << "\"x\":" << e.position_map[0] << ",";
+      ss << "\"y\":" << e.position_map[1] << ",";
+      ss << "\"z\":" << e.position_map[2] << ",";
+      ss << "\"yaw\":" << e.yaw_rad << ",";
+      ss << "\"angle_z_deg\":" << angle_z_deg << ",";
+      ss << "\"size_x_m\":" << e.size_x_m << ",";
+      ss << "\"size_y_m\":" << e.size_y_m << ",";
+      ss << "\"dynamic\":" << (e.is_dynamic ? "true" : "false");
+      ss << "}";
+    }
+
+    ss << "]";
+
+    std_msgs::msg::String msg;
+    msg.data = ss.str();
+    detected_blocks_pub_->publish(msg);
   }
 
   cv::Matx33d rotationZ(double yaw) const
@@ -517,6 +842,7 @@ private:
 
   // ROS
   rclcpp::Publisher<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr pose_pub_;
+  rclcpp::Publisher<std_msgs::msg::String>::SharedPtr detected_blocks_pub_;
   rclcpp::TimerBase::SharedPtr timer_;
 
   // Camera / calibration
@@ -525,16 +851,18 @@ private:
   cv::Mat dist_coeffs_;
 
   // ArUco
-  cv::aruco::DetectorParameters detector_params_;
-  cv::aruco::Dictionary dictionary_;
-  cv::aruco::ArucoDetector detector_;
+  cv::Ptr<cv::aruco::Dictionary> dictionary_;
+  cv::Ptr<cv::aruco::DetectorParameters> detector_params_;
 
   // Marker geometry
   cv::Mat obj_points_table_;
   cv::Mat obj_points_robot_;
+  cv::Mat obj_points_block_;
 
   // Known map markers
   std::unordered_set<int> table_ids_;
+  std::unordered_set<int> block_ids_;
+  std::unordered_map<int, std::string> block_color_by_id_;
   std::unordered_map<int, PoseGlobal> table_pose_global_;
 
   // Camera pose guess for faster/stabler solvePnP
@@ -548,6 +876,7 @@ private:
   std::string calibration_file_;
   std::string map_frame_;
   std::string pose_topic_;
+  std::string detected_blocks_topic_;
   int width_{0};
   int height_{0};
   int fps_{30};
@@ -558,6 +887,10 @@ private:
 
   double table_marker_length_m_{0.10};
   double robot_marker_length_m_{0.07};
+  double block_marker_length_m_{0.03};
+  double block_size_x_m_{0.15};
+  double block_size_y_m_{0.05};
+  double block_center_z_m_{0.03};
 
   double marker_to_base_x_{0.0};
   double marker_to_base_y_{0.0};
@@ -567,6 +900,23 @@ private:
   double position_variance_x_{0.01};
   double position_variance_y_{0.01};
   double yaw_variance_{0.03};
+
+  int detector_perspective_remove_pixel_per_cell_{8};
+  int detector_adaptive_thresh_win_size_min_{3};
+  int detector_adaptive_thresh_win_size_max_{61};
+  int detector_adaptive_thresh_win_size_step_{10};
+  double detector_adaptive_thresh_constant_{7.0};
+  double detector_min_marker_perimeter_rate_{0.005};
+  double detector_max_marker_perimeter_rate_{4.0};
+  double detector_error_correction_rate_{0.35};
+  bool detector_use_corner_refinement_subpix_{true};
+
+  bool enable_table_marker_rescue_pass_{true};
+  double rescue_clahe_clip_limit_{2.0};
+  int rescue_adaptive_thresh_win_size_max_{121};
+  int rescue_adaptive_thresh_win_size_step_{20};
+  double rescue_min_marker_perimeter_rate_{0.01};
+  double rescue_error_correction_rate_{0.5};
 };
 
 int main(int argc, char **argv)

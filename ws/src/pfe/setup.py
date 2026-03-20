@@ -24,6 +24,10 @@ setup(
         # Install meshes
         (os.path.join('share', package_name, 'meshes'),
             glob('meshes/*.stl')),
+
+        # Install camera calibration files
+        (os.path.join('share', package_name, 'camera_calibration'),
+            glob('camera_calibration/*')),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -34,8 +38,10 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
+            'csi_camera_publisher_node = ros2_opencv.csi_camera_publisher:main',
             'local_camera_perception_node = ros2_opencv.local_camera_perception:main',
             'local_pickup_solver_node = ros2_opencv.local_pickup_solver:main',
+            'cluster_analyze_node = pfe.strategy.clusterAnalyze:main',
         ],
     },
 )
