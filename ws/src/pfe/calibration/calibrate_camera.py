@@ -62,7 +62,7 @@ print("\nCamera Matrix:\n", camera_matrix)
 print("\nDistortion:\n", dist_coeffs)
 
 # save calibration
-output_file = os.path.join(output_dir, "onboard_cam_1080p.yml")
+output_file = os.path.join(output_dir, "global_cam_3840x2880.yml")
 
 fs = cv2.FileStorage(output_file, cv2.FILE_STORAGE_WRITE)
 fs.write("camera_matrix", camera_matrix)

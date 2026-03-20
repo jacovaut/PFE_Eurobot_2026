@@ -9,6 +9,7 @@
 #include <array>
 #include <cstdint>
 #include <cmath>
+#include <algorithm>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
@@ -30,7 +31,7 @@ public:
     // Camera device: prefer a by-id path for stability, fall back to index.
     // Pass --ros-args -p camera_path:=/dev/video2  OR  -p camera_index:=2
     const auto camera_path  = declare_parameter<std::string>("camera_path", "");
-    const auto camera_index = declare_parameter<int>("camera_index", 4);
+    const auto camera_index = declare_parameter<int>("camera_index", 0);
     device_ = camera_path.empty() ? "/dev/video" + std::to_string(camera_index) : camera_path;
 
     width_ = declare_parameter<int>("width", 3840);
@@ -88,6 +89,40 @@ public:
     yaw_variance_ = declare_parameter<double>("yaw_variance", 0.03);
 
     min_table_markers_ = declare_parameter<int>("min_table_markers", 1);
+
+    // ArUco detector tuning (configurable from YAML)
+    detector_perspective_remove_pixel_per_cell_ =
+      declare_parameter<int>("detector_perspective_remove_pixel_per_cell", 8);
+    detector_adaptive_thresh_win_size_min_ =
+      declare_parameter<int>("detector_adaptive_thresh_win_size_min", 3);
+    detector_adaptive_thresh_win_size_max_ =
+      declare_parameter<int>("detector_adaptive_thresh_win_size_max", 61);
+    detector_adaptive_thresh_win_size_step_ =
+      declare_parameter<int>("detector_adaptive_thresh_win_size_step", 10);
+    detector_adaptive_thresh_constant_ =
+      declare_parameter<double>("detector_adaptive_thresh_constant", 7.0);
+    detector_min_marker_perimeter_rate_ =
+      declare_parameter<double>("detector_min_marker_perimeter_rate", 0.005);
+    detector_max_marker_perimeter_rate_ =
+      declare_parameter<double>("detector_max_marker_perimeter_rate", 4.0);
+    detector_error_correction_rate_ =
+      declare_parameter<double>("detector_error_correction_rate", 0.35);
+    detector_use_corner_refinement_subpix_ =
+      declare_parameter<bool>("detector_use_corner_refinement_subpix", true);
+
+    // Optional rescue pass focused on large table markers (IDs 20-23)
+    enable_table_marker_rescue_pass_ =
+      declare_parameter<bool>("enable_table_marker_rescue_pass", true);
+    rescue_clahe_clip_limit_ =
+      declare_parameter<double>("rescue_clahe_clip_limit", 2.0);
+    rescue_adaptive_thresh_win_size_max_ =
+      declare_parameter<int>("rescue_adaptive_thresh_win_size_max", 121);
+    rescue_adaptive_thresh_win_size_step_ =
+      declare_parameter<int>("rescue_adaptive_thresh_win_size_step", 20);
+    rescue_min_marker_perimeter_rate_ =
+      declare_parameter<double>("rescue_min_marker_perimeter_rate", 0.01);
+    rescue_error_correction_rate_ =
+      declare_parameter<double>("rescue_error_correction_rate", 0.5);
 
     // ----------------------------
     // Publisher
@@ -270,15 +305,17 @@ private:
   {
     detector_params_ = cv::aruco::DetectorParameters::create();
 
-    detector_params_->perspectiveRemovePixelPerCell = 8;
-    detector_params_->adaptiveThreshWinSizeMin = 3;
-    detector_params_->adaptiveThreshWinSizeMax = 23;
-    detector_params_->adaptiveThreshWinSizeStep = 3;
-    detector_params_->adaptiveThreshConstant = 7;
-    detector_params_->minMarkerPerimeterRate = 0.005;
-    detector_params_->maxMarkerPerimeterRate = 4.0;
-    detector_params_->errorCorrectionRate = 0.2f;
-    detector_params_->cornerRefinementMethod = cv::aruco::CORNER_REFINE_SUBPIX;
+    detector_params_->perspectiveRemovePixelPerCell = detector_perspective_remove_pixel_per_cell_;
+    detector_params_->adaptiveThreshWinSizeMin = detector_adaptive_thresh_win_size_min_;
+    detector_params_->adaptiveThreshWinSizeMax = detector_adaptive_thresh_win_size_max_;
+    detector_params_->adaptiveThreshWinSizeStep = detector_adaptive_thresh_win_size_step_;
+    detector_params_->adaptiveThreshConstant = detector_adaptive_thresh_constant_;
+    detector_params_->minMarkerPerimeterRate = detector_min_marker_perimeter_rate_;
+    detector_params_->maxMarkerPerimeterRate = detector_max_marker_perimeter_rate_;
+    detector_params_->errorCorrectionRate = static_cast<float>(detector_error_correction_rate_);
+    detector_params_->cornerRefinementMethod = detector_use_corner_refinement_subpix_
+      ? cv::aruco::CORNER_REFINE_SUBPIX
+      : cv::aruco::CORNER_REFINE_NONE;
 
     dictionary_ = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_4X4_50);
   }
@@ -290,7 +327,6 @@ private:
       RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 2000, "Empty camera frame");
       return;
     }
-
     processFrame(frame);
   }
 
@@ -303,6 +339,8 @@ private:
     std::vector<std::vector<cv::Point2f>> corners;
     std::vector<std::vector<cv::Point2f>> rejected;
     cv::aruco::detectMarkers(gray, dictionary_, corners, ids, detector_params_, rejected);
+
+    runTableMarkerRescuePass(gray, ids, corners);
 
     cv::Mat debug_image;
     if (debug_view_) {
@@ -515,6 +553,71 @@ private:
     }
 
     showDebug(debug_image);
+  }
+
+  void runTableMarkerRescuePass(
+    const cv::Mat &gray,
+    std::vector<int> &ids,
+    std::vector<std::vector<cv::Point2f>> &corners)
+  {
+    if (!enable_table_marker_rescue_pass_) {
+      return;
+    }
+
+    bool has_missing_table_markers = false;
+    for (const int table_id : table_ids_) {
+      if (std::find(ids.begin(), ids.end(), table_id) == ids.end()) {
+        has_missing_table_markers = true;
+        break;
+      }
+    }
+
+    if (!has_missing_table_markers) {
+      return;
+    }
+
+    cv::Mat gray_rescue;
+    cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE(rescue_clahe_clip_limit_, cv::Size(16, 16));
+    clahe->apply(gray, gray_rescue);
+
+    cv::Ptr<cv::aruco::DetectorParameters> rescue_params = cv::aruco::DetectorParameters::create();
+    *rescue_params = *detector_params_;
+    rescue_params->adaptiveThreshWinSizeMax = rescue_adaptive_thresh_win_size_max_;
+    rescue_params->adaptiveThreshWinSizeStep = rescue_adaptive_thresh_win_size_step_;
+    rescue_params->minMarkerPerimeterRate = rescue_min_marker_perimeter_rate_;
+    rescue_params->errorCorrectionRate = static_cast<float>(rescue_error_correction_rate_);
+
+    std::vector<int> rescue_ids;
+    std::vector<std::vector<cv::Point2f>> rescue_corners;
+    std::vector<std::vector<cv::Point2f>> rescue_rejected;
+    cv::aruco::detectMarkers(
+      gray_rescue,
+      dictionary_,
+      rescue_corners,
+      rescue_ids,
+      rescue_params,
+      rescue_rejected);
+
+    int recovered_count = 0;
+    for (std::size_t i = 0; i < rescue_ids.size(); ++i) {
+      const int id = rescue_ids[i];
+      if (!table_ids_.count(id)) {
+        continue;
+      }
+      if (std::find(ids.begin(), ids.end(), id) != ids.end()) {
+        continue;
+      }
+
+      ids.push_back(id);
+      corners.push_back(rescue_corners[i]);
+      recovered_count++;
+    }
+
+    if (recovered_count > 0) {
+      RCLCPP_INFO_THROTTLE(
+        get_logger(), *get_clock(), 2000,
+        "Recovered %d table marker(s) in rescue pass", recovered_count);
+    }
   }
 
   bool estimateMarkerPoseInMap(
@@ -797,6 +900,23 @@ private:
   double position_variance_x_{0.01};
   double position_variance_y_{0.01};
   double yaw_variance_{0.03};
+
+  int detector_perspective_remove_pixel_per_cell_{8};
+  int detector_adaptive_thresh_win_size_min_{3};
+  int detector_adaptive_thresh_win_size_max_{61};
+  int detector_adaptive_thresh_win_size_step_{10};
+  double detector_adaptive_thresh_constant_{7.0};
+  double detector_min_marker_perimeter_rate_{0.005};
+  double detector_max_marker_perimeter_rate_{4.0};
+  double detector_error_correction_rate_{0.35};
+  bool detector_use_corner_refinement_subpix_{true};
+
+  bool enable_table_marker_rescue_pass_{true};
+  double rescue_clahe_clip_limit_{2.0};
+  int rescue_adaptive_thresh_win_size_max_{121};
+  int rescue_adaptive_thresh_win_size_step_{20};
+  double rescue_min_marker_perimeter_rate_{0.01};
+  double rescue_error_correction_rate_{0.5};
 };
 
 int main(int argc, char **argv)

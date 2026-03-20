@@ -20,7 +20,19 @@ add_executable(global_localization_node
   src/global_localization_node.cpp
 )
 
+add_executable(camera_localization_node
+  src/camera_localization_node.cpp
+)
+
 ament_target_dependencies(global_localization_node
+  rclcpp
+  geometry_msgs
+  std_msgs
+  tf2
+  ament_index_cpp
+)
+
+ament_target_dependencies(camera_localization_node
   rclcpp
   geometry_msgs
   std_msgs
@@ -32,12 +44,21 @@ target_include_directories(global_localization_node PRIVATE
   ${OpenCV_INCLUDE_DIRS}
 )
 
+target_include_directories(camera_localization_node PRIVATE
+  ${OpenCV_INCLUDE_DIRS}
+)
+
 target_link_libraries(global_localization_node
+  ${OpenCV_LIBS}
+)
+
+target_link_libraries(camera_localization_node
   ${OpenCV_LIBS}
 )
 
 install(TARGETS
   global_localization_node
+  camera_localization_node
   DESTINATION lib/${PROJECT_NAME}
 )
 
