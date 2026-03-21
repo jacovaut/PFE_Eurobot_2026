@@ -1,7 +1,8 @@
 global_localization_node:
   ros__parameters:
     # Camera and detection settings
-    camera_index: 0 ###CHANGE IF NEEDED, command for cameras: v4l2-ctl --list-devices
+    camera_path: "/dev/v4l/by-id/usb-HD_USB_Camera_HD_USB_Camera_01.00.00-video-index0" # Primary (stable) camera selector
+    //camera_index: 4 # Fallback only if camera_path is empty
     width: 3840
     height: 2160
     fps: 30

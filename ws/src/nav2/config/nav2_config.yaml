@@ -131,7 +131,21 @@ global_costmap:
       width: 200
       height: 200
       robot_radius: 0.22
-      plugins: ["inflation_layer", "voxel_layer"]
+      plugins: ["obstacle_layer", "inflation_layer", "voxel_layer"]
+      obstacle_layer:
+        plugin: "nav2_costmap_2d::ObstacleLayer"
+        enabled: true
+        observation_sources: block_obstacles
+        block_obstacles:
+          topic: "/camera/block_obstacles"
+          max_obstacle_height: 1.0
+          clearing: false
+          marking: true
+          data_type: "PointCloud2"
+          raytrace_max_range: 6.0
+          raytrace_min_range: 0.0
+          obstacle_max_range: 6.0
+          obstacle_min_range: 0.0
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         inflation_radius: 0.5
@@ -178,7 +192,7 @@ local_costmap:
       obstacle_layer:
         plugin: "nav2_costmap_2d::ObstacleLayer"
         enabled: true
-        observation_sources: lidar
+        observation_sources: lidar block_obstacles
         lidar:
           topic: "/scan"
           max_obstacle_height: 2.0
@@ -188,6 +202,16 @@ local_costmap:
           raytrace_max_range: 3.0
           raytrace_min_range: 0.0
           obstacle_max_range: 2.5
+          obstacle_min_range: 0.0
+        block_obstacles:
+          topic: "/camera/block_obstacles"
+          max_obstacle_height: 1.0
+          clearing: false
+          marking: true
+          data_type: "PointCloud2"
+          raytrace_max_range: 3.0
+          raytrace_min_range: 0.0
+          obstacle_max_range: 3.0
           obstacle_min_range: 0.0
 
       # Camera point cloud layer

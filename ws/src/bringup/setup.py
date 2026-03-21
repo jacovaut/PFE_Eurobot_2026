@@ -14,6 +14,7 @@ setup(
         ('share/' + package_name, ['package.xml']),
         (os.path.join('share', package_name, 'launch'), glob('launch/*.launch.py')),
         (os.path.join('share', package_name, 'config'), glob('config/*.yaml')),
+        (os.path.join('share', package_name, 'config'), glob('config/*.rviz')),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -28,6 +29,8 @@ setup(
     },
     entry_points={
         'console_scripts': [
+            'camera_map_visualizer_node = bringup.camera_map_visualizer:main',
+            'cluster_goal_bridge_node = bringup.cluster_goal_bridge:main',
         ],
     },
 )
