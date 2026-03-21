@@ -12,7 +12,7 @@ ekf_global_node:
     world_frame: map
 
     # Input 1: local filtered odometry from EKF1
-    odom0: /odometry/filtered
+    odom0: /odometry/local
     odom0_config: [
       true,  true,  false,   # x, y, z
       false, false, true,    # roll, pitch, yaw
