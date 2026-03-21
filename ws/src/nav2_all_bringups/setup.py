@@ -2,7 +2,7 @@ from setuptools import find_packages, setup
 import os
 from glob import glob
 
-package_name = 'nav2_odom_bringup'
+package_name = 'nav2_all_bringups'
 
 setup(
     name=package_name,
