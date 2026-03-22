@@ -6,6 +6,7 @@ from typing import Any, Dict, List
 
 import rclpy
 from geometry_msgs.msg import PoseWithCovarianceStamped, TransformStamped
+from rcl_interfaces.msg import ParameterType, ParameterValue
 from rclpy.node import Node
 from sensor_msgs.msg import PointCloud2
 from sensor_msgs_py import point_cloud2
@@ -25,7 +26,8 @@ class CameraMapVisualizer(Node):
         self.block_pointcloud_topic = self.declare_parameter('block_pointcloud_topic', '/camera/block_obstacles').value
         self.publish_block_obstacles = bool(self.declare_parameter('publish_block_obstacles', True).value)
         self.max_blocks_visualized = int(self.declare_parameter('max_blocks_visualized', 32).value)
-        self.block_obstacle_height_m = float(self.declare_parameter('block_obstacle_height_m', 0.10).value)
+        self.block_obstacle_height_m = float(self.declare_parameter('block_obstacle_height_m', 0.03).value)
+        self.publish_period_s = float(self.declare_parameter('publish_period_s', 0.25).value)
 
         self.nids_noms = list(self.declare_parameter('nids_noms', ['nid_jaune', 'nid_bleu']).value)
         self.nids_centre_x_m = list(self.declare_parameter('nids_centre_x_m', [0.300, 2.700]).value)
@@ -33,22 +35,35 @@ class CameraMapVisualizer(Node):
         self.nids_taille_x_m = list(self.declare_parameter('nids_taille_x_m', [0.600, 0.600]).value)
         self.nids_taille_y_m = list(self.declare_parameter('nids_taille_y_m', [0.450, 0.450]).value)
 
-        self.garde_manger_noms = list(self.declare_parameter('garde_manger_noms', []).value)
-        self.garde_manger_centre_x_m = list(self.declare_parameter('garde_manger_centre_x_m', []).value)
-        self.garde_manger_centre_y_m = list(self.declare_parameter('garde_manger_centre_y_m', []).value)
-        self.garde_manger_taille_x_m = list(self.declare_parameter('garde_manger_taille_x_m', []).value)
-        self.garde_manger_taille_y_m = list(self.declare_parameter('garde_manger_taille_y_m', []).value)
+        self.garde_manger_noms = self._declare_string_array_parameter('garde_manger_noms')
+        self.garde_manger_centre_x_m = self._declare_double_array_parameter('garde_manger_centre_x_m')
+        self.garde_manger_centre_y_m = self._declare_double_array_parameter('garde_manger_centre_y_m')
+        self.garde_manger_taille_x_m = self._declare_double_array_parameter('garde_manger_taille_x_m')
+        self.garde_manger_taille_y_m = self._declare_double_array_parameter('garde_manger_taille_y_m')
+
+        self.zones_interdites_noms = self._declare_string_array_parameter('zones_interdites_noms')
+        self.zones_interdites_centre_x_m = self._declare_double_array_parameter('zones_interdites_centre_x_m')
+        self.zones_interdites_centre_y_m = self._declare_double_array_parameter('zones_interdites_centre_y_m')
+        self.zones_interdites_taille_x_m = self._declare_double_array_parameter('zones_interdites_taille_x_m')
+        self.zones_interdites_taille_y_m = self._declare_double_array_parameter('zones_interdites_taille_y_m')
+        self.zones_interdites_point_spacing_m = float(
+            self.declare_parameter('zones_interdites_point_spacing_m', 0.05).value
+        )
 
         self.tf_broadcaster = TransformBroadcaster(self)
         self.marker_pub = self.create_publisher(MarkerArray, self.marker_topic, 10)
         self.block_pc_pub = self.create_publisher(PointCloud2, self.block_pointcloud_topic, 10)
+        self.latest_blocks: List[Dict[str, Any]] = []
+        self.has_received_robot_pose = False
 
         self.create_subscription(PoseWithCovarianceStamped, self.robot_pose_topic, self._robot_pose_cb, 20)
         self.create_subscription(String, self.detected_blocks_topic, self._blocks_cb, 20)
+        self.create_timer(max(self.publish_period_s, 0.05), self._publish_visualization)
 
         self.get_logger().info('camera_map_visualizer_node started')
 
     def _robot_pose_cb(self, msg: PoseWithCovarianceStamped) -> None:
+        self.has_received_robot_pose = True
         t = TransformStamped()
         t.header.stamp = msg.header.stamp
         t.header.frame_id = msg.header.frame_id if msg.header.frame_id else self.map_frame
@@ -60,9 +75,26 @@ class CameraMapVisualizer(Node):
         self.tf_broadcaster.sendTransform(t)
 
     def _blocks_cb(self, msg: String) -> None:
-        blocks = self._parse_blocks(msg.data)
+        self.latest_blocks = self._parse_blocks(msg.data)
+
+    def _publish_visualization(self) -> None:
+        blocks = self.latest_blocks
 
         now = self.get_clock().now().to_msg()
+        if not self.has_received_robot_pose:
+            t = TransformStamped()
+            t.header.stamp = now
+            t.header.frame_id = self.map_frame
+            t.child_frame_id = 'camera_robot'
+            t.transform.translation.x = 0.0
+            t.transform.translation.y = 0.0
+            t.transform.translation.z = 0.0
+            t.transform.rotation.x = 0.0
+            t.transform.rotation.y = 0.0
+            t.transform.rotation.z = 0.0
+            t.transform.rotation.w = 1.0
+            self.tf_broadcaster.sendTransform(t)
+
         marker_array = MarkerArray()
 
         delete_all = Marker()
@@ -96,8 +128,27 @@ class CameraMapVisualizer(Node):
             size_ys=self.garde_manger_taille_y_m,
             color=(0.3, 0.9, 0.3, 0.18),
         )
+        marker_id = self._append_zone_markers(
+            marker_array,
+            now,
+            marker_id,
+            ns='zones_interdites',
+            names=self.zones_interdites_noms,
+            xs=self.zones_interdites_centre_x_m,
+            ys=self.zones_interdites_centre_y_m,
+            size_xs=self.zones_interdites_taille_x_m,
+            size_ys=self.zones_interdites_taille_y_m,
+            color=(0.95, 0.2, 0.2, 0.28),
+        )
 
         obstacle_points: List[List[float]] = []
+        self._append_zone_obstacle_points(
+            obstacle_points,
+            xs=self.zones_interdites_centre_x_m,
+            ys=self.zones_interdites_centre_y_m,
+            size_xs=self.zones_interdites_taille_x_m,
+            size_ys=self.zones_interdites_taille_y_m,
+        )
 
         for i, block in enumerate(blocks[: self.max_blocks_visualized]):
             child_name = f'block_{i:02d}'
@@ -212,6 +263,33 @@ class CameraMapVisualizer(Node):
             marker_array.markers.append(label)
         return marker_id
 
+    def _append_zone_obstacle_points(
+        self,
+        obstacle_points: List[List[float]],
+        xs: List[float],
+        ys: List[float],
+        size_xs: List[float],
+        size_ys: List[float],
+    ) -> None:
+        count = min(len(xs), len(ys), len(size_xs), len(size_ys))
+        spacing = max(self.zones_interdites_point_spacing_m, 0.02)
+        point_z = max(self.block_obstacle_height_m * 0.5, 0.03)
+
+        for i in range(count):
+            size_x = max(float(size_xs[i]), spacing)
+            size_y = max(float(size_ys[i]), spacing)
+            x_min = float(xs[i]) - (size_x * 0.5)
+            y_min = float(ys[i]) - (size_y * 0.5)
+
+            steps_x = max(1, int(math.ceil(size_x / spacing)))
+            steps_y = max(1, int(math.ceil(size_y / spacing)))
+
+            for ix in range(steps_x + 1):
+                x = x_min + min(ix * spacing, size_x)
+                for iy in range(steps_y + 1):
+                    y = y_min + min(iy * spacing, size_y)
+                    obstacle_points.append([x, y, point_z])
+
     def _publish_block_tf(self, stamp, child_name: str, block: Dict[str, Any]) -> None:
         t = TransformStamped()
         t.header.stamp = stamp
@@ -261,6 +339,20 @@ class CameraMapVisualizer(Node):
             marker.color.r = 0.7
             marker.color.g = 0.7
             marker.color.b = 0.7
+
+    def _declare_string_array_parameter(self, name: str) -> List[str]:
+        value = self.declare_parameter(
+            name,
+            ParameterValue(type=ParameterType.PARAMETER_STRING_ARRAY, string_array_value=[]),
+        ).value
+        return list(value)
+
+    def _declare_double_array_parameter(self, name: str) -> List[float]:
+        value = self.declare_parameter(
+            name,
+            ParameterValue(type=ParameterType.PARAMETER_DOUBLE_ARRAY, double_array_value=[]),
+        ).value
+        return [float(v) for v in value]
 
 
 def main(args=None) -> None:

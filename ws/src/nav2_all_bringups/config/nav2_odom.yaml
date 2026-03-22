@@ -36,9 +36,22 @@ controller_server:
     failure_tolerance: 0.3
 
     # Tell Nav2 which odom to use (use EKF output)
-    odom_topic: "/odometry/filtered"
+    odom_topic: "/odometry/local"
 
+    progress_checker_plugins: ["progress_checker"]
+    goal_checker_plugins: ["goal_checker"]
     controller_plugins: ["FollowPath"]
+
+    progress_checker:
+      plugin: "nav2_controller::SimpleProgressChecker"
+      required_movement_radius: 0.10
+      movement_time_allowance: 10.0
+
+    goal_checker:
+      plugin: "nav2_controller::SimpleGoalChecker"
+      stateful: true
+      xy_goal_tolerance: 0.05
+      yaw_goal_tolerance: 0.10
 
     # Controller option A (recommended-to-start): DWB holonomic
     FollowPath:
@@ -70,8 +83,6 @@ controller_server:
       angular_granularity: 0.025
 
       transform_tolerance: 0.2
-      xy_goal_tolerance: 0.05
-      yaw_goal_tolerance: 0.10
 
       critics: ["PathAlign", "GoalAlign", "PathDist", "GoalDist", "RotateToGoal", "Oscillation"]
       PathAlign.scale: 32.0
@@ -86,7 +97,7 @@ bt_navigator:
     use_sim_time: false
     global_frame: odom
     robot_base_frame: base_link
-    odom_topic: "/odometry/filtered"
+    odom_topic: "/odometry/local"
     default_bt_xml_filename: "navigate_w_replanning_and_recovery.xml"
 
 behavior_server:
@@ -112,7 +123,7 @@ velocity_smoother:
     min_velocity: [-0.4, -0.4, -1.5]
     max_accel: [1.0, 1.0, 2.0]
     max_decel: [-1.0, -1.0, -2.0]
-    odom_topic: "/odometry/filtered"
+    odom_topic: "/odometry/local"
     velocity_timeout: 0.5
 
 # --- Global costmap params (used by multiple nodes) ---
@@ -166,5 +177,3 @@ lifecycle_manager_navigation:
       - bt_navigator
       - behavior_server
       - velocity_smoother
-      - global_costmap
-      - local_costmap

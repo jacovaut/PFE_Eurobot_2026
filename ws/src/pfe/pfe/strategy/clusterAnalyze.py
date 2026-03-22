@@ -93,6 +93,41 @@ class ClusterAnalyzeNode(Node):
             "garde_manger_8": self._make_rect_zone("garde_manger_8", 1.250, 1.450, 0.200, 0.200),
         }
 
+        # Zones interdites (ex: grenier inaccessible au robot)
+        self.zones_interdites_noms = list(
+            self.declare_parameter("zones_interdites_noms", ["grenier"]).value
+        )
+        self.zones_interdites_centre_x_m = list(
+            self.declare_parameter("zones_interdites_centre_x_m", [1.500]).value
+        )
+        self.zones_interdites_centre_y_m = list(
+            self.declare_parameter("zones_interdites_centre_y_m", [1.775]).value
+        )
+        self.zones_interdites_taille_x_m = list(
+            self.declare_parameter("zones_interdites_taille_x_m", [1.800]).value
+        )
+        self.zones_interdites_taille_y_m = list(
+            self.declare_parameter("zones_interdites_taille_y_m", [0.450]).value
+        )
+
+        self.zones_interdites: Dict[str, Dict] = {}
+        interdit_count = min(
+            len(self.zones_interdites_noms),
+            len(self.zones_interdites_centre_x_m),
+            len(self.zones_interdites_centre_y_m),
+            len(self.zones_interdites_taille_x_m),
+            len(self.zones_interdites_taille_y_m),
+        )
+        for i in range(interdit_count):
+            nom = str(self.zones_interdites_noms[i])
+            self.zones_interdites[nom] = self._make_rect_zone(
+                nom,
+                float(self.zones_interdites_centre_x_m[i]),
+                float(self.zones_interdites_centre_y_m[i]),
+                float(self.zones_interdites_taille_x_m[i]),
+                float(self.zones_interdites_taille_y_m[i]),
+            )
+
         self.last_robot_pos: Optional[Tuple[float, float]] = None
         self.frame_count = 0
 
@@ -245,7 +280,13 @@ class ClusterAnalyzeNode(Node):
         py = int(self.debug_canvas_h - self.debug_margin_px - (y_clamped / self.table_height_m) * usable_h)
         return px, py
 
-    def _draw_debug_window(self, blocks: List[BlockDetection], scored_clusters: List[Dict], best_cluster: Optional[Dict]) -> None:
+    def _draw_debug_window(
+        self,
+        blocks_reachables: List[BlockDetection],
+        blocks_excluded: List[BlockDetection],
+        scored_clusters: List[Dict],
+        best_cluster: Optional[Dict],
+    ) -> None:
         if not self.show_debug_window or self.debug_window_failed:
             return
 
@@ -308,8 +349,27 @@ class ClusterAnalyzeNode(Node):
                 cv2.LINE_AA,
             )
 
-        # Blocks
-        for b in blocks:
+        for zone in self.zones_interdites.values():
+            b = zone["bornes"]
+            x_min, y_min = self._table_to_px(b["x_min"], b["y_min"])
+            x_max, y_max = self._table_to_px(b["x_max"], b["y_max"])
+            p1 = (min(x_min, x_max), min(y_min, y_max))
+            p2 = (max(x_min, x_max), max(y_min, y_max))
+
+            cv2.rectangle(canvas, p1, p2, (40, 40, 200), 2)
+            cv2.putText(
+                canvas,
+                zone["nom"],
+                (p1[0] + 4, p1[1] + 16),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.45,
+                (40, 40, 200),
+                1,
+                cv2.LINE_AA,
+            )
+
+        # Reachable blocks
+        for b in blocks_reachables:
             px, py = self._table_to_px(b.x, b.y)
             color_bgr = (0, 180, 255) if b.color == "jaune" else (255, 100, 0)
             cv2.circle(canvas, (px, py), 7, color_bgr, -1)
@@ -320,6 +380,24 @@ class ClusterAnalyzeNode(Node):
                 cv2.FONT_HERSHEY_SIMPLEX,
                 0.45,
                 (40, 40, 40),
+                1,
+                cv2.LINE_AA,
+            )
+
+        # Excluded blocks (inside forbidden zones)
+        for b in blocks_excluded:
+            px, py = self._table_to_px(b.x, b.y)
+            excluded_color_bgr = (180, 0, 180)
+            cv2.circle(canvas, (px, py), 8, excluded_color_bgr, 2)
+            cv2.line(canvas, (px - 6, py - 6), (px + 6, py + 6), excluded_color_bgr, 2)
+            cv2.line(canvas, (px - 6, py + 6), (px + 6, py - 6), excluded_color_bgr, 2)
+            cv2.putText(
+                canvas,
+                f"X{b.marker_id}",
+                (px + 8, py - 8),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.45,
+                excluded_color_bgr,
                 1,
                 cv2.LINE_AA,
             )
@@ -359,7 +437,10 @@ class ClusterAnalyzeNode(Node):
             )
 
         # Header text
-        header = f"blocks={len(blocks)} clusters={len(scored_clusters)} team={self.team_color}"
+        header = (
+            f"blocks_used={len(blocks_reachables)} excluded={len(blocks_excluded)} "
+            f"clusters={len(scored_clusters)} team={self.team_color}"
+        )
         cv2.putText(canvas, header, (20, 26), cv2.FONT_HERSHEY_SIMPLEX, 0.65, (30, 30, 30), 2, cv2.LINE_AA)
 
         if best_cluster is not None:
@@ -384,7 +465,16 @@ class ClusterAnalyzeNode(Node):
         
         # Parse detected blocks from JSON
         blocks = self._parse_detected_blocks(msg.data)
-        clusters = self._build_clusters(blocks)
+        blocks_in_interdit = [
+            b for b in blocks
+            if any(self.point_dans_zone(b.x, b.y, zone) for zone in self.zones_interdites.values())
+        ]
+        blocks_reachables = [
+            b for b in blocks
+            if not any(self.point_dans_zone(b.x, b.y, zone) for zone in self.zones_interdites.values())
+        ]
+
+        clusters = self._build_clusters(blocks_reachables)
 
         scored_clusters = [self._score_cluster(c) for c in clusters]
         scored_clusters.sort(key=lambda c: c["score"], reverse=True)
@@ -394,7 +484,9 @@ class ClusterAnalyzeNode(Node):
         msg_out.data = json.dumps(
             {
                 "step_1_clusterisation": {
-                    "num_blocks": len(blocks),
+                    "num_blocks_total": len(blocks),
+                    "num_blocks_excluded_forbidden_zone": len(blocks_in_interdit),
+                    "num_blocks_used": len(blocks_reachables),
                     "num_clusters": len(scored_clusters),
                 },
                 "step_2_selection": {
@@ -408,12 +500,22 @@ class ClusterAnalyzeNode(Node):
         )
         self.pub_cluster.publish(msg_out)
 
-        self._draw_debug_window(blocks, scored_clusters, best_cluster)
+        self._draw_debug_window(
+            blocks_reachables,
+            blocks_in_interdit,
+            scored_clusters,
+            best_cluster,
+        )
 
         if self.frame_count % 10 == 0:
             if best_cluster is None:
                 self.get_logger().info(
-                    f"Aucun cluster exploitable | detections={len(blocks)}"
+                    "Aucun cluster exploitable | detections_total={} | exclues_zone_interdite={} | "
+                    "utilisees={}".format(
+                        len(blocks),
+                        len(blocks_in_interdit),
+                        len(blocks_reachables),
+                    )
                 )
             else:
                 self.get_logger().info(

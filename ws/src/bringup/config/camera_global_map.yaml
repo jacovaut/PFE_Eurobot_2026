@@ -1,7 +1,7 @@
 global_localization_node:
   ros__parameters:
     # Shared launch defaults
-    use_cluster_pipeline: false
+    use_cluster_pipeline: true
 
     # Camera and detection settings
     camera_path: "/dev/v4l/by-id/usb-HD_USB_Camera_HD_USB_Camera_01.00.00-video-index0" # Primary (stable) camera selector
@@ -90,3 +90,33 @@ global_localization_node:
     garde_manger_centre_y_m: [0.100, 0.100, 0.100, 0.800, 0.800, 0.800, 1.450, 1.450]
     garde_manger_taille_x_m: [0.200, 0.200, 0.200, 0.200, 0.200, 0.200, 0.200, 0.200]
     garde_manger_taille_y_m: [0.200, 0.200, 0.200, 0.200, 0.200, 0.200, 0.200, 0.200]
+
+    # Zones interdites pour la navigation, dimensions: 1800 x 450 mm
+    zones_interdites_noms: ["grenier"]
+    zones_interdites_centre_x_m: [1.500]
+    zones_interdites_centre_y_m: [1.775]
+    zones_interdites_taille_x_m: [1.800]
+    zones_interdites_taille_y_m: [0.450]
+
+camera_map_visualizer_node:
+  ros__parameters:
+    nids_noms: ["nid_jaune", "nid_bleu"]
+    nids_centre_x_m: [0.300, 2.700]
+    nids_centre_y_m: [1.775, 1.775]
+    nids_taille_x_m: [0.600, 0.600]
+    nids_taille_y_m: [0.450, 0.450]
+
+    garde_manger_noms: [
+      "garde_manger_1", "garde_manger_2", "garde_manger_3", "garde_manger_4",
+      "garde_manger_5", "garde_manger_6", "garde_manger_7", "garde_manger_8"
+    ]
+    garde_manger_centre_x_m: [0.700, 1.500, 2.300, 2.200, 1.500, 0.800, 1.750, 1.250]
+    garde_manger_centre_y_m: [0.100, 0.100, 0.100, 0.800, 0.800, 0.800, 1.450, 1.450]
+    garde_manger_taille_x_m: [0.200, 0.200, 0.200, 0.200, 0.200, 0.200, 0.200, 0.200]
+    garde_manger_taille_y_m: [0.200, 0.200, 0.200, 0.200, 0.200, 0.200, 0.200, 0.200]
+
+    zones_interdites_noms: ["grenier"]
+    zones_interdites_centre_x_m: [1.500]
+    zones_interdites_centre_y_m: [1.775]
+    zones_interdites_taille_x_m: [1.800]
+    zones_interdites_taille_y_m: [0.450]

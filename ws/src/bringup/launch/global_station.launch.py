@@ -24,6 +24,8 @@ def generate_launch_description():
 
     camera_map_config = LaunchConfiguration('camera_global_map_config')
     use_cluster_pipeline = LaunchConfiguration('use_cluster_pipeline')
+    launch_map_visualizer = LaunchConfiguration('launch_map_visualizer')
+    publish_block_obstacles = LaunchConfiguration('publish_block_obstacles')
     cluster_team_color = LaunchConfiguration('cluster_team_color')
     cluster_show_debug_window = LaunchConfiguration('cluster_show_debug_window')
     cluster_goal_min_score = LaunchConfiguration('cluster_goal_min_score')
@@ -40,6 +42,16 @@ def generate_launch_description():
             'use_cluster_pipeline',
             default_value=default_use_cluster_pipeline,
             description='Master switch for cluster nodes (default read from camera_global_map.yaml use_cluster_pipeline)'
+        ),
+        DeclareLaunchArgument(
+            'launch_map_visualizer',
+            default_value='true',
+            description='Launch the camera map visualizer for RViz markers and static obstacle cloud'
+        ),
+        DeclareLaunchArgument(
+            'publish_block_obstacles',
+            default_value='true',
+            description='Publish detected blocks and forbidden zones as PointCloud2 obstacle points'
         ),
         DeclareLaunchArgument(
             'cluster_team_color',
@@ -74,6 +86,22 @@ def generate_launch_description():
             name='global_localization_node',                                                                                                                                  
             output='screen',
             parameters=[camera_map_config],
+        ),
+
+        Node(
+            package='bringup',
+            executable='camera_map_visualizer_node',
+            name='camera_map_visualizer_node',
+            output='screen',
+            condition=IfCondition(launch_map_visualizer),
+            parameters=[camera_map_config, {
+                'publish_block_obstacles': publish_block_obstacles,
+                'map_frame': 'map',
+                'robot_pose_topic': '/camera/global_pose',
+                'detected_blocks_topic': '/detected_blocks',
+                'marker_topic': '/camera_map/markers',
+                'block_pointcloud_topic': '/camera/block_obstacles',
+            }],
         ),
 
         # Cluster analysis node: consumes /detected_blocks and publishes /cluster_info
