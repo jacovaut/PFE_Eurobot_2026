@@ -255,7 +255,7 @@ void setup() {
         16000,
         NULL,
         3,
-        &core1_handle,
+        &core1_handle,  
         1   // Core 1
     );
 
@@ -306,10 +306,10 @@ void setSpeed(float new_vx, float new_vy, float new_w) {
 }
 
 void calculateWheelSpeeds(float vx, float vy, float w, float* wheelSpeeds) { // self explanatory
-    wheelSpeeds[0] = (1/r) * ( vx - vy - w*lxy );
-    wheelSpeeds[1] = (1/r) * ( vx + vy + w*lxy );
-    wheelSpeeds[2] = (1/r) * ( vx + vy - w*lxy );
-    wheelSpeeds[3] = (1/r) * ( vx - vy + w*lxy );
+    wheelSpeeds[0] = (1/r) * ( vx + vy - w*lxy ); // FL
+    wheelSpeeds[1] = (1/r) * ( vx - vy + w*lxy ); // FR
+    wheelSpeeds[2] = (1/r) * ( vx - vy - w*lxy ); // RL
+    wheelSpeeds[3] = (1/r) * ( vx + vy + w*lxy ); // RR
 }
 
 

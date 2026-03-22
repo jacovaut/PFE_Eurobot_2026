@@ -17,7 +17,6 @@
 #include <rclcpp/rclcpp.hpp>
 #include <opencv2/opencv.hpp>
 #include <opencv2/aruco.hpp>
-#include <opencv2/objdetect/aruco_detector.hpp>
 #include <opencv2/calib3d.hpp>
 #include <geometry_msgs/msg/transform_stamped.hpp>
 #include <unordered_map>
@@ -40,7 +39,9 @@ public:
     PerceptionNode() : rclcpp::Node("perception_node") {
     
     // Camera settings as parameters (so you can change later)
-    device_ = declare_parameter<std::string>("device", "/dev/eurobot2026-ELPcamera");
+    const auto camera_index = declare_parameter<int>("camera_index", 0);
+    const auto camera_path = declare_parameter<std::string>("camera_path", "/dev/video0");
+    device_ = camera_path.empty() ? "/dev/video" + std::to_string(camera_index) : camera_path;
     width_  = declare_parameter<int>("width", 3840);
     height_ = declare_parameter<int>("height", 2160);
     fps_    = declare_parameter<int>("fps", 30);
@@ -73,13 +74,20 @@ public:
     cap_.set(cv::CAP_PROP_FRAME_HEIGHT, height_);
     cap_.set(cv::CAP_PROP_FPS,          fps_);
     cap_.set(cv::CAP_PROP_BUFFERSIZE,   1);
+    
+    // Log camera parameters
+    RCLCPP_INFO(get_logger(), "Camera settings: FOURCC=%s, Resolution=%dx%d, FPS=%d, BufferSize=1",
+                fourcc_.c_str(), width_, height_, fps_);
+    
     // cap_.set(cv::CAP_PROP_ZOOM,         100);  // some drivers expose MJPG quality via ZOOM
 
 
 
 
     // Camera parameters
-    std::string calib_file = "camera_calibration/real/3840_2160_ELM12MP.yml";
+    std::string calib_file = declare_parameter<std::string>(
+        "calibration_file",
+        "camera_calibration/real/3840_2160_ELM12MP.yml");
     cv::FileStorage fs(calib_file, cv::FileStorage::READ);
 
     if (!fs.isOpened())
@@ -169,32 +177,32 @@ public:
     // detectorParams_.perspectiveRemoveIgnoredMarginPerCell = 0.13;
 
     // --- OPTIMIZED PARAMETERS START ---
-    detectorParams_ = cv::aruco::DetectorParameters();
+    detectorParams_ = cv::aruco::DetectorParameters::create();
 
     // 1. STABILITY (Stops flickering)
     // Resolution of the extracted bits. 4 is too low for 4K. 
     // Higher = more stable ID reading, but slightly slower.
-    detectorParams_.perspectiveRemovePixelPerCell = 8; 
+    detectorParams_->perspectiveRemovePixelPerCell = 8; 
     
     // 2. DETECTION (Finds the squares)
     // Adaptive thresholding: These control how we turn the color image into black/white
-    detectorParams_.adaptiveThreshWinSizeMin = 3;
-    detectorParams_.adaptiveThreshWinSizeMax = 23; // Lower max helps avoid lighting gradients across big table
-    detectorParams_.adaptiveThreshWinSizeStep = 3; // Smaller step = checks more window sizes = better detection
-    detectorParams_.adaptiveThreshConstant = 7;    // Constant subtracted from mean. 7 is usually good.
+    detectorParams_->adaptiveThreshWinSizeMin = 3;
+    detectorParams_->adaptiveThreshWinSizeMax = 23; // Lower max helps avoid lighting gradients across big table
+    detectorParams_->adaptiveThreshWinSizeStep = 3; // Smaller step = checks more window sizes = better detection
+    detectorParams_->adaptiveThreshConstant = 7;    // Constant subtracted from mean. 7 is usually good.
 
     // 3. FILTERING (Stops "Ghosts" and noise)
     // Ignore really tiny contours (noise) or really huge ones (walls)
-    detectorParams_.minMarkerPerimeterRate = 0.005; // 0.01 was maybe picking up noise. 0.02 is safer for 3cm blocks.
-    detectorParams_.maxMarkerPerimeterRate = 4.0;
+    detectorParams_->minMarkerPerimeterRate = 0.005; // 0.01 was maybe picking up noise. 0.02 is safer for 3cm blocks.
+    detectorParams_->maxMarkerPerimeterRate = 4.0;
     
     // TIGHTER ERROR CORRECTION
     // Lower = Stricter. 0.6 is default. 0.2 is good. 
     // If ghosts persist, try 0.1, but it might make blocks harder to detect.
-    detectorParams_.errorCorrectionRate = 0.2f; 
+    detectorParams_->errorCorrectionRate = 0.2f; 
     
     // Use Subpix for better pose accuracy 
-    detectorParams_.cornerRefinementMethod = cv::aruco::CORNER_REFINE_SUBPIX; 
+    detectorParams_->cornerRefinementMethod = cv::aruco::CORNER_REFINE_SUBPIX; 
     // detectorParams_.cornerRefinementWinSize = 3;  // default is 5, try 3 for tiny markers
     // detectorParams_.cornerRefinementMaxIterations = 30;
     // detectorParams_.cornerRefinementMinAccuracy = 0.1;
@@ -203,9 +211,6 @@ public:
     
     // family of aruco codes to look for
     dictionary_     = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_4X4_50);
-
-    // detector object
-    detector_ = cv::aruco::ArucoDetector(dictionary_, detectorParams_);    
 
     // RCLCPP_INFO(get_logger(), "Subscribing to %s", topic_.c_str());
     cv::namedWindow("out",cv::WINDOW_NORMAL);
@@ -412,8 +417,7 @@ void processFrame(const cv::Mat& image){
         // Run detection on the grayscale image
         std::vector<int> ids;
         std::vector<std::vector<cv::Point2f>> corners, rejected;
-        // detector_.detectMarkers(image, corners, ids, rejected);
-        detector_.detectMarkers(gray_image, corners, ids, rejected);
+        cv::aruco::detectMarkers(gray_image, dictionary_, corners, ids, detectorParams_, rejected);
 
 
         // Prepare output arrays for pose (rotation/translation) for each detected marker
@@ -814,9 +818,8 @@ bool                                                        have_T_camera_global
 cv::Vec3d                                                   last_rvec_camera_global_{0, 0, 0};
 cv::Vec3d                                                   last_tvec_camera_global_{0, 0, 0};
 
-cv::aruco::DetectorParameters                               detectorParams_;
-cv::aruco::Dictionary                                       dictionary_;
-cv::aruco::ArucoDetector                                    detector_;
+cv::Ptr<cv::aruco::DetectorParameters>                       detectorParams_;
+cv::Ptr<cv::aruco::Dictionary>                              dictionary_;
 
 rclcpp::TimerBase::SharedPtr                                timer_;
 

@@ -117,8 +117,8 @@ class LocalCameraPerceptionNode(Node):
     def __init__(self):
         super().__init__('local_camera_perception_node')
 
-        # ---------- Camera ----------
-        self.declare_parameter('camera_device', 4) # Place proper camera device number here (check with v4l2-ctl --list-devices)
+        # ---------- Camera Isaac ----------
+        self.declare_parameter('camera_device', 0) # Host-local default; override from launch on machines where the camera is elsewhere.
         self.declare_parameter('camera_path', '')
         self.declare_parameter('show_debug_window', True)
 
@@ -127,9 +127,22 @@ class LocalCameraPerceptionNode(Node):
         self.show_debug_window = bool(self.get_parameter('show_debug_window').value)
 
         camera_source = self.camera_path if self.camera_path else self.cameraDeviceNumber
+
+        # Try V4L2 backend first (most reliable for USB cameras on Linux)
         self.camera = cv2.VideoCapture(camera_source, cv2.CAP_V4L2)
+
+        # Fallback: default backend
         if not self.camera.isOpened():
             self.camera = cv2.VideoCapture(camera_source)
+
+        # Last fallback: GStreamer/libcamera pipeline (for CSI camera setups)
+        if not self.camera.isOpened():
+            pipeline = (
+                "libcamerasrc ! "
+                "video/x-raw,width=640,height=480,framerate=30/1 ! "
+                "videoconvert ! appsink"
+            )
+            self.camera = cv2.VideoCapture(pipeline, cv2.CAP_GSTREAMER)
 
         if not self.camera.isOpened():
             self.get_logger().error(f"Could not open camera source {camera_source}")

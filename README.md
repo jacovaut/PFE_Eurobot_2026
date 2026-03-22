@@ -15,6 +15,7 @@ Svp créer un nouveau folder pour chaque partie et indiquer son utilité dans le
 | ------------------ |:------------------:|
 | ws                 | main ros2 colcon workspace |
 | pio                | ESP32 Code      |
+|sklearn-env         | idk, ask isaac |
 | Other       | other files |
 
 ## First time setup
@@ -111,7 +112,8 @@ For premade packages, use sudo apt install ros-jazzy-PACKAGE_NAME or git submodu
 |joint state publisher|apt|
 |teleop twist keyboard|apt|
 |micro_ros_setup|submodule|
-|lidar (idk what lidar?)|submodule?|
+|YDLidar-SDK|submodule|
+|ydlidar_ros2_driver|in our git repo|
 
 ## Misc
 - If sudo apt install fails, try
@@ -160,27 +162,26 @@ code <File_Path / Folder_Path> (Open file or folder in vscode)
   - [x] Add pio project
   - [x] Configure Ros2 ws
 - Ros2 Packages install
-  - [ ] nav2
-  - [ ] Robot localization
+  - [x] nav2
+  - [x] Robot localization
   - [x] Lidar
-  - [ ] joy
 - Ros2 Setup
   - [ ] Config files
     - [ ] nav2
-    - [ ] lidar
+    - [x] lidar
   - [ ] launch files
     - [ ] Core
     - [ ] Lidar
     - [ ] Navigation
-  - [ ] URDF
+  - [x] URDF
   - [ ] maps
 - ESP32 Motor
-  - [ ] Drive motor
+  - [x] Drive motor
   - [x] Comunication
-  - [ ] Inverse kinematics
+  - [x] Inverse kinematics
 - ESP32 Odom
-  - [ ] Read Counter Clicks
+  - [x] Read Counter Clicks
   - [x] Comunication
-  - [ ] Kinematics
+  - [x] Kinematics
 
 ![logo](Logos/stock-photo-fractals-background-owl-portrait-animal-1703663572%20(1).jpg)

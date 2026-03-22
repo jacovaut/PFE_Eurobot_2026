@@ -10,29 +10,30 @@ def generate_launch_description():
     ekf2_config = os.path.join(pkg_share, 'config', 'ekf2.yaml')
 
     return LaunchDescription([
-        # Deadwheel odometry node
-        Node(
+    # Deadwheel odometry node
+    Node(
             package='deadwheel_odometry',
             executable='ticks_listener',
             name='ticks_listener',
             output='screen'
         ),
 
-        # EKF1 : Local filter (odom -> base_link)
-	Node(
+    # EKF1 : Local filter (odom -> base_link)
+    Node(
             package='robot_localization',
             executable='ekf_node',
             name='ekf_local_node',
             output='screen',
             parameters=[ekf1_config],
+            remappings=[('/odometry/filtered', '/odometry/local')],
         ),
- 	# EKF2: global filter (map -> odom)
-        Node(
+ 	 # EKF2: global filter (map -> odom)
+    Node(
             package='robot_localization',
             executable='ekf_node',
             name='ekf_global_node',
             output='screen',
             parameters=[ekf2_config],
-            remappings=[('/odometry/filtered', '/odometry/global')]
+            remappings=[('/odometry/filtered', '/odometry/global')],
         )
     ])

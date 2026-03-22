@@ -2,7 +2,7 @@
 import rclpy
 from rclpy.node import Node
 
-from deadwheel_msgs.msg import DeadwheelTicks
+from custom_msgs.msg import DeadwheelTicks
 
 class FakeTicks(Node):
     def __init__(self):
