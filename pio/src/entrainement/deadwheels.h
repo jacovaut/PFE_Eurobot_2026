@@ -7,7 +7,7 @@
 #include <rclc/rclc.h>
 #include <rclc/executor.h>
 #include <rmw_microros/rmw_microros.h>
-#include "deadwheel_msgs/msg/deadwheel_ticks.h"
+#include "custom_msgs/msg/deadwheel_ticks.h"
 
 // for later use
 // //Define odometry update callback

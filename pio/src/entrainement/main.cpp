@@ -40,7 +40,7 @@
 #include <rclc/rclc.h>
 #include <rclc/executor.h>
 #include <rmw_microros/rmw_microros.h>
-#include "deadwheel_msgs/msg/deadwheel_ticks.h"
+#include "custom_msgs/msg/deadwheel_ticks.h"
 #include <geometry_msgs/msg/twist.h>
 /* ---------------------------------------------------------- */
 
@@ -51,7 +51,7 @@ geometry_msgs__msg__Twist cmdvel_msg;
 
 // micro-ROS / rclc objects using custom message
 rcl_publisher_t deadwheel_pub;
-deadwheel_msgs__msg__DeadwheelTicks deadwheel_msg;
+custom_msgs__msg__DeadwheelTicks deadwheel_msg;
 
 rclc_executor_t executor;  // executor to handle timers/callbacks
 rclc_support_t support;    // support structure for rclc
@@ -197,7 +197,7 @@ void setup() {
     RCCHECK(rclc_publisher_init_default(
         &deadwheel_pub,
         &node,
-        ROSIDL_GET_MSG_TYPE_SUPPORT(deadwheel_msgs, msg, DeadwheelTicks),
+        ROSIDL_GET_MSG_TYPE_SUPPORT(custom_msgs, msg, DeadwheelTicks),
         "deadwheel_ticks"
     ));
 
