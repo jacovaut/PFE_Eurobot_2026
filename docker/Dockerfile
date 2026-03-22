@@ -18,12 +18,11 @@ RUN groupadd --gid ${USER_GID} ${USERNAME} && \
     echo "${USERNAME} ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/${USERNAME} && \
     chmod 0440 /etc/sudoers.d/${USERNAME}
 
-# # Update & install necessary packages
-# RUN apt-get update && apt-get upgrade -y && \
-#     apt-get install -y \
-#     python3-colcon-common-extensions \
-#     python3-rosdep \
-#     && apt-get clean && rm -rf /var/lib/apt/lists/*
+# Update & install necessary packages
+RUN apt-get update && apt-get upgrade -y && \
+    apt-get install -y \
+    ros-jazzy-teleop-twist-keyboard \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 
 # Set shell for user (not mandatory, but good for dev experience)
