@@ -22,6 +22,7 @@ RUN groupadd --gid ${USER_GID} ${USERNAME} && \
 RUN apt-get update && apt-get upgrade -y && \
     apt-get install -y \
     ros-jazzy-teleop-twist-keyboard \
+    ros-jazzy-robot-localization \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 
