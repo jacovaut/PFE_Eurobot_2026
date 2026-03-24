@@ -4,9 +4,13 @@
 
 # ROS build artifacts
 # ROS 2 colcon build artifacts
-ws/build/
-ws/install/
-ws/log/
+robot_ws/build/
+robot_ws/install/
+robot_ws/log/
+
+server_ws/build/
+server_ws/install/
+server_ws/log/
 
 # OS / system stuff
 .DS_Store
@@ -37,3 +41,5 @@ __pycache__/
 .venv/
 
 sklearn-env/
+
+uros_ws/*
