@@ -1,10 +1,19 @@
 {
 	"folders": [
 		{
-			"name": "ROS 2",
-			"path": "ws", // your colcon workspace
+			"name": "robot_ws",
+			"path": "robot_ws", // your colcon workspace
 			"settings": {
-				"terminal.integrated.cwd": "ws",
+				"terminal.integrated.cwd": "robot_ws",
+				"C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
+				"ros.distro": "jazzy"
+			}
+		},
+				{
+			"name": "server_ws",
+			"path": "server_ws", // your colcon workspace
+			"settings": {
+				"terminal.integrated.cwd": "server_ws",
 				"C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
 				"ros.distro": "jazzy"
 			}

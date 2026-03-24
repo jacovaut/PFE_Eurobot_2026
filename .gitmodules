@@ -1,8 +1,0 @@
-[submodule "micro_ros_jazzy"]
-	path = ws/src/micro_ros_setup
-	url = https://github.com/micro-ROS/micro_ros_setup.git
-	branch = jazzy
-[submodule "ws/src/YDLidar-SDK"]
-	path = ws/src/YDLidar-SDK
-	url = https://github.com/YDLIDAR/YDLidar-SDK
-	ignore = dirty
