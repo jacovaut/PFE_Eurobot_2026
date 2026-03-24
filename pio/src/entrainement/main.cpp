@@ -87,7 +87,7 @@ void error_loop(){
 }
 /* ------------------------------------------------------------- */
 
-deadwheels Deadwheel(2, 19, 36, 34, 35, 32); // A0, B0, A1, B1, A2, B2
+deadwheels Deadwheel(36, 34, 2, 19, 35, 32); // A0, B0, A1, B1, A2, B2
 
 struct CmdVel {
   float vx;
@@ -286,7 +286,7 @@ void setSpeed(float new_vx, float new_vy, float new_w) {
         return;
     }
     
-    float wheelSpeeds [4] = {0, 0, 0, 0}; // FL(\), FR(/), RL(/), RR(\)
+    float wheelSpeeds [4] = {0, 0, 0, 0};
     
     // get the wheel speeds in rad/s
     calculateWheelSpeeds(vx, vy, w, wheelSpeeds);
