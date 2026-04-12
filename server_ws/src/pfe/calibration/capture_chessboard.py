@@ -7,7 +7,7 @@ os.makedirs(output_dir, exist_ok=True)
 camera = cv2.VideoCapture(0)
 
 camera.set(cv2.CAP_PROP_FRAME_WIDTH, 3840)
-camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 2880)
+camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 3040)
 
 img_id = 0
 

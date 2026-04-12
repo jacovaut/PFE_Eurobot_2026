@@ -118,7 +118,7 @@ class LocalCameraPerceptionNode(Node):
         super().__init__('local_camera_perception_node')
 
         # ---------- Camera Isaac ----------
-        self.declare_parameter('camera_device', 0) # Host-local default; override from launch on machines where the camera is elsewhere.
+        self.declare_parameter('camera_device', 4) # Host-local default; override from launch on machines where the camera is elsewhere.
         self.declare_parameter('camera_path', '')
         self.declare_parameter('show_debug_window', True)
 

@@ -10,6 +10,7 @@ global_localization_node:
     height: 2160
     fps: 30
     fourcc: "MJPG"
+    calibration_file: "/home/isaac/PFE_Eurobot_2026/server_ws/src/pfe/camera_calibration/global_cam_test.yml"
     debug_view: true
 
     # Frames / topics
@@ -18,7 +19,7 @@ global_localization_node:
     detected_blocks_topic: "/detected_blocks"
 
     # Marker setup
-    robot_marker_id: 7
+    robot_marker_id: 1
     table_marker_length_m: 0.10
     robot_marker_length_m: 0.07
     block_marker_length_m: 0.03

@@ -2,13 +2,21 @@ from launch import LaunchDescription
 from launch_ros.actions import Node
 from launch.substitutions import Command
 from launch_ros.parameter_descriptions import ParameterValue
-from ament_index_python.packages import get_package_share_directory
+from ament_index_python.packages import get_package_share_directory, get_packages_with_prefixes
 import os
 
 
 def generate_launch_description():
     pkg_path = get_package_share_directory('pfe')
     urdf_file = os.path.join(pkg_path, 'urdf', 'my_robot.urdf.xacro')
+    available_packages = get_packages_with_prefixes()
+
+    # Use GUI publisher when available, otherwise fallback to headless publisher.
+    jsp_pkg = 'joint_state_publisher_gui'
+    jsp_exec = 'joint_state_publisher_gui'
+    if jsp_pkg not in available_packages:
+        jsp_pkg = 'joint_state_publisher'
+        jsp_exec = 'joint_state_publisher'
 
     robot_description = ParameterValue(
         Command(['xacro ', urdf_file]),
@@ -25,8 +33,8 @@ def generate_launch_description():
         ),
 
         Node(
-            package='joint_state_publisher_gui',
-            executable='joint_state_publisher_gui',
+            package=jsp_pkg,
+            executable=jsp_exec,
             output='screen'
         ),
 
