@@ -1045,3 +1045,37 @@ int main(int argc, char **argv)
   rclcpp::shutdown();
   return 0;
 }
+
+#!/usr/bin/env bash
+# Device
+DEV=/dev/eurobot2026-ELPcamera
+ 
+# 1) Kill flicker in Canada (60 Hz)
+v4l2-ctl -d $DEV --set-ctrl=power_line_frequency=2
+ 
+# 2) Exposure mode + exposure time (manual)
+# auto_exposure: 1 = Manual Mode (as shown by your driver)
+v4l2-ctl -d $DEV --set-ctrl=auto_exposure=1
+v4l2-ctl -d $DEV --set-ctrl=exposure_time_absolute=200
+ 
+# 3) Keep gain low (cleaner edges)
+v4l2-ctl -d $DEV --set-ctrl=gain=40
+ 
+# 4) White balance: keep AUTO ON (temperature becomes inactive)
+v4l2-ctl -d $DEV --set-ctrl=white_balance_automatic=1
+ 
+# 5) Basic image tuning (your current values)
+v4l2-ctl -d $DEV --set-ctrl=brightness=0
+v4l2-ctl -d $DEV --set-ctrl=contrast=0
+v4l2-ctl -d $DEV --set-ctrl=saturation=70
+v4l2-ctl -d $DEV --set-ctrl=hue=0
+v4l2-ctl -d $DEV --set-ctrl=gamma=120
+v4l2-ctl -d $DEV --set-ctrl=sharpness=1
+v4l2-ctl -d $DEV --set-ctrl=backlight_compensation=0
+ 
+# 6) Focus: manual lock at your current value
+v4l2-ctl -d $DEV --set-ctrl=focus_automatic_continuous=0
+v4l2-ctl -d $DEV --set-ctrl=focus_absolute=1023
+ 
+# (Optional) Check what you ended up with
+v4l2-ctl -d $DEV --all | sed -n '/User Controls/,$p'
