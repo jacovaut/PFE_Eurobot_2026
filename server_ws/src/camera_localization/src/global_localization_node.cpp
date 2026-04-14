@@ -362,19 +362,22 @@ private:
     last_frame_process_ms_ = process_ms;
     double total_ms = std::chrono::duration<double, std::milli>(process_end - tick_start).count();
     
-    // Every 100 frames, log statistics
     if (frame_counter_ % 100 == 0) {
       RCLCPP_INFO(get_logger(),
         "[DIAGNOSTIC] Frames: %ld, Empty: %ld, Total: %.2f ms (read: %.2f ms, process: %.2f ms, json: %.2f ms, pub: %.2f ms)",
-        frame_counter_, empty_frame_count_, total_ms, read_ms, process_ms, 
+        frame_counter_, empty_frame_count_, total_ms, read_ms, process_ms,
         last_json_build_ms_, last_publish_ms_);
       RCLCPP_INFO(get_logger(),
         "[DETECTION] Initial: %d markers, Tables B4 rescue: %d, Tables after: %d, Rescue helped: %ld, solvePnP ok: %ld, fail: %ld",
-        last_initial_marker_count_, last_table_markers_before_rescue_, 
-        last_table_markers_after_rescue_, rescue_pass_helped_, 
+        last_initial_marker_count_, last_table_markers_before_rescue_,
+        last_table_markers_after_rescue_, rescue_pass_helped_,
         successful_solvepnp_, failed_solvepnp_);
+      RCLCPP_INFO(get_logger(),
+        "[MARKER 20] before rescue: %ld, after rescue: %ld, recovered by rescue: %ld",
+        marker20_seen_before_rescue_,
+        marker20_seen_after_rescue_,
+        marker20_recovered_by_rescue_);
     }
-  }
 
   void processFrame(const cv::Mat &frame)
   {
@@ -386,6 +389,14 @@ private:
     std::vector<std::vector<cv::Point2f>> rejected;
     cv::aruco::detectMarkers(gray, dictionary_, corners, ids, detector_params_, rejected);
 
+    bool marker20_accepted_before_rescue = false;
+    for (int id : ids) {
+      if (id == 20) {
+        marker20_accepted_before_rescue = true;
+        break;
+      }
+    }
+
     int initial_marker_count = ids.size();
     int table_markers_before_rescue = 0;
     for (int id : ids) {
@@ -393,7 +404,25 @@ private:
     }
 
     runTableMarkerRescuePass(gray, ids, corners);
-    
+
+    bool marker20_accepted_after_rescue = false;
+    for (int id : ids) {
+      if (id == 20) {
+        marker20_accepted_after_rescue = true;
+        break;
+      }
+    }
+
+    if (marker20_accepted_before_rescue) {
+      marker20_seen_before_rescue_++;
+    }
+    if (marker20_accepted_after_rescue) {
+      marker20_seen_after_rescue_++;
+    }
+    if (!marker20_accepted_before_rescue && marker20_accepted_after_rescue) {
+      marker20_recovered_by_rescue_++;
+    }
+
     int table_markers_after_rescue = 0;
     for (int id : ids) {
       if (table_ids_.count(id)) table_markers_after_rescue++;
@@ -1008,6 +1037,10 @@ if (ids.empty()) {
   uint64_t rescue_pass_helped_{0};
   uint64_t successful_solvepnp_{0};
   uint64_t failed_solvepnp_{0};
+
+  uint64_t marker20_seen_before_rescue_{0};
+  uint64_t marker20_seen_after_rescue_{0};
+  uint64_t marker20_recovered_by_rescue_{0};
 
   // Parameters
   std::string device_;
