@@ -203,6 +203,20 @@ private:
     cap_.set(cv::CAP_PROP_BUFFERSIZE, 1);
 
     RCLCPP_INFO(get_logger(), "Opened camera %s", device_.c_str());
+
+    RCLCPP_INFO(get_logger(), "Actual width: %.0f", cap_.get(cv::CAP_PROP_FRAME_WIDTH));
+    RCLCPP_INFO(get_logger(), "Actual height: %.0f", cap_.get(cv::CAP_PROP_FRAME_HEIGHT));
+    RCLCPP_INFO(get_logger(), "Actual fps: %.2f", cap_.get(cv::CAP_PROP_FPS));
+
+    int fourcc = static_cast<int>(cap_.get(cv::CAP_PROP_FOURCC));
+    char fcc[] = {
+      static_cast<char>(fourcc & 0xFF),
+      static_cast<char>((fourcc >> 8) & 0xFF),
+      static_cast<char>((fourcc >> 16) & 0xFF),
+      static_cast<char>((fourcc >> 24) & 0xFF),
+      '\0'
+    };
+    RCLCPP_INFO(get_logger(), "Actual FOURCC: %s", fcc);
   }
 
   void loadCalibration()
