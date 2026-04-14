@@ -407,18 +407,24 @@ private:
     }
 
     cv::Mat debug_image;
-    if (debug_view_) {
-      debug_image = frame.clone();
-      if (!ids.empty()) {
-        cv::aruco::drawDetectedMarkers(debug_image, corners, ids);
-      }
-    }
+  if (debug_view_) {
+    debug_image = frame.clone();
 
-    if (ids.empty()) {
-      publishDetectedEntities({});
-      showDebug(debug_image);
-      return;
-    }
+  if (!ids.empty()) {
+    cv::aruco::drawDetectedMarkers(debug_image, corners, ids);
+  }
+
+  if (!rejected.empty()) {
+    cv::aruco::drawDetectedMarkers(
+      debug_image, rejected, cv::noArray(), cv::Scalar(100, 0, 255));
+  }
+}
+
+if (ids.empty()) {
+  publishDetectedEntities({});
+  showDebug(debug_image);
+  return;
+}
 
     // -------------------------------------------------------
     // Step 1: Estimate camera pose in map using table markers
