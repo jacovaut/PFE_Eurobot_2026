@@ -8,7 +8,7 @@ global_localization_node:
     camera_index: 4 # Fallback only if camera_path is empty
     width: 3840
     height: 2160
-    fps: 30
+    fps: 15
     fourcc: "MJPG"
     calibration_file: "/home/isaac/PFE_Eurobot_2026/server_ws/src/pfe/camera_calibration/global_cam_test.yml"
     debug_view: true
