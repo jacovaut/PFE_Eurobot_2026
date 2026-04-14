@@ -378,6 +378,7 @@ private:
         marker20_seen_after_rescue_,
         marker20_recovered_by_rescue_);
     }
+  }
 
   void processFrame(const cv::Mat &frame)
   {
@@ -443,10 +444,6 @@ private:
     cv::aruco::drawDetectedMarkers(debug_image, corners, ids);
   }
 
-  if (!rejected.empty()) {
-    cv::aruco::drawDetectedMarkers(
-      debug_image, rejected, cv::noArray(), cv::Scalar(100, 0, 255));
-  }
 }
 
 if (ids.empty()) {
