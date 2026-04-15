@@ -17,36 +17,40 @@
 #include <rclcpp/rclcpp.hpp>
 #include <opencv2/opencv.hpp>
 #include <opencv2/aruco.hpp>
+#include <opencv2/objdetect/aruco_detector.hpp>
 #include <opencv2/calib3d.hpp>
-#include <geometry_msgs/msg/transform_stamped.hpp>
 #include <unordered_map>
 #include <array>
-#include <filesystem>   // C++17
-#include <numeric> // iota
-#include <cmath> 
-#include <unordered_set> //fast check if an ID is in a group
+#include <cmath>
+#include <unordered_set>
 #include <string>
 #include <vector>
-#include <iostream>
 #include <algorithm>
-#include <geometry_msgs/msg/pose_array.hpp>
-#include <std_msgs/msg/int32_multi_array.hpp>
+#include <thread>
+#include <atomic>
 #include <std_msgs/msg/float32_multi_array.hpp>
+#include <ament_index_cpp/get_package_share_directory.hpp>
+
 
 
 class PerceptionNode : public rclcpp::Node {
 public: 
-    PerceptionNode() : rclcpp::Node("perception_node") {
+    PerceptionNode() : rclcpp::Node("external_perception_node") {
     
-    // Camera settings as parameters (so you can change later)
-    const auto camera_index = declare_parameter<int>("camera_index", 0);
-    const auto camera_path = declare_parameter<std::string>("camera_path", "/dev/video0");
-    device_ = camera_path.empty() ? "/dev/video" + std::to_string(camera_index) : camera_path;
-    width_  = declare_parameter<int>("width", 3840);
-    height_ = declare_parameter<int>("height", 2160);
-    fps_    = declare_parameter<int>("fps", 30);
-    // fourcc_ = declare_parameter<std::string>("fourcc", "YUYV");
-    fourcc_ = declare_parameter<std::string>("fourcc", "MJPG");
+    // Camera settings
+    device_  = declare_parameter<std::string>("device",  "/dev/eurobot2026-ELPcamera");
+    width_   = declare_parameter<int>        ("width",   3840);
+    height_  = declare_parameter<int>        ("height",  2160);
+    fps_     = declare_parameter<int>        ("fps",     30);
+    fourcc_  = declare_parameter<std::string>("fourcc",  "MJPG");
+
+    // Team and display parameters
+    our_team_         = declare_parameter<int>   ("our_team",          0);    // 0=blue, 1=yellow
+    show_display_     = declare_parameter<bool>  ("show_display",      false); // false for headless deployment
+    max_missed_frames_= declare_parameter<int>   ("max_missed_frames", 5);
+    ema_alpha_        = declare_parameter<double>("ema_alpha",          0.5);
+    yaw_alpha_        = declare_parameter<double>("yaw_alpha",          0.5);
+    match_gate_m_     = declare_parameter<double>("match_gate_m",       0.02);
 
     // Open camera ONCE
     cap_.open(device_, cv::CAP_V4L2);
@@ -54,18 +58,8 @@ public:
         throw std::runtime_error("Failed to open camera " + device_);
     }
 
-    // Create timer to time how many times we do detection. Goal is to be exact as the cameras fps
-    const int period_ms = std::max(1, static_cast<int>(1000.0 / fps_));
-    timer_ = create_wall_timer(
-        std::chrono::milliseconds(period_ms),
-        std::bind(&PerceptionNode::cameraTick, this)
-    );
-
-
-    // Combined publisher for all entities (blocks + robots)
-    // We'll publish PoseArray in "entities/poses" with metadata in "entities/meta"
-    // OR better: use a single custom message
-    entities_pub_ = create_publisher<std_msgs::msg::Float32MultiArray>("entities/all", 10); // 10 is queue size
+    // Publisher for all entities
+    entities_pub_ = create_publisher<std_msgs::msg::Float32MultiArray>("entities/all", 10);
 
 
     // Apply settings ONCE
@@ -74,20 +68,14 @@ public:
     cap_.set(cv::CAP_PROP_FRAME_HEIGHT, height_);
     cap_.set(cv::CAP_PROP_FPS,          fps_);
     cap_.set(cv::CAP_PROP_BUFFERSIZE,   1);
-    
-    // Log camera parameters
-    RCLCPP_INFO(get_logger(), "Camera settings: FOURCC=%s, Resolution=%dx%d, FPS=%d, BufferSize=1",
-                fourcc_.c_str(), width_, height_, fps_);
-    
     // cap_.set(cv::CAP_PROP_ZOOM,         100);  // some drivers expose MJPG quality via ZOOM
 
 
 
 
     // Camera parameters
-    std::string calib_file = declare_parameter<std::string>(
-        "calibration_file",
-        "camera_calibration/real/3840_2160_ELM12MP.yml");
+    std::string package_share_dir = ament_index_cpp::get_package_share_directory("eurobot_vision_external");
+    std::string calib_file = package_share_dir + "/calibration/3840_2160_ELM12MP.yml";
     cv::FileStorage fs(calib_file, cv::FileStorage::READ);
 
     if (!fs.isOpened())
@@ -113,12 +101,6 @@ public:
     Tbl_markerLength_ = 0.10f;   // 10 cm for table markers
     Blc_markerLength_ = 0.03f;  // 3 cm for blocks
     Rob_markerLength_ = 0.07f;   // 7 cm for robots
-
-    // 0 = blue (IDs 1-5), 1 = yellow (IDs 6-10)
-    // Team configuration: which team are we?
-    // our_team_ = declare_parameter<int>("our_team", 0);
-    our_team_ = 0;
-
 
     // Ids of every element
     table_ids_ = {20, 21, 22, 23};
@@ -177,43 +159,49 @@ public:
     // detectorParams_.perspectiveRemoveIgnoredMarginPerCell = 0.13;
 
     // --- OPTIMIZED PARAMETERS START ---
-    detectorParams_ = cv::aruco::DetectorParameters::create();
+    detectorParams_ = cv::aruco::DetectorParameters();
 
     // 1. STABILITY (Stops flickering)
-    // Resolution of the extracted bits. 4 is too low for 4K. 
+    // Resolution of the extracted bits. 4 is too low for 4K.
     // Higher = more stable ID reading, but slightly slower.
-    detectorParams_->perspectiveRemovePixelPerCell = 8; 
+    detectorParams_.perspectiveRemovePixelPerCell = 8;
     
     // 2. DETECTION (Finds the squares)
     // Adaptive thresholding: These control how we turn the color image into black/white
-    detectorParams_->adaptiveThreshWinSizeMin = 3;
-    detectorParams_->adaptiveThreshWinSizeMax = 23; // Lower max helps avoid lighting gradients across big table
-    detectorParams_->adaptiveThreshWinSizeStep = 3; // Smaller step = checks more window sizes = better detection
-    detectorParams_->adaptiveThreshConstant = 7;    // Constant subtracted from mean. 7 is usually good.
+    detectorParams_.adaptiveThreshWinSizeMin = 3;
+    detectorParams_.adaptiveThreshWinSizeMax = 23; // Lower max helps avoid lighting gradients across big table
+    detectorParams_.adaptiveThreshWinSizeStep = 3; // Smaller step = checks more window sizes = better detection
+    detectorParams_.adaptiveThreshConstant = 7;    // Constant subtracted from mean. 7 is usually good.
 
     // 3. FILTERING (Stops "Ghosts" and noise)
     // Ignore really tiny contours (noise) or really huge ones (walls)
-    detectorParams_->minMarkerPerimeterRate = 0.005; // 0.01 was maybe picking up noise. 0.02 is safer for 3cm blocks.
-    detectorParams_->maxMarkerPerimeterRate = 4.0;
+    detectorParams_.minMarkerPerimeterRate = 0.005; // 0.01 was maybe picking up noise. 0.02 is safer for 3cm blocks.
+    detectorParams_.maxMarkerPerimeterRate = 4.0;
     
     // TIGHTER ERROR CORRECTION
     // Lower = Stricter. 0.6 is default. 0.2 is good. 
     // If ghosts persist, try 0.1, but it might make blocks harder to detect.
-    detectorParams_->errorCorrectionRate = 0.2f; 
+    detectorParams_.errorCorrectionRate = 0.2f; 
     
     // Use Subpix for better pose accuracy 
-    detectorParams_->cornerRefinementMethod = cv::aruco::CORNER_REFINE_SUBPIX; 
+    detectorParams_.cornerRefinementMethod = cv::aruco::CORNER_REFINE_SUBPIX; 
     // detectorParams_.cornerRefinementWinSize = 3;  // default is 5, try 3 for tiny markers
     // detectorParams_.cornerRefinementMaxIterations = 30;
     // detectorParams_.cornerRefinementMinAccuracy = 0.1;
 
     // --- OPTIMIZED PARAMETERS END ---
     
-    // family of aruco codes to look for
-    dictionary_     = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_4X4_50);
+    // ArUco dictionary and detector (new API, OpenCV 4.8+)
+    dictionary_ = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_4X4_50);
+    detector_   = cv::aruco::ArucoDetector(dictionary_, detectorParams_);
 
-    // RCLCPP_INFO(get_logger(), "Subscribing to %s", topic_.c_str());
-    cv::namedWindow("out",cv::WINDOW_NORMAL);
+    if (show_display_) {
+        cv::namedWindow("out resized", cv::WINDOW_NORMAL);
+    }
+
+    // Start background processing thread (never blocks ROS2 executor)
+    running_ = true;
+    processing_thread_ = std::thread(&PerceptionNode::processingLoop, this);
 }
 
 private:
@@ -248,10 +236,15 @@ double angleEma(double old_yaw, double meas_yaw) const{
     return wrapPi(old_yaw + yaw_alpha_ * diff);
 }
 
-void cameraTick() {
+void processingLoop() {
     cv::Mat frame;
-    if (!cap_.read(frame) || frame.empty()) return;
-    processFrame(frame);
+    while (running_.load(std::memory_order_acquire)) {
+        if (!cap_.read(frame) || frame.empty()) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            continue;
+        }
+        processFrame(frame);
+    }
 }
 
 // Convert pixel (u,v) to global XY by intersecting camera ray with plane z=z_plane
@@ -417,17 +410,19 @@ void processFrame(const cv::Mat& image){
         // Run detection on the grayscale image
         std::vector<int> ids;
         std::vector<std::vector<cv::Point2f>> corners, rejected;
-        cv::aruco::detectMarkers(gray_image, dictionary_, corners, ids, detectorParams_, rejected);
+        detector_.detectMarkers(gray_image, corners, ids, rejected);
 
 
         // Prepare output arrays for pose (rotation/translation) for each detected marker
         size_t nMarkers = corners.size();
         std::vector<cv::Vec3d> rvecs(nMarkers), tvecs(nMarkers);
 
-        // Estimate pose of aruco markers /(old version) - for debug onlly, to able to see the axis of the aruco - to remove in deployement hihi
-        for (size_t i = 0; i < nMarkers; i++) {
-            const cv::Mat& objPts = getObjPointsForId(ids[i]);
-            cv::solvePnP(objPts, corners.at(i), cameraMatrix_, distCoeffs_, rvecs.at(i), tvecs.at(i), false, cv::SOLVEPNP_IPPE_SQUARE);
+        // Per-marker pose — only needed for display (drawFrameAxes). Skip in headless mode.
+        if (show_display_) {
+            for (size_t i = 0; i < nMarkers; i++) {
+                const cv::Mat& objPts = getObjPointsForId(ids[i]);
+                cv::solvePnP(objPts, corners.at(i), cameraMatrix_, distCoeffs_, rvecs.at(i), tvecs.at(i), false, cv::SOLVEPNP_IPPE_SQUARE);
+            }
         }
 
         // // Estimate pose of aruco markers
@@ -489,20 +484,21 @@ void processFrame(const cv::Mat& image){
 
         // std::cout<<"Number of detected markers :" << ids.size() << std::endl;
         
-        // Draw on a copy (or draw on frame directly)
-        float axis_len = 0.1f;
-        cv::Mat imageCopy = image.clone();
-        int id;
-        for (size_t i = 0; i < ids.size(); ++i) {
-            id = ids[i];
-            if (table_ids_.count(id)) 
-                axis_len = static_cast<float>(Tbl_markerLength_ * 1.5);
-            else if (block_ids_.count(id)) 
-                axis_len = static_cast<float>(Blc_markerLength_ * 1.5);
-            else if (robot_ids_.count(id))
-                axis_len = static_cast<float>(Rob_markerLength_ * 1.5);
-                
-            cv::drawFrameAxes(imageCopy, cameraMatrix_, distCoeffs_, rvecs[i], tvecs[i], axis_len, 2);
+        // Display: clone image and draw axes (skipped in headless mode to avoid 4K copy cost)
+        cv::Mat imageCopy;
+        if (show_display_) {
+            imageCopy = image.clone();
+            float axis_len = 0.1f;
+            for (size_t i = 0; i < ids.size(); ++i) {
+                int id_i = ids[i];
+                if (table_ids_.count(id_i))
+                    axis_len = static_cast<float>(Tbl_markerLength_ * 1.5);
+                else if (block_ids_.count(id_i))
+                    axis_len = static_cast<float>(Blc_markerLength_ * 1.5);
+                else if (robot_ids_.count(id_i))
+                    axis_len = static_cast<float>(Rob_markerLength_ * 1.5);
+                cv::drawFrameAxes(imageCopy, cameraMatrix_, distCoeffs_, rvecs[i], tvecs[i], axis_len, 2);
+            }
         }
 
         // Transforms 
@@ -634,36 +630,28 @@ void processFrame(const cv::Mat& image){
                 updateTracksSimple(dets);
                 publishTracks();
 
-                /////////////////////////////////// debuging 
-                // Draw global frame origin on image for debugging
-                std::vector<cv::Point3f> global_axes_pts = {
-                    {0.f, 0.f, 0.f},  // origin
-                    {0.3f, 0.f, 0.f}, // X axis (red)   - 30cm
-                    {0.f, 0.3f, 0.f}, // Y axis (green) - 30cm
-                    {0.f, 0.f, 0.3f}  // Z axis (blue)  - 30cm
-                };
+                if (show_display_) {
+                    // Draw global frame origin
+                    std::vector<cv::Point3f> global_axes_pts = {
+                        {0.f, 0.f, 0.f},
+                        {0.3f, 0.f, 0.f},
+                        {0.f, 0.3f, 0.f},
+                        {0.f, 0.f, 0.3f}
+                    };
+                    std::vector<cv::Point2f> global_axes_projected;
+                    cv::projectPoints(global_axes_pts, rvec_camera_global, tvec_camera_global,
+                                    cameraMatrix_, distCoeffs_, global_axes_projected);
+                    cv::arrowedLine(imageCopy, global_axes_projected[0], global_axes_projected[1], cv::Scalar(0,0,255),   4);
+                    cv::arrowedLine(imageCopy, global_axes_projected[0], global_axes_projected[2], cv::Scalar(0,255,0),   4);
+                    cv::arrowedLine(imageCopy, global_axes_projected[0], global_axes_projected[3], cv::Scalar(255,0,0),   4);
+                    cv::circle(imageCopy, global_axes_projected[0], 8, cv::Scalar(0,255,255), -1);
 
-                std::vector<cv::Point2f> global_axes_projected;
-                cv::projectPoints(global_axes_pts, rvec_camera_global, tvec_camera_global,
-                                cameraMatrix_, distCoeffs_, global_axes_projected);
-
-                // Draw the axes on imageCopy
-                cv::arrowedLine(imageCopy, global_axes_projected[0], global_axes_projected[1], cv::Scalar(0,0,255),   4); // X red
-                cv::arrowedLine(imageCopy, global_axes_projected[0], global_axes_projected[2], cv::Scalar(0,255,0),   4); // Y green
-                cv::arrowedLine(imageCopy, global_axes_projected[0], global_axes_projected[3], cv::Scalar(255,0,0),   4); // Z blue
-                cv::circle(imageCopy, global_axes_projected[0], 8, cv::Scalar(0,255,255), -1); // origin dot yellow
-
-
-                std::vector<cv::Point3f> pt_to_draw = {{1.0f, 0.725f, 0.0f}};
-                // std::vector<cv::Point3f> pt_to_draw = {{0.825f, 0.325f, 0.03f}};
-                std::vector<cv::Point2f> pt_projected;
-                cv::projectPoints(pt_to_draw, rvec_camera_global, tvec_camera_global,
-                                cameraMatrix_, distCoeffs_, pt_projected);
-
-                cv::circle(imageCopy, pt_projected[0], 10, cv::Scalar(0,255,255), -1);
-
-
-                /////////////////////////////////// debuging 
+                    std::vector<cv::Point3f> pt_to_draw = {{1.0f, 0.725f, 0.0f}};
+                    std::vector<cv::Point2f> pt_projected;
+                    cv::projectPoints(pt_to_draw, rvec_camera_global, tvec_camera_global,
+                                    cameraMatrix_, distCoeffs_, pt_projected);
+                    cv::circle(imageCopy, pt_projected[0], 10, cv::Scalar(0,255,255), -1);
+                }
 
             }
 
@@ -674,20 +662,15 @@ void processFrame(const cv::Mat& image){
 
         }
 
-        // Draw results
-        // cv::imshow("out original", imageCopy);
-        
-        // resize image to be able to see it on my monitor 
-        cv::Mat imageCopy_resized;
-        cv::Size new_size(1250, 960);
-        cv::resize(imageCopy, imageCopy_resized, new_size); 
-        cv::imshow("out resized", imageCopy_resized);
-
-        // 1ms wait -> continuous feed. Quit on 'q' or ESC.
-        int key = cv::waitKey(1);
-        if (key == 'q' || key == 27) {
-            // close node cleanly
-            rclcpp::shutdown();
+        if (show_display_) {
+            cv::Mat imageCopy_resized;
+            cv::resize(imageCopy, imageCopy_resized, cv::Size(1250, 960));
+            cv::imshow("out resized", imageCopy_resized);
+            int key = cv::waitKey(1);
+            if (key == 'q' || key == 27) {
+                running_ = false;
+                rclcpp::shutdown();
+            }
         }
 
     }
@@ -792,7 +775,6 @@ void publishTracks(){
 }
 
 // --- Data members  ---
-std::string                                                 topic_;
 cv::Mat                                                     cameraMatrix_, distCoeffs_;
 cv::VideoCapture                                            cap_;
 int                                                         fps_;
@@ -818,45 +800,80 @@ bool                                                        have_T_camera_global
 cv::Vec3d                                                   last_rvec_camera_global_{0, 0, 0};
 cv::Vec3d                                                   last_tvec_camera_global_{0, 0, 0};
 
-cv::Ptr<cv::aruco::DetectorParameters>                       detectorParams_;
-cv::Ptr<cv::aruco::Dictionary>                              dictionary_;
+cv::aruco::DetectorParameters                               detectorParams_;
+cv::aruco::Dictionary                                       dictionary_;
+cv::aruco::ArucoDetector                                    detector_;
 
-rclcpp::TimerBase::SharedPtr                                timer_;
+// Background thread control
+std::atomic<bool>                                           running_{false};
+std::thread                                                 processing_thread_;
+
+// Display flag (false = headless, no clone/imshow)
+bool                                                        show_display_{false};
 
 std::string                                                 device_;
 std::string                                                 fourcc_;
 int                                                         width_;
 int                                                         height_;
 
-
 // Combined entity publisher (blocks + robots)
 rclcpp::Publisher<std_msgs::msg::Float32MultiArray>::SharedPtr      entities_pub_;
 
-// All curret known blocks
+// All current known tracks
 std::vector<Track>                                          tracks_;
 
-// every new blocks new id 
+// Unique ID counter for new tracks
 int                                                         next_track_id_ = 0;
 
-// max distance to match detection to a track
-double                                                      match_gate_m_ = 0.02; 
+// Max distance to match detection to a track (m)
+double                                                      match_gate_m_ = 0.02;
 
-// amount of frames to keep flickered frames
-// keep alive for flicker
-int                                                         max_missed_frames_ = 5;   
+// Frames a track can miss before deletion
+int                                                         max_missed_frames_ = 5;
 
-const double                                                ema_alpha_ = 0.5; // EMA constant for filtering - to tune later 
-double                                                      yaw_alpha_ = 0.5;   // yaw smoothing, smaller = more stable
+// EMA smoothing constants
+double                                                      ema_alpha_ = 0.5;
+double                                                      yaw_alpha_ = 0.5;
 
-int                                                         our_team_ = 0;  // 0=blue, 1=yellow - set which team we are
+// 0=blue, 1=yellow
+int                                                         our_team_ = 0;
 
+public:
+~PerceptionNode() {
+    running_ = false;
+    if (processing_thread_.joinable()) processing_thread_.join();
+    cap_.release();
+    if (show_display_) cv::destroyAllWindows();
+}
 
 };
 
 int main(int argc, char** argv) {
     rclcpp::init(argc, argv);
     rclcpp::spin(std::make_shared<PerceptionNode>());
-    cv::destroyAllWindows();
     rclcpp::shutdown();
     return 0;
 }
+
+//%YAML:1.0
+// ---
+// image_width: 3840
+// image_height: 2160
+// camera_matrix: !!opencv-matrix
+//    rows: 3
+//    cols: 3
+//    dt: d
+//    data: [ 3.2832288508959678e+03, 0., 1.9231592789603717e+03, 0.,
+//        3.4641231567300415e+03, 1.1273374638984303e+03, 0., 0., 1. ]
+// distortion_coefficients: !!opencv-matrix
+//    rows: 1
+//    cols: 12
+//    dt: d
+//    data: [ -2.6729515055942149e-01, 3.5517037087747210e-03,
+//        2.9356560571038234e-02, -9.4279463758215349e-03,
+//        -1.4849403836899038e+00, 3.4696641607205120e-01,
+//        -2.4475802462527681e-02, -2.3296560108128834e+00,
+//        2.8258831516319752e-02, 4.9860131608451411e-03,
+//        -4.5673786656528832e-02, 7.7199158642148429e-03 ]
+// rms: 9.8594786342742291e-01
+// avg_reprojection_error_px: 9.8594812339465743e-01
