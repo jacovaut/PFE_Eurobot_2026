@@ -10,6 +10,13 @@ global_localization_node:
     height: 2160
     fps: 15
     fourcc: "MJPG"
+    camera_gain: 170    # V4L2 gain (moderate + CLAHE is more resilient than high gain alone)
+    camera_gamma: 200   # V4L2 gamma (moderate, CLAHE compensates the rest)
+
+    # CLAHE preprocessing on every frame (before main ArUco detection)
+    enable_clahe_preprocessing: true
+    clahe_clip_limit: 3.0
+    clahe_tile_size: 16
     calibration_file: "/home/isaac/PFE_Eurobot_2026/server_ws/src/pfe/camera_calibration/global_cam_test.yml"
     debug_view: true
 
