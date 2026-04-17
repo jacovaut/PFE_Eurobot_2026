@@ -221,9 +221,16 @@ private:
 
   void loadCalibration()
   {
-    cv::FileStorage fs(calibration_file_, cv::FileStorage::READ);
+    std::string calib_file = calibration_file_;
+    if (!calib_file.empty() && calib_file[0] == '~') {
+      const char* home = std::getenv("HOME");
+      if (home) {
+        calib_file = std::string(home) + calib_file.substr(1);
+      }
+    }
+    cv::FileStorage fs(calib_file, cv::FileStorage::READ);
     if (!fs.isOpened()) {
-      throw std::runtime_error("Could not open calibration file: " + calibration_file_);
+      throw std::runtime_error("Could not open calibration file: " + calib_file);
     }
 
     fs["camera_matrix"] >> camera_matrix_;
@@ -238,7 +245,7 @@ private:
       throw std::runtime_error("distortion_coefficients missing in calibration file");
     }
 
-    RCLCPP_INFO(get_logger(), "Loaded calibration from %s", calibration_file_.c_str());
+    RCLCPP_INFO(get_logger(), "Loaded calibration from %s", calib_file.c_str());
   }
 
   void initMarkerGeometry()
