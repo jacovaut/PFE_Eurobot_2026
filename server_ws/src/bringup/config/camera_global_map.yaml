@@ -31,18 +31,18 @@ global_localization_node:
     min_table_markers: 1
 
     # ArUco detector tuning (important for large table markers IDs 20-23)
-    detector_perspective_remove_pixel_per_cell: 8
+    detector_perspective_remove_pixel_per_cell: 10
     detector_adaptive_thresh_win_size_min: 3
-    detector_adaptive_thresh_win_size_max: 23
-    detector_adaptive_thresh_win_size_step: 3
+    detector_adaptive_thresh_win_size_max: 101
+    detector_adaptive_thresh_win_size_step: 10
     detector_adaptive_thresh_constant: 7.0
     detector_min_marker_perimeter_rate: 0.005
     detector_max_marker_perimeter_rate: 4.0
-    detector_error_correction_rate: 0.2
+    detector_error_correction_rate: 0.45
     detector_use_corner_refinement_subpix: true
 
     # 2nd pass for hard large table markers (adds missing IDs only)
-    enable_table_marker_rescue_pass: false
+    enable_table_marker_rescue_pass: true
     rescue_clahe_clip_limit: 3.0
     rescue_adaptive_thresh_win_size_max: 181
     rescue_adaptive_thresh_win_size_step: 30
