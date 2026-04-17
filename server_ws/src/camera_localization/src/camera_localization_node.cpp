@@ -168,14 +168,20 @@ public:
 
     // --- OPTIMIZED PARAMETERS START ---
     detectorParams_ = cv::aruco::DetectorParameters::create();
+    detectorParams_ = cv::aruco::DetectorParameters::create();
 
     // 1. STABILITY (Stops flickering)
     // Resolution of the extracted bits. 4 is too low for 4K.
     // Higher = more stable ID reading, but slightly slower.
     detectorParams_->perspectiveRemovePixelPerCell = 8;
+    detectorParams_->perspectiveRemovePixelPerCell = 8;
     
     // 2. DETECTION (Finds the squares)
     // Adaptive thresholding: These control how we turn the color image into black/white
+    detectorParams_->adaptiveThreshWinSizeMin = 3;
+    detectorParams_->adaptiveThreshWinSizeMax = 23; // Lower max helps avoid lighting gradients across big table
+    detectorParams_->adaptiveThreshWinSizeStep = 3; // Smaller step = checks more window sizes = better detection
+    detectorParams_->adaptiveThreshConstant = 7;    // Constant subtracted from mean. 7 is usually good.
     detectorParams_->adaptiveThreshWinSizeMin = 3;
     detectorParams_->adaptiveThreshWinSizeMax = 23; // Lower max helps avoid lighting gradients across big table
     detectorParams_->adaptiveThreshWinSizeStep = 3; // Smaller step = checks more window sizes = better detection
@@ -185,22 +191,29 @@ public:
     // Ignore really tiny contours (noise) or really huge ones (walls)
     detectorParams_->minMarkerPerimeterRate = 0.005; // 0.01 was maybe picking up noise. 0.02 is safer for 3cm blocks.
     detectorParams_->maxMarkerPerimeterRate = 4.0;
+    detectorParams_->minMarkerPerimeterRate = 0.005; // 0.01 was maybe picking up noise. 0.02 is safer for 3cm blocks.
+    detectorParams_->maxMarkerPerimeterRate = 4.0;
     
     // TIGHTER ERROR CORRECTION
     // Lower = Stricter. 0.6 is default. 0.2 is good. 
     // If ghosts persist, try 0.1, but it might make blocks harder to detect.
     detectorParams_->errorCorrectionRate = 0.2f; 
+    detectorParams_->errorCorrectionRate = 0.2f; 
     
     // Use Subpix for better pose accuracy 
     detectorParams_->cornerRefinementMethod = cv::aruco::CORNER_REFINE_SUBPIX; 
-    // detectorParams_.cornerRefinementWinSize = 3;  // default is 5, try 3 for tiny markers
-    // detectorParams_.cornerRefinementMaxIterations = 30;
-    // detectorParams_.cornerRefinementMinAccuracy = 0.1;
+    // detectorParams_->cornerRefinementWinSize = 3;  // default is 5, try 3 for tiny markers
+    // detectorParams_->cornerRefinementMaxIterations = 30;
+    // detectorParams_->cornerRefinementMinAccuracy = 0.1;
 
     // --- OPTIMIZED PARAMETERS END ---
     
     // ArUco dictionary and detector parameters
     dictionary_ = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_4X4_50);
+
+    if (show_display_) {
+        cv::namedWindow("out resized", cv::WINDOW_NORMAL);
+    }
 
     // Start background processing thread (never blocks ROS2 executor)
     running_ = true;
@@ -437,6 +450,7 @@ void processFrame(const cv::Mat& image){
         // Run detection on the grayscale image
         std::vector<int> ids;
         std::vector<std::vector<cv::Point2f>> corners, rejected;
+        cv::aruco::detectMarkers(gray_image, dictionary_, corners, ids, detectorParams_, rejected);
         cv::aruco::detectMarkers(gray_image, dictionary_, corners, ids, detectorParams_, rejected);
 
 
@@ -822,6 +836,8 @@ bool                                                        have_T_camera_global
 cv::Vec3d                                                   last_rvec_camera_global_{0, 0, 0};
 cv::Vec3d                                                   last_tvec_camera_global_{0, 0, 0};
 
+cv::Ptr<cv::aruco::DetectorParameters>                      detectorParams_;
+cv::Ptr<cv::aruco::Dictionary>                              dictionary_;
 cv::Ptr<cv::aruco::DetectorParameters>                      detectorParams_;
 cv::Ptr<cv::aruco::Dictionary>                              dictionary_;
 
