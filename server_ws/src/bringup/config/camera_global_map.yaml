@@ -10,7 +10,7 @@ global_localization_node:
     height: 2160
     fps: 15
     fourcc: "MJPG"
-    calibration_file: "/home/isaac/PFE_Eurobot_2026/server_ws/src/pfe/camera_calibration/global_cam_test.yml"
+    calibration_file: "~/PFE_Eurobot_2026/server_ws/src/pfe/camera_calibration/global_cam_test.yml"
     debug_view: true
 
     # Frames / topics
