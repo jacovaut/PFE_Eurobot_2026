@@ -17,7 +17,6 @@
 #include <rclcpp/rclcpp.hpp>
 #include <opencv2/opencv.hpp>
 #include <opencv2/aruco.hpp>
-#include <opencv2/objdetect/aruco_detector.hpp>
 #include <opencv2/calib3d.hpp>
 #include <unordered_map>
 #include <array>
@@ -28,6 +27,7 @@
 #include <algorithm>
 #include <thread>
 #include <atomic>
+#include <mutex>
 #include <std_msgs/msg/float32_multi_array.hpp>
 #include <ament_index_cpp/get_package_share_directory.hpp>
 
@@ -38,7 +38,11 @@ public:
     PerceptionNode() : rclcpp::Node("external_perception_node") {
     
     // Camera settings
-    device_  = declare_parameter<std::string>("device",  "/dev/eurobot2026-ELPcamera");
+    const auto camera_path = declare_parameter<std::string>("camera_path", "");
+    const auto camera_index = declare_parameter<int>("camera_index", 0);
+    device_  = declare_parameter<std::string>(
+        "device",
+        camera_path.empty() ? "/dev/video" + std::to_string(camera_index) : camera_path);
     width_   = declare_parameter<int>        ("width",   3840);
     height_  = declare_parameter<int>        ("height",  2160);
     fps_     = declare_parameter<int>        ("fps",     30);
@@ -74,13 +78,17 @@ public:
 
 
     // Camera parameters
-    std::string package_share_dir = ament_index_cpp::get_package_share_directory("eurobot_vision_external");
-    std::string calib_file = package_share_dir + "/calibration/3840_2160_ELM12MP.yml";
+    const auto default_calibration_file =
+        ament_index_cpp::get_package_share_directory("pfe")
+        + "/camera_calibration/3840_2160_ELM12MP.yml";
+    const auto calib_file = declare_parameter<std::string>(
+        "calibration_file",
+        default_calibration_file);
     cv::FileStorage fs(calib_file, cv::FileStorage::READ);
 
     if (!fs.isOpened())
     {
-        std::cerr << "ERROR: Could not open calibration file!" << std::endl;
+        throw std::runtime_error("Could not open calibration file: " + calib_file);
     }
 
     int imageWidth_, imageHeight_;
@@ -159,41 +167,49 @@ public:
     // detectorParams_.perspectiveRemoveIgnoredMarginPerCell = 0.13;
 
     // --- OPTIMIZED PARAMETERS START ---
-    detectorParams_ = cv::aruco::DetectorParameters();
+    detectorParams_ = cv::aruco::DetectorParameters::create();
+    detectorParams_ = cv::aruco::DetectorParameters::create();
 
     // 1. STABILITY (Stops flickering)
     // Resolution of the extracted bits. 4 is too low for 4K.
     // Higher = more stable ID reading, but slightly slower.
-    detectorParams_.perspectiveRemovePixelPerCell = 8;
+    detectorParams_->perspectiveRemovePixelPerCell = 8;
+    detectorParams_->perspectiveRemovePixelPerCell = 8;
     
     // 2. DETECTION (Finds the squares)
     // Adaptive thresholding: These control how we turn the color image into black/white
-    detectorParams_.adaptiveThreshWinSizeMin = 3;
-    detectorParams_.adaptiveThreshWinSizeMax = 23; // Lower max helps avoid lighting gradients across big table
-    detectorParams_.adaptiveThreshWinSizeStep = 3; // Smaller step = checks more window sizes = better detection
-    detectorParams_.adaptiveThreshConstant = 7;    // Constant subtracted from mean. 7 is usually good.
+    detectorParams_->adaptiveThreshWinSizeMin = 3;
+    detectorParams_->adaptiveThreshWinSizeMax = 23; // Lower max helps avoid lighting gradients across big table
+    detectorParams_->adaptiveThreshWinSizeStep = 3; // Smaller step = checks more window sizes = better detection
+    detectorParams_->adaptiveThreshConstant = 7;    // Constant subtracted from mean. 7 is usually good.
+    detectorParams_->adaptiveThreshWinSizeMin = 3;
+    detectorParams_->adaptiveThreshWinSizeMax = 23; // Lower max helps avoid lighting gradients across big table
+    detectorParams_->adaptiveThreshWinSizeStep = 3; // Smaller step = checks more window sizes = better detection
+    detectorParams_->adaptiveThreshConstant = 7;    // Constant subtracted from mean. 7 is usually good.
 
     // 3. FILTERING (Stops "Ghosts" and noise)
     // Ignore really tiny contours (noise) or really huge ones (walls)
-    detectorParams_.minMarkerPerimeterRate = 0.005; // 0.01 was maybe picking up noise. 0.02 is safer for 3cm blocks.
-    detectorParams_.maxMarkerPerimeterRate = 4.0;
+    detectorParams_->minMarkerPerimeterRate = 0.005; // 0.01 was maybe picking up noise. 0.02 is safer for 3cm blocks.
+    detectorParams_->maxMarkerPerimeterRate = 4.0;
+    detectorParams_->minMarkerPerimeterRate = 0.005; // 0.01 was maybe picking up noise. 0.02 is safer for 3cm blocks.
+    detectorParams_->maxMarkerPerimeterRate = 4.0;
     
     // TIGHTER ERROR CORRECTION
     // Lower = Stricter. 0.6 is default. 0.2 is good. 
     // If ghosts persist, try 0.1, but it might make blocks harder to detect.
-    detectorParams_.errorCorrectionRate = 0.2f; 
+    detectorParams_->errorCorrectionRate = 0.2f; 
+    detectorParams_->errorCorrectionRate = 0.2f; 
     
     // Use Subpix for better pose accuracy 
-    detectorParams_.cornerRefinementMethod = cv::aruco::CORNER_REFINE_SUBPIX; 
-    // detectorParams_.cornerRefinementWinSize = 3;  // default is 5, try 3 for tiny markers
-    // detectorParams_.cornerRefinementMaxIterations = 30;
-    // detectorParams_.cornerRefinementMinAccuracy = 0.1;
+    detectorParams_->cornerRefinementMethod = cv::aruco::CORNER_REFINE_SUBPIX; 
+    // detectorParams_->cornerRefinementWinSize = 3;  // default is 5, try 3 for tiny markers
+    // detectorParams_->cornerRefinementMaxIterations = 30;
+    // detectorParams_->cornerRefinementMinAccuracy = 0.1;
 
     // --- OPTIMIZED PARAMETERS END ---
     
-    // ArUco dictionary and detector (new API, OpenCV 4.8+)
+    // ArUco dictionary and detector parameters
     dictionary_ = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_4X4_50);
-    detector_   = cv::aruco::ArucoDetector(dictionary_, detectorParams_);
 
     if (show_display_) {
         cv::namedWindow("out resized", cv::WINDOW_NORMAL);
@@ -202,6 +218,17 @@ public:
     // Start background processing thread (never blocks ROS2 executor)
     running_ = true;
     processing_thread_ = std::thread(&PerceptionNode::processingLoop, this);
+
+    RCLCPP_INFO(get_logger(), "camera_localization_node started on %s (%dx%d @ %d fps)",
+                device_.c_str(), width_, height_, fps_);
+
+    // Display runs on the main thread via a timer (OpenCV GUI requires main thread)
+    if (show_display_) {
+        cv::namedWindow("out resized", cv::WINDOW_NORMAL);
+        display_timer_ = create_wall_timer(
+            std::chrono::milliseconds(33),
+            std::bind(&PerceptionNode::displayTick, this));
+    }
 }
 
 private:
@@ -236,9 +263,22 @@ double angleEma(double old_yaw, double meas_yaw) const{
     return wrapPi(old_yaw + yaw_alpha_ * diff);
 }
 
+void displayTick() {
+    std::lock_guard<std::mutex> lock(display_mutex_);
+    if (display_frame_.empty()) return;
+    cv::Mat resized;
+    cv::resize(display_frame_, resized, cv::Size(1250, 960));
+    cv::imshow("out resized", resized);
+    int key = cv::waitKey(1);
+    if (key == 'q' || key == 27) {
+        running_ = false;
+        rclcpp::shutdown();
+    }
+}
+
 void processingLoop() {
     cv::Mat frame;
-    while (running_.load(std::memory_order_acquire)) {
+    while (running_.load(std::memory_order_acquire) && rclcpp::ok()) {
         if (!cap_.read(frame) || frame.empty()) {
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
             continue;
@@ -410,7 +450,8 @@ void processFrame(const cv::Mat& image){
         // Run detection on the grayscale image
         std::vector<int> ids;
         std::vector<std::vector<cv::Point2f>> corners, rejected;
-        detector_.detectMarkers(gray_image, corners, ids, rejected);
+        cv::aruco::detectMarkers(gray_image, dictionary_, corners, ids, detectorParams_, rejected);
+        cv::aruco::detectMarkers(gray_image, dictionary_, corners, ids, detectorParams_, rejected);
 
 
         // Prepare output arrays for pose (rotation/translation) for each detected marker
@@ -662,15 +703,10 @@ void processFrame(const cv::Mat& image){
 
         }
 
-        if (show_display_) {
-            cv::Mat imageCopy_resized;
-            cv::resize(imageCopy, imageCopy_resized, cv::Size(1250, 960));
-            cv::imshow("out resized", imageCopy_resized);
-            int key = cv::waitKey(1);
-            if (key == 'q' || key == 27) {
-                running_ = false;
-                rclcpp::shutdown();
-            }
+        // Hand the annotated frame to the main-thread display timer
+        if (show_display_ && !imageCopy.empty()) {
+            std::lock_guard<std::mutex> lock(display_mutex_);
+            display_frame_ = imageCopy;
         }
 
     }
@@ -800,16 +836,20 @@ bool                                                        have_T_camera_global
 cv::Vec3d                                                   last_rvec_camera_global_{0, 0, 0};
 cv::Vec3d                                                   last_tvec_camera_global_{0, 0, 0};
 
-cv::aruco::DetectorParameters                               detectorParams_;
-cv::aruco::Dictionary                                       dictionary_;
-cv::aruco::ArucoDetector                                    detector_;
+cv::Ptr<cv::aruco::DetectorParameters>                      detectorParams_;
+cv::Ptr<cv::aruco::Dictionary>                              dictionary_;
+cv::Ptr<cv::aruco::DetectorParameters>                      detectorParams_;
+cv::Ptr<cv::aruco::Dictionary>                              dictionary_;
 
 // Background thread control
 std::atomic<bool>                                           running_{false};
 std::thread                                                 processing_thread_;
 
-// Display flag (false = headless, no clone/imshow)
+// Display (main-thread timer + shared frame)
 bool                                                        show_display_{false};
+rclcpp::TimerBase::SharedPtr                                display_timer_;
+std::mutex                                                  display_mutex_;
+cv::Mat                                                     display_frame_;
 
 std::string                                                 device_;
 std::string                                                 fourcc_;
@@ -840,9 +880,9 @@ int                                                         our_team_ = 0;
 
 public:
 ~PerceptionNode() {
-    running_ = false;
+    running_.store(false, std::memory_order_release);
+    cap_.release();  // unblocks cap_.read() in the thread
     if (processing_thread_.joinable()) processing_thread_.join();
-    cap_.release();
     if (show_display_) cv::destroyAllWindows();
 }
 

@@ -40,6 +40,18 @@ public:
     fps_ = declare_parameter<int>("fps", 30);
     fourcc_ = declare_parameter<std::string>("fourcc", "MJPG");
 
+    // V4L2 hardware controls (set after open to survive driver resets)
+    camera_gain_ = declare_parameter<int>("camera_gain", -1);
+    camera_gamma_ = declare_parameter<int>("camera_gamma", -1);
+
+    // CLAHE preprocessing on every frame (before main ArUco detection)
+    enable_clahe_preprocessing_ =
+      declare_parameter<bool>("enable_clahe_preprocessing", false);
+    clahe_clip_limit_ =
+      declare_parameter<double>("clahe_clip_limit", 3.0);
+    clahe_tile_size_ =
+      declare_parameter<int>("clahe_tile_size", 16);
+
     // Calibration file: default resolves automatically from the installed pfe share dir.
     const auto calib_default = ament_index_cpp::get_package_share_directory("pfe")
       + "/camera_calibration/3840_2160_ELM12MP.yml";
@@ -202,6 +214,18 @@ private:
     cap_.set(cv::CAP_PROP_FPS, fps_);
     cap_.set(cv::CAP_PROP_BUFFERSIZE, 1);
 
+    // Apply V4L2 hardware controls if configured (gain, gamma)
+    if (camera_gain_ >= 0) {
+      cap_.set(cv::CAP_PROP_GAIN, camera_gain_);
+      RCLCPP_INFO(get_logger(), "Set camera gain to %d (actual: %.0f)",
+                  camera_gain_, cap_.get(cv::CAP_PROP_GAIN));
+    }
+    if (camera_gamma_ >= 0) {
+      cap_.set(cv::CAP_PROP_GAMMA, camera_gamma_);
+      RCLCPP_INFO(get_logger(), "Set camera gamma to %d (actual: %.0f)",
+                  camera_gamma_, cap_.get(cv::CAP_PROP_GAMMA));
+    }
+
     RCLCPP_INFO(get_logger(), "Opened camera %s", device_.c_str());
 
     RCLCPP_INFO(get_logger(), "Actual width: %.0f", cap_.get(cv::CAP_PROP_FRAME_WIDTH));
@@ -221,9 +245,16 @@ private:
 
   void loadCalibration()
   {
-    cv::FileStorage fs(calibration_file_, cv::FileStorage::READ);
+    std::string calib_file = calibration_file_;
+    if (!calib_file.empty() && calib_file[0] == '~') {
+      const char* home = std::getenv("HOME");
+      if (home) {
+        calib_file = std::string(home) + calib_file.substr(1);
+      }
+    }
+    cv::FileStorage fs(calib_file, cv::FileStorage::READ);
     if (!fs.isOpened()) {
-      throw std::runtime_error("Could not open calibration file: " + calibration_file_);
+      throw std::runtime_error("Could not open calibration file: " + calib_file);
     }
 
     fs["camera_matrix"] >> camera_matrix_;
@@ -238,7 +269,7 @@ private:
       throw std::runtime_error("distortion_coefficients missing in calibration file");
     }
 
-    RCLCPP_INFO(get_logger(), "Loaded calibration from %s", calibration_file_.c_str());
+    RCLCPP_INFO(get_logger(), "Loaded calibration from %s", calib_file.c_str());
   }
 
   void initMarkerGeometry()
@@ -384,6 +415,13 @@ private:
   {
     cv::Mat gray;
     cv::cvtColor(frame, gray, cv::COLOR_BGR2GRAY);
+
+    // Apply CLAHE preprocessing for lighting-resilient detection
+    if (enable_clahe_preprocessing_) {
+      auto clahe = cv::createCLAHE(clahe_clip_limit_,
+                                   cv::Size(clahe_tile_size_, clahe_tile_size_));
+      clahe->apply(gray, gray);
+    }
 
     std::vector<int> ids;
     std::vector<std::vector<cv::Point2f>> corners;
@@ -1049,6 +1087,11 @@ if (ids.empty()) {
   int width_{0};
   int height_{0};
   int fps_{30};
+  int camera_gain_{-1};
+  int camera_gamma_{-1};
+  bool enable_clahe_preprocessing_{false};
+  double clahe_clip_limit_{3.0};
+  int clahe_tile_size_{16};
   bool debug_view_{true};
 
   int robot_marker_id_{1};

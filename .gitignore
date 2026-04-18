@@ -17,58 +17,6 @@ server_ws/log/
 Thumbs.db
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 # Git / GPG
 .gnupg/
 .github
@@ -92,6 +40,8 @@ __pycache__/
 *.log
 
 .venv/
+
+venv/
 
 sklearn-env/
 
