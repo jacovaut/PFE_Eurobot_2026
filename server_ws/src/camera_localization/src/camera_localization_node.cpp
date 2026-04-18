@@ -838,8 +838,6 @@ cv::Vec3d                                                   last_tvec_camera_glo
 
 cv::Ptr<cv::aruco::DetectorParameters>                      detectorParams_;
 cv::Ptr<cv::aruco::Dictionary>                              dictionary_;
-cv::Ptr<cv::aruco::DetectorParameters>                      detectorParams_;
-cv::Ptr<cv::aruco::Dictionary>                              dictionary_;
 
 // Background thread control
 std::atomic<bool>                                           running_{false};
