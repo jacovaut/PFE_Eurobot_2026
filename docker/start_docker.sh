@@ -14,7 +14,7 @@ docker container rm -f "$CONTAINER_NAME" || true
 docker build -t "$IMAGE_NAME" .
 
 # Run container with X11 support
-docker run -itd --rm \
+docker run -itd \
   --privileged \
   --group-add dialout \
   --network host \

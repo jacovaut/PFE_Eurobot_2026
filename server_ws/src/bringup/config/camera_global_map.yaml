@@ -10,7 +10,16 @@ global_localization_node:
     height: 2160
     fps: 15
     fourcc: "MJPG"
-    calibration_file: "~/PFE_Eurobot_2026/server_ws/src/pfe/camera_calibration/global_cam_test.yml"
+    camera_gain: 220    # V4L2 gain (robot markers need ≥220 for 100% detection)
+    camera_gamma: 200   # V4L2 gamma (moderate - resilient to lighting changes)
+
+    # CLAHE preprocessing on every frame (before main ArUco detection)
+    # DISABLED: CLAHE(3,16) kills small robot marker detection (26% vs 100% without).
+    # Table markers are handled by the rescue pass which already uses CLAHE.
+    enable_clahe_preprocessing: false
+    clahe_clip_limit: 3.0
+    clahe_tile_size: 16
+    calibration_file: "/home/isaac/PFE_Eurobot_2026/server_ws/src/pfe/camera_calibration/global_cam_test.yml"
     debug_view: true
 
     # Frames / topics
@@ -48,6 +57,9 @@ global_localization_node:
     rescue_adaptive_thresh_win_size_step: 30
     rescue_min_marker_perimeter_rate: 0.015
     rescue_error_correction_rate: 0.6
+
+    # Snapshot-based pose stabilization
+    pose_update_interval_s: 5.0
 
     # Marker -> base_link transform (in marker frame)
     marker_to_base_x: 0.0

@@ -40,6 +40,18 @@ public:
     fps_ = declare_parameter<int>("fps", 30);
     fourcc_ = declare_parameter<std::string>("fourcc", "MJPG");
 
+    // V4L2 hardware controls (set after open to survive driver resets)
+    camera_gain_ = declare_parameter<int>("camera_gain", -1);
+    camera_gamma_ = declare_parameter<int>("camera_gamma", -1);
+
+    // CLAHE preprocessing on every frame (before main ArUco detection)
+    enable_clahe_preprocessing_ =
+      declare_parameter<bool>("enable_clahe_preprocessing", false);
+    clahe_clip_limit_ =
+      declare_parameter<double>("clahe_clip_limit", 3.0);
+    clahe_tile_size_ =
+      declare_parameter<int>("clahe_tile_size", 16);
+
     // Calibration file: default resolves automatically from the installed pfe share dir.
     const auto calib_default = ament_index_cpp::get_package_share_directory("pfe")
       + "/camera_calibration/3840_2160_ELM12MP.yml";
@@ -125,6 +137,10 @@ public:
     rescue_error_correction_rate_ =
       declare_parameter<double>("rescue_error_correction_rate", 0.5);
 
+    // Snapshot-based pose stabilization
+    pose_update_interval_s_ =
+      declare_parameter<double>("pose_update_interval_s", 5.0);
+
     // ----------------------------
     // Publisher
     // ----------------------------
@@ -201,6 +217,18 @@ private:
     cap_.set(cv::CAP_PROP_FRAME_HEIGHT, height_);
     cap_.set(cv::CAP_PROP_FPS, fps_);
     cap_.set(cv::CAP_PROP_BUFFERSIZE, 1);
+
+    // Apply V4L2 hardware controls if configured (gain, gamma)
+    if (camera_gain_ >= 0) {
+      cap_.set(cv::CAP_PROP_GAIN, camera_gain_);
+      RCLCPP_INFO(get_logger(), "Set camera gain to %d (actual: %.0f)",
+                  camera_gain_, cap_.get(cv::CAP_PROP_GAIN));
+    }
+    if (camera_gamma_ >= 0) {
+      cap_.set(cv::CAP_PROP_GAMMA, camera_gamma_);
+      RCLCPP_INFO(get_logger(), "Set camera gamma to %d (actual: %.0f)",
+                  camera_gamma_, cap_.get(cv::CAP_PROP_GAMMA));
+    }
 
     RCLCPP_INFO(get_logger(), "Opened camera %s", device_.c_str());
 
@@ -392,6 +420,13 @@ private:
     cv::Mat gray;
     cv::cvtColor(frame, gray, cv::COLOR_BGR2GRAY);
 
+    // Apply CLAHE preprocessing for lighting-resilient detection
+    if (enable_clahe_preprocessing_) {
+      auto clahe = cv::createCLAHE(clahe_clip_limit_,
+                                   cv::Size(clahe_tile_size_, clahe_tile_size_));
+      clahe->apply(gray, gray);
+    }
+
     std::vector<int> ids;
     std::vector<std::vector<cv::Point2f>> corners;
     std::vector<std::vector<cv::Point2f>> rejected;
@@ -463,83 +498,107 @@ if (ids.empty()) {
     // Step 1: Estimate camera pose in map using table markers
     // solvePnP gives: X_camera = R_camera_map * X_map + t_camera_map
     // -------------------------------------------------------
-    std::vector<cv::Point3f> obj_pts_map;
-    std::vector<cv::Point2f> img_pts;
+    // Snapshot-based pose: only re-solve every pose_update_interval_s_ seconds.
+    // Prefer the pose from when all 4 table markers were visible ("golden").
+    // Keep the very first successful pose as a fallback.
+    // -------------------------------------------------------
+    auto now = std::chrono::steady_clock::now();
+    double elapsed_s = std::chrono::duration<double>(now - last_pose_update_time_).count();
+    bool should_update_pose = !have_active_pose_ || elapsed_s >= pose_update_interval_s_;
 
-    int table_marker_count = 0;
+    if (should_update_pose) {
+      std::vector<cv::Point3f> obj_pts_map;
+      std::vector<cv::Point2f> img_pts;
+      int table_marker_count = 0;
 
-    for (size_t i = 0; i < ids.size(); ++i) {
-      const int id = ids[i];
-      if (!table_ids_.count(id)) {
-        continue;
+      for (size_t i = 0; i < ids.size(); ++i) {
+        const int id = ids[i];
+        if (!table_ids_.count(id)) continue;
+
+        std::array<cv::Point3f, 4> corners_global;
+        if (!getTableMarkerCornersGlobal(id, corners_global)) continue;
+
+        for (int k = 0; k < 4; ++k) {
+          obj_pts_map.push_back(corners_global[k]);
+          img_pts.push_back(corners[i][k]);
+        }
+        table_marker_count++;
       }
 
-      std::array<cv::Point3f, 4> corners_global;
-      if (!getTableMarkerCornersGlobal(id, corners_global)) {
-        continue;
-      }
+      if (table_marker_count >= min_table_markers_ && obj_pts_map.size() >= 4) {
+        cv::Vec3d rvec_camera_map, tvec_camera_map;
+        bool use_guess = have_camera_pose_guess_;
+        if (use_guess) {
+          rvec_camera_map = last_rvec_camera_map_;
+          tvec_camera_map = last_tvec_camera_map_;
+        }
 
-      for (int k = 0; k < 4; ++k) {
-        obj_pts_map.push_back(corners_global[k]);
-        img_pts.push_back(corners[i][k]);
+        const bool ok_camera = cv::solvePnP(
+          obj_pts_map, img_pts, camera_matrix_, dist_coeffs_,
+          rvec_camera_map, tvec_camera_map, use_guess, cv::SOLVEPNP_ITERATIVE);
+
+        if (ok_camera) {
+          successful_solvepnp_++;
+          have_camera_pose_guess_ = true;
+          last_rvec_camera_map_ = rvec_camera_map;
+          last_tvec_camera_map_ = tvec_camera_map;
+          last_pose_update_time_ = now;
+
+          // First-ever successful solve → save as fallback
+          if (!have_fallback_pose_) {
+            fallback_rvec_ = rvec_camera_map;
+            fallback_tvec_ = tvec_camera_map;
+            have_fallback_pose_ = true;
+            active_rvec_ = rvec_camera_map;
+            active_tvec_ = tvec_camera_map;
+            have_active_pose_ = true;
+            RCLCPP_INFO(get_logger(), "Saved initial fallback pose (%d table markers)", table_marker_count);
+          }
+
+          // All 4 table markers visible → update golden pose
+          if (table_marker_count == 4) {
+            golden_rvec_ = rvec_camera_map;
+            golden_tvec_ = tvec_camera_map;
+            have_golden_pose_ = true;
+            active_rvec_ = rvec_camera_map;
+            active_tvec_ = tvec_camera_map;
+            RCLCPP_INFO_THROTTLE(get_logger(), *get_clock(), 10000,
+              "Updated golden pose (all 4 table markers)");
+          } else if (!have_golden_pose_) {
+            // No golden pose yet, use whatever we have
+            active_rvec_ = rvec_camera_map;
+            active_tvec_ = tvec_camera_map;
+          }
+          // If we have golden but <4 markers → keep using golden (don't update)
+        } else {
+          have_camera_pose_guess_ = false;
+          failed_solvepnp_++;
+        }
       }
-      table_marker_count++;
     }
 
-    if (table_marker_count < min_table_markers_ || obj_pts_map.size() < 4) {
+    // If we still have no usable pose, bail out
+    if (!have_active_pose_) {
       failed_solvepnp_++;
-      RCLCPP_WARN_THROTTLE(
-        get_logger(), *get_clock(), 2000,
-        "Not enough table markers for camera pose (had %d, need %d)",
-        table_marker_count, min_table_markers_);
+      RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 2000,
+        "No camera pose available yet (waiting for table markers)");
       publishDetectedEntities({});
       showDebug(debug_image);
       return;
     }
 
-    cv::Vec3d rvec_camera_map, tvec_camera_map;
-    bool use_guess = have_camera_pose_guess_;
-
-    if (use_guess) {
-      rvec_camera_map = last_rvec_camera_map_;
-      tvec_camera_map = last_tvec_camera_map_;
-    }
-
-    const bool ok_camera = cv::solvePnP(
-      obj_pts_map,
-      img_pts,
-      camera_matrix_,
-      dist_coeffs_,
-      rvec_camera_map,
-      tvec_camera_map,
-      use_guess,
-      cv::SOLVEPNP_ITERATIVE);
-
-    if (!ok_camera) {
-      have_camera_pose_guess_ = false;
-      failed_solvepnp_++;
-      RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 2000, "Camera solvePnP failed");
-      publishDetectedEntities({});
-      showDebug(debug_image);
-      return;
-    }
-
-    successful_solvepnp_++;
-    have_camera_pose_guess_ = true;
-    last_rvec_camera_map_ = rvec_camera_map;
-    last_tvec_camera_map_ = tvec_camera_map;
-
+    // Use the active (golden or fallback) pose
     cv::Mat Rcv_camera_map;
-    cv::Rodrigues(rvec_camera_map, Rcv_camera_map);
+    cv::Rodrigues(active_rvec_, Rcv_camera_map);
     cv::Matx33d R_camera_map(Rcv_camera_map);
 
     // Invert to get map <- camera
     const cv::Matx33d R_map_camera = R_camera_map.t();
-    const cv::Vec3d t_map_camera = -(R_map_camera * tvec_camera_map);
+    const cv::Vec3d t_map_camera = -(R_map_camera * active_tvec_);
 
     if (debug_view_) {
-      drawMapOrigin(debug_image, rvec_camera_map, tvec_camera_map);
-      drawAxes(debug_image, rvec_camera_map, tvec_camera_map, 0.25f);
+      drawMapOrigin(debug_image, active_rvec_, active_tvec_);
+      drawAxes(debug_image, active_rvec_, active_tvec_, 0.25f);
     }
 
     std::vector<DetectedEntity> detected_entities;
@@ -613,6 +672,16 @@ if (ids.empty()) {
 
     cv::Mat Rcv_camera_marker;
     cv::Rodrigues(rvec_camera_marker, Rcv_camera_marker);
+
+    // Fix Z-axis ambiguity: marker Z should point toward camera (positive Z in camera frame).
+    // If it points away (R's 3rd column Z < 0), flip by rotating 180° around X.
+    if (Rcv_camera_marker.at<double>(2, 2) < 0) {
+      // Flip Z and Y axes (180° rotation around X)
+      Rcv_camera_marker.col(1) *= -1.0;
+      Rcv_camera_marker.col(2) *= -1.0;
+      cv::Rodrigues(Rcv_camera_marker, rvec_camera_marker);
+    }
+
     cv::Matx33d R_camera_marker(Rcv_camera_marker);
 
     // -------------------------------------------------------
@@ -1025,6 +1094,19 @@ if (ids.empty()) {
   bool have_camera_pose_guess_{false};
   cv::Vec3d last_rvec_camera_map_{0.0, 0.0, 0.0};
   cv::Vec3d last_tvec_camera_map_{0.0, 0.0, 0.0};
+
+  // Snapshot-based pose stabilization
+  bool have_golden_pose_{false};
+  cv::Vec3d golden_rvec_{0.0, 0.0, 0.0};
+  cv::Vec3d golden_tvec_{0.0, 0.0, 0.0};
+  bool have_fallback_pose_{false};
+  cv::Vec3d fallback_rvec_{0.0, 0.0, 0.0};
+  cv::Vec3d fallback_tvec_{0.0, 0.0, 0.0};
+  bool have_active_pose_{false};
+  cv::Vec3d active_rvec_{0.0, 0.0, 0.0};
+  cv::Vec3d active_tvec_{0.0, 0.0, 0.0};
+  std::chrono::steady_clock::time_point last_pose_update_time_{};
+  double pose_update_interval_s_{5.0};
   
   // Diagnostics: frame counting and timing
   uint64_t frame_counter_{0};
@@ -1056,6 +1138,11 @@ if (ids.empty()) {
   int width_{0};
   int height_{0};
   int fps_{30};
+  int camera_gain_{-1};
+  int camera_gamma_{-1};
+  bool enable_clahe_preprocessing_{false};
+  double clahe_clip_limit_{3.0};
+  int clahe_tile_size_{16};
   bool debug_view_{true};
 
   int robot_marker_id_{1};
