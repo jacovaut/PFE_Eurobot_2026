@@ -21,3 +21,6 @@ sudo systemctl enable soft_start.service
 sudo systemctl restart start_container.service
 sudo systemctl restart power_monitor.service
 sudo systemctl restart soft_start.service
+
+export PYTHONPATH=/home/pi/PFE_Eurobot_2026/systemd
+alias power='/home/pi/PFE_Eurobot_2026/venv/bin/python3 -c "import power_monitor; power_monitor.status()"'
