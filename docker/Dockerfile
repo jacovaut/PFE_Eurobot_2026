@@ -5,7 +5,7 @@ ARG USERNAME=piros
 ARG USER_UID=1000
 ARG USER_GID=${USER_UID}
 
-# Remove existing user with same UID if needed (safer with shell check)
+# Remove existing user with same UID if needed
 RUN if id -u ${USER_UID} 2>/dev/null; then \
         OLDUSER=$(id -un ${USER_UID}) && userdel -r ${OLDUSER}; \
     fi
@@ -18,19 +18,41 @@ RUN groupadd --gid ${USER_GID} ${USERNAME} && \
     echo "${USERNAME} ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/${USERNAME} && \
     chmod 0440 /etc/sudoers.d/${USERNAME}
 
-# Update & install necessary packages
+# Install required packages
 RUN apt-get update && apt-get upgrade -y && \
     apt-get install -y \
-    ros-jazzy-teleop-twist-keyboard \
-    ros-jazzy-robot-localization \
+        ros-jazzy-teleop-twist-keyboard \
+        ros-jazzy-robot-localization \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-
-# Set shell for user (not mandatory, but good for dev experience)
+# Set environment variable globally
+ENV ROS_DOMAIN_ID=0
 ENV SHELL=/bin/bash
 
 # Switch to user
 USER ${USERNAME}
 
-# Start in bash by default
-CMD ["/bin/bash"]
+# Setup .bashrc using heredoc
+RUN cat >> /home/${USERNAME}/.bashrc << EOF
+
+# ROS 2 setup
+export ROS_DOMAIN_ID=0
+export USERNAME=${USERNAME}
+source /opt/ros/jazzy/setup.bash
+
+# Source workspace setup files if they exist
+if [ -f /home/${USERNAME}/PFE_Eurobot_2026/robot_ws/install/setup.bash ]; then
+    source /home/${USERNAME}/PFE_Eurobot_2026/robot_ws/install/setup.bash
+fi
+
+if [ -f /home/${USERNAME}/PFE_Eurobot_2026/server_ws/install/setup.bash ]; then
+    source /home/${USERNAME}/PFE_Eurobot_2026/server_ws/install/setup.bash
+fi
+
+if [ -f /home/${USERNAME}/PFE_Eurobot_2026/uros_ws/install/setup.bash ]; then
+    source /home/${USERNAME}/PFE_Eurobot_2026/uros_ws/install/setup.bash
+fi
+EOF
+
+# Default command
+CMD ["bash"]
