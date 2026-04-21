@@ -1,0 +1,13 @@
+[Unit]
+Description=Configure UARTs
+After=multi-user.target
+
+[Service]
+Type=oneshot
+ExecStartPre=pinctrl set GPIO17 op
+ExecStart=pinctrl set GPIO17 dh
+RemainAfterExit=yes
+User=pi
+
+[Install]
+WantedBy=multi-user.target

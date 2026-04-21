@@ -1,0 +1,11 @@
+[Unit]
+Description=Run power monitor at startup
+After=multi-user.target
+
+[Service]
+User=pi
+ExecStart=/home/pi/PFE_Eurobot_2026/venv/bin/python /usr/local/bin/power_monitor.py
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

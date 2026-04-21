@@ -1,20 +1,33 @@
 #!/bin/bash
+
+timeout=30
+elapsed=0
+
+until docker info >/dev/null 2>&1; do
+  sleep 1
+  elapsed=$((elapsed+1))
+  if [ $elapsed -ge $timeout ]; then
+    echo "Docker not ready after $timeout seconds"
+    exit 1
+  fi
+done
+
 set -e
 
-# Variables
 IMAGE_NAME="ros-img"
 CONTAINER_NAME="ros-container"
 USER="piros"
-WORKSPACE_HOST="$(pwd)/.."  # Local project dir
+WORKSPACE_HOST="$(pwd)/.."
 WORKSPACE_CONTAINER="/home/$USER/PFE_Eurobot_2026"
 
-docker container rm -f "$CONTAINER_NAME" || true
+# Remove old container if exists
+docker rm -f "$CONTAINER_NAME" || true
 
-# Build Docker image
-docker build -t "$IMAGE_NAME" .
+# (Optional) build only if needed
+# docker build -t "$IMAGE_NAME" .
 
-# Run container with X11 support
-docker run -itd \
+# Run container
+docker run -d \
   --privileged \
   --group-add dialout \
   --network host \
@@ -26,12 +39,4 @@ docker run -itd \
   --workdir "$WORKSPACE_CONTAINER" \
   --user "$USER" \
   "$IMAGE_NAME" \
-  bash -c "\
-    echo 'export ROS_DOMAIN_ID=0' >> /home/$USER/.bashrc && \
-    echo 'source /opt/ros/jazzy/setup.bash' >> /home/$USER/.bashrc && \
-    echo 'source $WORKSPACE_CONTAINER/ws/install/setup.bash' >> /home/$USER/.bashrc && \
-    sudo apt update && \
-    exec bash
-  "
-
-docker ps
+  tail -f /dev/null

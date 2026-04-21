@@ -1,0 +1,15 @@
+[Unit]
+Description=My Docker Container Service
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/pi/PFE_Eurobot_2026/docker
+ExecStart=/usr/local/bin/start_docker.sh
+RemainAfterExit=yes
+User=pi
+Group=pi
+
+[Install]
+WantedBy=multi-user.target

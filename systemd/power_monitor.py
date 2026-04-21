@@ -145,18 +145,28 @@ class INA237:
             "MATH_OF": bool(MATH_OF)
         }
 
+def status():
+    ina237 = INA237()
+    ina237.begin()
+
+    print()
+    print(f"Bus voltage : {3.125 * ina237.read_register(0x05) / 1000} V")
+    vshunt = 5e-6 * ina237.read_register(0x04)
+    print(f"Shunt voltage: {round(vshunt * 1000 * 1000, 3)} mV")
+    print(f"Current      : {round(vshunt / 0.001, 3)} A")
+    ina237.check_alerts(True)
+
 
 # --- Example usage ---
 if __name__ == "__main__":
 
-    ina237 = INA237()
-    ina237.begin()
+    print()
+    print(f"Bus voltage : {3.125 * ina237.read_register(0x05) / 1000} V")
+    vshunt = 5e-6 * ina237.read_register(0x04)
+    print(f"Shunt voltage: {round(vshunt * 1000 * 1000, 3)} mV")
+    print(f"Current      : {round(vshunt / 0.001, 3)} A")
+    ina237.check_alerts(True)
 
     while True:
-        print()
-        print(f"Bus voltage : {3.125 * ina237.read_register(0x05) / 1000} V")
-        vshunt = 5e-6 * ina237.read_register(0x04)
-        print(f"Shunt voltage: {round(vshunt * 1000 * 1000, 3)} mV")
-        print(f"Current      : {round(vshunt / 0.001, 3)} A")
         ina237.check_alerts(True)
         time.sleep(1)
