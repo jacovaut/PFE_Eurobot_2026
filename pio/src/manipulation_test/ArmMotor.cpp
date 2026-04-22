@@ -118,7 +118,7 @@ void ArmMotor::updatePID()
 
     float d_error = (err - prev_error) / DT;
     float pid = err * kp + integrale * ki + d_error * kd;
-    float pid_out = pid + ff;
+    float pid_out = pid;
 
     final_output = (int)pid_out;
 
@@ -127,6 +127,8 @@ void ArmMotor::updatePID()
         final_output = (int)pwm_min;
     else if (final_output < 0 && final_output > -(int)pwm_min)
         final_output = -(int)pwm_min;
+
+    final_output += (int)ff;
 
     // Output limits
     if (final_output > 255)
