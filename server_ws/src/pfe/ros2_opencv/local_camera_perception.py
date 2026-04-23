@@ -118,8 +118,8 @@ class LocalCameraPerceptionNode(Node):
         super().__init__('local_camera_perception_node')
 
         # ---------- Camera Isaac ----------
-        self.declare_parameter('camera_device', 4) # Host-local default; override from launch on machines where the camera is elsewhere.
-        self.declare_parameter('camera_path', '')
+        self.declare_parameter('camera_device', -1)
+        self.declare_parameter('camera_path', 'libcamera')
         self.declare_parameter('show_debug_window', True)
 
         self.cameraDeviceNumber = int(self.get_parameter('camera_device').value)
@@ -128,21 +128,19 @@ class LocalCameraPerceptionNode(Node):
 
         camera_source = self.camera_path if self.camera_path else self.cameraDeviceNumber
 
-        # Try V4L2 backend first (most reliable for USB cameras on Linux)
-        self.camera = cv2.VideoCapture(camera_source, cv2.CAP_V4L2)
-
-        # Fallback: default backend
-        if not self.camera.isOpened():
-            self.camera = cv2.VideoCapture(camera_source)
-
-        # Last fallback: GStreamer/libcamera pipeline (for CSI camera setups)
-        if not self.camera.isOpened():
+        if self.camera_path == "libcamera":
             pipeline = (
                 "libcamerasrc ! "
-                "video/x-raw,width=640,height=480,framerate=30/1 ! "
-                "videoconvert ! appsink"
+                "video/x-raw,width=1280,height=720,framerate=30/1 ! "
+                "videoconvert ! "
+                "appsink"
             )
             self.camera = cv2.VideoCapture(pipeline, cv2.CAP_GSTREAMER)
+        else:
+            self.camera = cv2.VideoCapture(camera_source, cv2.CAP_V4L2)
+
+            if not self.camera.isOpened():
+                self.camera = cv2.VideoCapture(camera_source)
 
         if not self.camera.isOpened():
             self.get_logger().error(f"Could not open camera source {camera_source}")
