@@ -36,7 +36,7 @@ RUN apt-get update && apt-get upgrade -y && \
         ros-jazzy-teleop-twist-keyboard \
         ros-jazzy-robot-localization \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
-
+   
 ENV ROS_DOMAIN_ID=0
 ENV SHELL=/bin/bash
 
