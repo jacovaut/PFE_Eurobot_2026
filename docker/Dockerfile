@@ -22,6 +22,17 @@ RUN apt-get update && apt-get upgrade -y && \
     apt-get install -y \
         python3-opencv \
         python3-numpy \
+        python3-tf-transformations \
+        python3-transforms3d \
+        python3-scipy \
+        ros-jazzy-cv-bridge \
+        ros-jazzy-tf2 \
+        ros-jazzy-tf2-ros \
+        ros-jazzy-tf2-msgs \
+        ros-jazzy-sensor-msgs \
+        ros-jazzy-std-msgs \
+        ros-jazzy-geometry-msgs \
+        ros-jazzy-visualization-msgs \
         ros-jazzy-teleop-twist-keyboard \
         ros-jazzy-robot-localization \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
