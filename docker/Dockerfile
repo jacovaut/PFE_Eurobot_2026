@@ -1,6 +1,5 @@
 FROM ros:jazzy-ros-base
 
-# Arguments for user creation
 ARG USERNAME=piros
 ARG USER_UID=1000
 ARG USER_GID=${USER_UID}
@@ -21,18 +20,17 @@ RUN groupadd --gid ${USER_GID} ${USERNAME} && \
 # Install required packages
 RUN apt-get update && apt-get upgrade -y && \
     apt-get install -y \
+        python3-opencv \
+        python3-numpy \
         ros-jazzy-teleop-twist-keyboard \
         ros-jazzy-robot-localization \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Set environment variable globally
 ENV ROS_DOMAIN_ID=0
 ENV SHELL=/bin/bash
 
-# Switch to user
 USER ${USERNAME}
 
-# Setup .bashrc using heredoc
 RUN cat >> /home/${USERNAME}/.bashrc << EOF
 
 # ROS 2 setup
@@ -40,7 +38,6 @@ export ROS_DOMAIN_ID=0
 export USERNAME=${USERNAME}
 source /opt/ros/jazzy/setup.bash
 
-# Source workspace setup files if they exist
 if [ -f /home/${USERNAME}/PFE_Eurobot_2026/robot_ws/install/setup.bash ]; then
     source /home/${USERNAME}/PFE_Eurobot_2026/robot_ws/install/setup.bash
 fi
@@ -54,5 +51,4 @@ if [ -f /home/${USERNAME}/PFE_Eurobot_2026/uros_ws/install/setup.bash ]; then
 fi
 EOF
 
-# Default command
 CMD ["bash"]
