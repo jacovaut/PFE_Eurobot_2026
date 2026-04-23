@@ -30,6 +30,17 @@
  *   STATUS                       -> show all current states
  *   HELP                         -> show help in serial monitor
  */
+
+/*
+Jacob notes:
+
+when loop in serial, motors aren't stopped
+FF should be higher 
+
+*/
+
+
+
 #include <Arduino.h>
 #include <stdint.h>
 #include <ESP32Servo.h>
