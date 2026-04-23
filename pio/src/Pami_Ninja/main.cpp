@@ -1,6 +1,6 @@
 #include <Arduino.h>
 #include <ESP32Encoder.h>
-#include <Servo.h>
+#include <ESP32Servo.h>
 #include "pins.h"
 
 // Encoder objects
@@ -17,14 +17,14 @@ void setup() {
   Serial.begin(115200);
 
   // Initialize motor pins
-  pinMode(MOTOR1_IN1, OUTPUT);
-  pinMode(MOTOR1_IN2, OUTPUT);
-  pinMode(MOTOR2_IN1, OUTPUT);
-  pinMode(MOTOR2_IN2, OUTPUT);
-  pinMode(MOTOR3_IN1, OUTPUT);
-  pinMode(MOTOR3_IN2, OUTPUT);
-  pinMode(MOTOR4_IN1, OUTPUT);
-  pinMode(MOTOR4_IN2, OUTPUT);
+  pinMode(MOTOR_FL_IN1, OUTPUT);
+  pinMode(MOTOR_FL_IN2, OUTPUT);
+  pinMode(MOTOR_FR_IN1, OUTPUT);
+  pinMode(MOTOR_FR_IN2, OUTPUT);
+  pinMode(MOTOR_RL_IN1, OUTPUT);
+  pinMode(MOTOR_RL_IN2, OUTPUT);
+  pinMode(MOTOR_RR_IN1, OUTPUT);
+  pinMode(MOTOR_RR_IN2, OUTPUT);
 
   // Initialize pump pin
   pinMode(PUMP_PIN, OUTPUT);
@@ -42,14 +42,14 @@ void setup() {
   ledcAttachPin(PUMP_PIN, PWM_CH_PUMP);
 
   // Initialize encoders
-  encoder1.attachHalfQuad(ENC1_A, ENC1_B);
-  encoder2.attachHalfQuad(ENC2_A, ENC2_B);
-  encoder3.attachHalfQuad(ENC3_A, ENC3_B);
-  encoder4.attachHalfQuad(ENC4_A, ENC4_B);
+  encoder1.attachHalfQuad(ENC_FL_A, ENC_FL_B);
+  encoder2.attachHalfQuad(ENC_FR_A, ENC_FR_B);
+  encoder3.attachHalfQuad(ENC_RL_A, ENC_RL_B);
+  encoder4.attachHalfQuad(ENC_RR_A, ENC_RR_B);
 
   // Initialize servos
-  servo1.attach(SERVO1_PIN);
-  servo2.attach(SERVO2_PIN);
+  servo1.attach(SERVO_LEFT_PIN);
+  servo2.attach(SERVO_Right_PIN);
 
   Serial.println("Robot initialized");
 }
@@ -58,23 +58,23 @@ void setMotor(int motor, int speed) {
   int in1, in2, pwm_ch;
   switch (motor) {
     case 1:
-      in1 = MOTOR1_IN1;
-      in2 = MOTOR1_IN2;
+      in1 = MOTOR_FL_IN1;
+      in2 = MOTOR_FL_IN2;
       pwm_ch = PWM_CH1;
       break;
     case 2:
-      in1 = MOTOR2_IN1;
-      in2 = MOTOR2_IN2;
+      in1 = MOTOR_FR_IN1;
+      in2 = MOTOR_FR_IN2;
       pwm_ch = PWM_CH2;
       break;
     case 3:
-      in1 = MOTOR3_IN1;
-      in2 = MOTOR3_IN2;
+      in1 = MOTOR_RL_IN1;
+      in2 = MOTOR_RL_IN2;
       pwm_ch = PWM_CH3;
       break;
     case 4:
-      in1 = MOTOR4_IN1;
-      in2 = MOTOR4_IN2;
+      in1 = MOTOR_RR_IN1;
+      in2 = MOTOR_RR_IN2;
       pwm_ch = PWM_CH4;
       break;
     default:
