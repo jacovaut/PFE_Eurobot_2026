@@ -34,6 +34,7 @@
 #include <stdint.h>
 #include <ESP32Servo.h>
 #include <ESP32Encoder.h>
+#include "ArmMotor.h"
 
 // ----------------------------------------
 // SECTION: Hardware pins and configuration
@@ -70,11 +71,12 @@ constexpr int PWM_RESOLUTION = 8;
 
 const int PUMP_PINS[4] = {Pump1, Pump2, Pump3, Pump4};
 
+// ArmMotor armMotor(1.0f, 0.01f, 0.0f, MOTOR_LIFT1, MOTOR_LIFT2, ENCODER_LIFT_A, ENCODER_LIFT_B, 18);
+ArmMotor armMotor(1.0f, 0.01f, 0.0f, 5, 4, 21, 19, 18);
+
+
 Servo stopper_servo;
 Servo flipper_servo;
-
-ESP32Encoder lift_encoder;
-ESP32Encoder turn_encoder;
 
 // ----------------------------------------
 // SECTION: Runtime state variables
@@ -85,8 +87,6 @@ bool pump_states[4] = {false, false, false, false};
 bool stopper_open = false;
 int stopper_angle = 15;
 int flipper_angle = 90;
-int lift_speed = 0;
-int turn_speed = 0;
 bool lift_test_active = false;
 int64_t lift_test_start_count = 0;
 int64_t lift_test_target_ticks = 0;
@@ -137,9 +137,6 @@ bool isNumeric(const String& value) {
     return true;
 }
 
-void startLiftTickMove(int64_t ticks);
-void startTurnTickMove(int64_t ticks);
-
 // ----------------------------------------
 // SECTION: Pump state functions
 // ----------------------------------------
@@ -182,248 +179,15 @@ bool applyPumpCommand(String pump_nums, bool state) {
         if (any_on) {
             Serial.println("Pump ON: retracting lift -5 ticks then resetting encoders");
             lift_reset_encoders_on_complete = true;
-            startLiftTickMove(-5);
+            // armMotor.setTarget(-5); // Need relative target?
         }
     }
 
     return true;
 }
 
-// ----------------------------------------
-// SECTION: Motor brake functions
-// ----------------------------------------
-
-void LmotorBrake() {
-    lift_speed = 0;
-    lift_state = "BRAKE";
-    ledcWrite(PWM_CHANNEL_LIFT1, 255);
-    ledcWrite(PWM_CHANNEL_LIFT2, 255);
-    Serial.println("Lift brake");
-}
-
-void TmotorBrake() {
-    turn_speed = 0;
-    turn_state = "BRAKE";
-    ledcWrite(PWM_CHANNEL_TURN1, 255);
-    ledcWrite(PWM_CHANNEL_TURN2, 255);
-    Serial.println("Turn brake");
-}
-
-// ----------------------------------------
-// SECTION: Motor control parameters & functions
-// ----------------------------------------
-
-
-// === PARAMETERS: Modify these values to tune motor behavior ===
-constexpr int64_t TICKS_PER_TURN = 450;           // encoder ticks per full rotation
-
-constexpr int LIFT_SPEED = 255;                   // PWM for lift (full speed)
-constexpr int LIFT_SLOW_SPEED = 160;              // PWM for lift near target (slow zone, forward)
-constexpr int64_t LIFT_SLOW_TRIGGER_TICKS = 800;  // tick count at which lift slows down (forward)
-
-constexpr int LIFT_HOME_SPEED = 160;              // PWM for lift during homing
-constexpr int LIFT_HOME_SLOW_SPEED = 160;         // PWM for lift near target (slow zone, return)
-constexpr int64_t LIFT_HOME_SLOW_TRIGGER_TICKS = 400; // tick count at which lift slows down (return)
-constexpr unsigned long PUMP_ENCODER_RESET_DELAY_MS = 500; // delay (ms) after lift retract before resetting encoders
-
-constexpr int TURN_SPEED = 235;                   // PWM for turn (full speed)
-constexpr int TURN_SLOW_SPEED = 180;              // PWM for turn near target (slow zone, forward)
-constexpr int64_t TURN_SLOW_TRIGGER_TICKS = 1300; // tick count at which turn slows down (forward)
-
-constexpr int TURN_HOME_SPEED = 200;              // PWM for turn during homing
-constexpr int TURN_HOME_SLOW_SPEED = 120;         // PWM for turn near target (slow zone, return)
-constexpr int64_t TURN_HOME_SLOW_TRIGGER_TICKS = 1200; // tick count at which turn slows down (return)
-
-constexpr int64_t M_LIFT_TARGET_TICKS = 880;      // lift target ticks for m command
-constexpr int64_t M_TURN_TARGET_TICKS = 1420;     // turn target ticks for m command
-constexpr int64_t M_TURN_TRIGGER_TICKS = 100;     // lift tick count at which turn motor starts
-constexpr int64_t M_TURN_RETRACT_TICKS = 0;      // ticks to retract turn motor after m command completes
-
-constexpr int64_t N_LIFT_TARGET_TICKS = 500;      // lift ticks for n (return) command
-constexpr int64_t N_TURN_TARGET_TICKS = 1420;     // turn ticks for n (return) command
 
 // ========================================
-void startLiftTickMove(int64_t ticks) {
-    if (ticks == 0) {
-        lift_test_active = false;
-        LmotorBrake();
-        return;
-    }
-
-    lift_test_active = true;
-    lift_test_start_count = lift_encoder.getCount();
-    lift_test_target_ticks = abs(ticks);
-    lift_test_direction = (ticks > 0) ? "UP" : "DOWN";
-
-    int pwm_pin1 = (ticks > 0) ? PWM_CHANNEL_LIFT1 : PWM_CHANNEL_LIFT2;
-    int pwm_pin2 = (ticks > 0) ? PWM_CHANNEL_LIFT2 : PWM_CHANNEL_LIFT1;
-    lift_speed = LIFT_SPEED;
-    lift_state = (ticks > 0) ? "FORWARD" : "BACKWARD";
-    ledcWrite(pwm_pin1, LIFT_SPEED);
-    ledcWrite(pwm_pin2, 0);
-
-    Serial.printf("Lift %s: %lld ticks (%lld turns) at PWM %d\n",
-                  lift_test_direction.c_str(), lift_test_target_ticks,
-                  lift_test_target_ticks / TICKS_PER_TURN, LIFT_SPEED);
-}
-
-void updateLiftTickMove() {
-    if (!lift_test_active) {
-        return;
-    }
-
-    int64_t current_count = lift_encoder.getCount();
-    int64_t delta = abs(current_count - lift_test_start_count);
-
-    if (millis() - lift_debug_timer > 100) {
-        Serial.printf("Lift: %lld/%lld ticks\n", delta, lift_test_target_ticks);
-        lift_debug_timer = millis();
-    }
-
-    // m command: trigger turn motor once lift reaches trigger threshold
-    if (m_command_active && !m_command_turn_triggered && delta >= M_TURN_TRIGGER_TICKS) {
-        m_command_turn_triggered = true;
-        startTurnTickMove(M_TURN_TARGET_TICKS);
-    }
-
-    // Slow down lift when approaching target (direction-aware)
-    bool lift_going_down = (lift_test_direction == "DOWN");
-    int lift_slow_spd = lift_going_down ? LIFT_HOME_SLOW_SPEED : LIFT_SLOW_SPEED;
-    int64_t lift_slow_trig = lift_going_down ? LIFT_HOME_SLOW_TRIGGER_TICKS : LIFT_SLOW_TRIGGER_TICKS;
-    if (lift_test_target_ticks >= lift_slow_trig && delta >= lift_slow_trig && lift_speed != lift_slow_spd) {
-        int pwm_pin1 = lift_going_down ? PWM_CHANNEL_LIFT2 : PWM_CHANNEL_LIFT1;
-        lift_speed = lift_slow_spd;
-        ledcWrite(pwm_pin1, lift_slow_spd);
-        Serial.printf("Lift slowing down at %lld ticks (PWM -> %d)\n", delta, lift_slow_spd);
-    }
-
-    if (delta >= lift_test_target_ticks) {
-        lift_test_active = false;
-        m_command_active = false;
-        LmotorBrake();
-        Serial.printf("Lift complete: %lld ticks\n", delta);
-        lift_test_target_ticks = 0;
-        if (lift_reset_encoders_on_complete) {
-            lift_reset_encoders_on_complete = false;
-            pump_encoder_reset_pending = true;
-            pump_encoder_reset_timer = millis();
-            Serial.println("Lift retract done, encoder reset in delay...");
-        }
-    }
-}
-
-void startTurnTickMove(int64_t ticks) {
-    if (ticks == 0) {
-        turn_test_active = false;
-        TmotorBrake();
-        return;
-    }
-
-    turn_test_active = true;
-    turn_test_start_count = turn_encoder.getCount();
-    turn_test_target_ticks = abs(ticks);
-    turn_test_direction = (ticks > 0) ? "CW" : "CCW";
-
-    int pwm_pin1 = (ticks > 0) ? PWM_CHANNEL_TURN1 : PWM_CHANNEL_TURN2;
-    int pwm_pin2 = (ticks > 0) ? PWM_CHANNEL_TURN2 : PWM_CHANNEL_TURN1;
-    turn_speed = TURN_SPEED;
-    turn_state = (ticks > 0) ? "FORWARD" : "BACKWARD";
-    ledcWrite(pwm_pin1, TURN_SPEED);
-    ledcWrite(pwm_pin2, 0);
-
-    Serial.printf("Turn %s: %lld ticks (%lld turns) at PWM %d\n",
-                  turn_test_direction.c_str(), turn_test_target_ticks,
-                  turn_test_target_ticks / TICKS_PER_TURN, TURN_SPEED);
-}
-
-void updateTurnTickMove() {
-    if (!turn_test_active) {
-        return;
-    }
-
-    int64_t current_count = turn_encoder.getCount();
-    int64_t delta = abs(current_count - turn_test_start_count);
-
-    if (millis() - turn_debug_timer > 100) {
-        Serial.printf("Turn: %lld/%lld ticks\n", delta, turn_test_target_ticks);
-        turn_debug_timer = millis();
-    }
-
-    // Slow down turn when approaching target (direction-aware)
-    bool turn_going_ccw = (turn_test_direction == "CCW");
-    int turn_slow_spd = turn_going_ccw ? TURN_HOME_SLOW_SPEED : TURN_SLOW_SPEED;
-    int64_t turn_slow_trig = turn_going_ccw ? TURN_HOME_SLOW_TRIGGER_TICKS : TURN_SLOW_TRIGGER_TICKS;
-    if (turn_test_target_ticks >= turn_slow_trig && delta >= turn_slow_trig && turn_speed != turn_slow_spd) {
-        int pwm_pin1 = turn_going_ccw ? PWM_CHANNEL_TURN2 : PWM_CHANNEL_TURN1;
-        turn_speed = turn_slow_spd;
-        ledcWrite(pwm_pin1, turn_slow_spd);
-        Serial.printf("Turn slowing down at %lld ticks (PWM -> %d)\n", delta, turn_slow_spd);
-    }
-
-    if (delta >= turn_test_target_ticks) {
-        turn_test_active = false;
-        TmotorBrake();
-        Serial.printf("Turn complete: %lld ticks\n", delta);
-        turn_test_target_ticks = 0;
-        // After m command turn, retract by M_TURN_RETRACT_TICKS
-        if (m_turn_retract_pending) {
-            m_turn_retract_pending = false;
-            Serial.printf("Turn retracting %lld ticks\n", M_TURN_RETRACT_TICKS);
-            startTurnTickMove(-M_TURN_RETRACT_TICKS);
-        }
-    }
-}
-
-// ----------------------------------------
-// SECTION: Test and homing commands
-// ----------------------------------------
-
-void testLiftHalfTurn() {
-    Serial.printf("=== M command: Lift to %lld ticks, Turn starts at %lld ticks (target %lld ticks) ===\n",
-                  M_LIFT_TARGET_TICKS, M_TURN_TRIGGER_TICKS, M_TURN_TARGET_TICKS);
-    m_command_active = true;
-    m_command_turn_triggered = false;
-    m_turn_retract_pending = true;
-    startLiftTickMove(M_LIFT_TARGET_TICKS);
-}
-
-void returnToZero() {
-    Serial.printf("=== N command: Reset encoders, Lift -%lld ticks, Turn -%lld ticks ===\n",
-                  N_LIFT_TARGET_TICKS, N_TURN_TARGET_TICKS);
-    lift_encoder.setCount(0);
-    turn_encoder.setCount(0);
-    startLiftTickMove(-N_LIFT_TARGET_TICKS);
-    startTurnTickMove(-N_TURN_TARGET_TICKS);
-}
-
-
-void checkReturnToZeroTimeout() {
-    if (!return_to_zero_active) {
-        return;
-    }
-
-    if (!lift_test_active && !turn_test_active) {
-        return_to_zero_active = false;
-        return;
-    }
-
-    if (millis() - return_to_zero_start_time <= RETURN_TO_ZERO_TIMEOUT_MS) {
-        return;
-    }
-
-    Serial.println("Return-to-home timeout exceeded (>2s), resetting encoders to 0");
-    lift_encoder.setCount(0);
-    turn_encoder.setCount(0);
-    lift_test_active = false;
-    turn_test_active = false;
-    lift_test_direction = "IDLE";
-    turn_test_direction = "IDLE";
-    lift_test_target_ticks = 0;
-    turn_test_target_ticks = 0;
-    return_to_zero_active = false;
-    LmotorBrake();
-    TmotorBrake();
-}
 
 // ----------------------------------------
 // SECTION: Servo Control
@@ -490,8 +254,6 @@ void printStatus() {
     Serial.println(lift_state);
     Serial.print("Turn motor: ");
     Serial.println(turn_state);
-    Serial.printf("Lift encoder: %lld\n", lift_encoder.getCount());
-    Serial.printf("Turn encoder: %lld\n", turn_encoder.getCount());
     Serial.print("Turn test: ");
     if (turn_test_active) {
         Serial.print(turn_test_direction);
@@ -546,28 +308,16 @@ void setup(){
     delay(1000); // Give serial time to initialize
     
     Serial.print("\n\nStarting Manipulation Test...\n");
-
+    
     for (int i = 0; i < 4; i++) {
         pinMode(PUMP_PINS[i], OUTPUT);
         digitalWrite(PUMP_PINS[i], LOW);
     }
 
-    lift_encoder.attachHalfQuad(ENCODER_LIFT_A, ENCODER_LIFT_B);
-    lift_encoder.setCount(0);
-    turn_encoder.attachHalfQuad(ENCODER_TURN_A, ENCODER_TURN_B);
-    turn_encoder.setCount(0);
-
-    ledcSetup(PWM_CHANNEL_LIFT1, PWM_FREQ, PWM_RESOLUTION);
-    ledcAttachPin(MOTOR_LIFT1, PWM_CHANNEL_LIFT1);
-    ledcSetup(PWM_CHANNEL_LIFT2, PWM_FREQ, PWM_RESOLUTION);
-    ledcAttachPin(MOTOR_LIFT2, PWM_CHANNEL_LIFT2);
-    ledcSetup(PWM_CHANNEL_TURN1, PWM_FREQ, PWM_RESOLUTION);
-    ledcAttachPin(MOTOR_TURN1, PWM_CHANNEL_TURN1);
-    ledcSetup(PWM_CHANNEL_TURN2, PWM_FREQ, PWM_RESOLUTION);
-    ledcAttachPin(MOTOR_TURN2, PWM_CHANNEL_TURN2);
-
-    LmotorBrake();
-    TmotorBrake();
+    pinMode(MOTOR_TURN1, OUTPUT);
+    pinMode(MOTOR_TURN2, OUTPUT);
+    digitalWrite(MOTOR_TURN1, LOW);
+    digitalWrite(MOTOR_TURN2, LOW);
 
     ESP32PWM::allocateTimer(2);
     ESP32PWM::allocateTimer(3);
@@ -577,9 +327,18 @@ void setup(){
     flipper_servo.attach(FLIP, 500, 2400);
     setStopperPosition(false);
     centerFlipper();
-
+    
+    armMotor.setup();
+    
     printHelp();
-    printStatus();
+    // printStatus();
+    
+    // while (true)
+    // {
+    //     delay(1000);
+    //     Serial.print(".");
+    // }
+    
 }
 
 // ----------------------------------------
@@ -587,17 +346,16 @@ void setup(){
 // ----------------------------------------
 
 void loop(){
-    checkReturnToZeroTimeout();
-    updateLiftTickMove();
-    updateTurnTickMove();
+     
+    static uint32_t last = micros();
+    uint32_t now = micros();
+    const uint32_t interval = 2000;  // 2 ms for 500 Hz (1/500 * 1e6 microseconds)
 
-    // Deferred encoder reset after pump activation
-    if (pump_encoder_reset_pending && millis() - pump_encoder_reset_timer >= PUMP_ENCODER_RESET_DELAY_MS) {
-        pump_encoder_reset_pending = false;
-        lift_encoder.setCount(0);
-        turn_encoder.setCount(0);
-        Serial.println("Encoders reset to 0 after pump delay");
+    if (now - last >= interval) {
+        last += interval;
+        armMotor.update();
     }
+    // Optional: Add a small yield or other non-blocking code here if needed
 
     if (Serial.available() > 0) {
         String command = Serial.readStringUntil('\n');
@@ -616,35 +374,18 @@ void loop(){
 
         if (is_compact_motor_cmd) {
             switch (operation) {
-                case 's':
-                    LmotorBrake();
-                    lift_test_active = false;
-                    Serial.println("Lift BRAKE (manual stop)");
-                    break;
-                case 'x':
-                    TmotorBrake();
-                    turn_test_active = false;
-                    Serial.println("Turn BRAKE (manual stop)");
-                    break;
                 case 'c':
-                    Serial.printf("Encoders - Lift: %lld, Turn: %lld\n", lift_encoder.getCount(), turn_encoder.getCount());
-                    break;
-                case 'r':
-                    lift_encoder.setCount(0);
-                    turn_encoder.setCount(0);
-                    Serial.println("Both encoders reset to 0");
+                    // Serial.printf("Encoders - Lift: %lld, Turn: %lld\n", lift_encoder.getCount(), turn_encoder.getCount());
                     break;
                 case 'm':
-                    testLiftHalfTurn();
+                    armMotor.setTarget(150.0);
                     break;
                 case 'n':
-                    returnToZero();
+                    Serial.println("Home not available - encoder-based homing in progress");
                     break;
                 case 'w':
                     lift_test_active = false;
                     turn_test_active = false;
-                    lift_speed = 0;
-                    turn_speed = 0;
                     lift_state = "FREE";
                     turn_state = "FREE";
                     ledcWrite(PWM_CHANNEL_LIFT1, 0);
@@ -691,14 +432,10 @@ void loop(){
         // New unified commands: L <ticks> for lift, T <ticks> for turn (signed, positive or negative)
         else if ((cmd_type_upper == "L" || cmd_type_upper == "T") && cmd_value.length() > 0) {
             int64_t ticks = cmd_value.toInt();
-            if (ticks == 0) {
-                Serial.println("Error: Number of ticks must be nonzero");
-                return;
-            }
             if (cmd_type_upper == "L") {
-                startLiftTickMove(ticks);
+                armMotor.setTarget(ticks);
             } else {
-                startTurnTickMove(ticks);
+                armMotor.setTarget(ticks);
             }
         }
         else if (cmd_type_upper == "STATUS") {

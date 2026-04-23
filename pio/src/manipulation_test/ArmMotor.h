@@ -39,7 +39,6 @@ private:
     float last_angle = 0.0f;
     float prev_error = 0.0f;
     float integrale = 0.0f;
-    float v_setpoint = 0.0f;
     int final_output = 0;
     // Gravity feedforward — simple compensation for weight, tune up/down as needed
     float FF_GAIN = 170;
@@ -55,7 +54,7 @@ private:
 
     // Tuning parameters
     float pwm_min = 170.0f; // stiction compensation threshold (tune)
-    float ff_gain = 175;
+    float ff_gain = 35;
     
     // Encoder
     ESP32Encoder encoder;
