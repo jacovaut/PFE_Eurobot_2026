@@ -34,6 +34,10 @@ RUN apt-get update && apt-get upgrade -y && \
         ros-jazzy-geometry-msgs \
         ros-jazzy-visualization-msgs \
         ros-jazzy-teleop-twist-keyboard \
+        ros-jazzy-xacro \
+        ros-jazzy-joint-state-publisher \
+        ros-jazzy-joint-state-publisher-gui \
+        ros-jazzy-rviz2 \
         ros-jazzy-robot-localization \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
    
