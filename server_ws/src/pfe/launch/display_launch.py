@@ -19,7 +19,7 @@ def generate_launch_description():
         jsp_exec = 'joint_state_publisher'
 
     robot_description = ParameterValue(
-        Command(['xacro ', urdf_file]),
+        Command(['ros2 run xacro xacro ', urdf_file]),
         value_type=str
     )
 
