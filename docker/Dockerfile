@@ -36,7 +36,7 @@ RUN apt-get update && apt-get upgrade -y && \
         ros-jazzy-teleop-twist-keyboard \
         ros-jazzy-xacro \
         ros-jazzy-joint-state-publisher \
-        ros-jazzy-robot-state-publisher
+        ros-jazzy-robot-state-publisher \
         ros-jazzy-joint-state-publisher-gui \
         ros-jazzy-rviz2 \
         ros-jazzy-robot-localization \
