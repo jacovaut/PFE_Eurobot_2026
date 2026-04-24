@@ -117,42 +117,34 @@ class LocalCameraPerceptionNode(Node):
     def __init__(self):
         super().__init__('local_camera_perception_node')
 
-        # ---------- Camera Isaac ----------
-        self.declare_parameter('camera_device', -1)
-        self.declare_parameter('camera_path', 'libcamera')
+            # ---------- Camera ----------
+        self.declare_parameter('camera_device', 0)
         self.declare_parameter('show_debug_window', False)
 
         self.cameraDeviceNumber = int(self.get_parameter('camera_device').value)
-        self.camera_path = str(self.get_parameter('camera_path').value).strip()
         self.show_debug_window = bool(self.get_parameter('show_debug_window').value)
 
-        camera_source = self.camera_path if self.camera_path else self.cameraDeviceNumber
+        # Use /dev/videoX directly (works better in Docker)
+        self.camera = cv2.VideoCapture(self.cameraDeviceNumber, cv2.CAP_V4L2)
 
-        if self.camera_path == "libcamera":
-            pipeline = (
-                "libcamerasrc ! "
-                "video/x-raw,width=1280,height=720,framerate=30/1,format=RGB ! "
-                "videoconvert ! "
-                "video/x-raw,format=BGR ! "
-                "appsink drop=true max-buffers=1 sync=false"
-            )
-            self.camera = cv2.VideoCapture(pipeline, cv2.CAP_GSTREAMER)
-        else:
-            self.camera = cv2.VideoCapture(camera_source, cv2.CAP_V4L2)
+        # Fallback if V4L2 fails
+        if not self.camera.isOpened():
+            self.get_logger().warn("V4L2 failed, trying default backend...")
+            self.camera = cv2.VideoCapture(self.cameraDeviceNumber)
 
         if not self.camera.isOpened():
-            self.camera = cv2.VideoCapture(camera_source)
-
-        if not self.camera.isOpened():
-            self.get_logger().error(f"Could not open camera source {camera_source}")
+            self.get_logger().error(f"Could not open camera /dev/video{self.cameraDeviceNumber}")
             raise RuntimeError("Camera open failed")
 
-        self.get_logger().info(f"Using camera source: {camera_source}")
+        # Set resolution manually (IMPORTANT)
+        self.camera.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
+        self.camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+        self.camera.set(cv2.CAP_PROP_FPS, 30)
+
+        self.get_logger().info(f"Using camera /dev/video{self.cameraDeviceNumber}")
         self.get_logger().info(f"Debug preview window enabled: {self.show_debug_window}")
 
-        # Keep this consistent with your current setup
-        self.output_width = 1280
-        self.output_height = 720
+        
 
         # ---------- ROS ----------
         self.bridge = CvBridge()
