@@ -120,7 +120,7 @@ class LocalCameraPerceptionNode(Node):
         # ---------- Camera Isaac ----------
         self.declare_parameter('camera_device', -1)
         self.declare_parameter('camera_path', 'libcamera')
-        self.declare_parameter('show_debug_window', True)
+        self.declare_parameter('show_debug_window', False)
 
         self.cameraDeviceNumber = int(self.get_parameter('camera_device').value)
         self.camera_path = str(self.get_parameter('camera_path').value).strip()
@@ -131,16 +131,17 @@ class LocalCameraPerceptionNode(Node):
         if self.camera_path == "libcamera":
             pipeline = (
                 "libcamerasrc ! "
-                "video/x-raw,width=1280,height=720,framerate=30/1 ! "
+                "video/x-raw,width=1280,height=720,framerate=30/1,format=RGB ! "
                 "videoconvert ! "
-                "appsink"
+                "video/x-raw,format=BGR ! "
+                "appsink drop=true max-buffers=1 sync=false"
             )
             self.camera = cv2.VideoCapture(pipeline, cv2.CAP_GSTREAMER)
         else:
             self.camera = cv2.VideoCapture(camera_source, cv2.CAP_V4L2)
 
-            if not self.camera.isOpened():
-                self.camera = cv2.VideoCapture(camera_source)
+        if not self.camera.isOpened():
+            self.camera = cv2.VideoCapture(camera_source)
 
         if not self.camera.isOpened():
             self.get_logger().error(f"Could not open camera source {camera_source}")
