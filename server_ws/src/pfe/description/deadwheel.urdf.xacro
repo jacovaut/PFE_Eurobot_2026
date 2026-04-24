@@ -1,0 +1,462 @@
+<?xml version='1.0' encoding='utf-8'?>
+<robot name="my_robot">
+    <link name="base_link" />
+
+    <link name="flipper_link-v1">
+        <inertial>
+            <origin xyz="2.6474475234294913e-09 4.767925592119582e-09 -0.07580524145430977" rpy="0.0 -0.0 0.0" />
+            <mass value="0.4797185340176825" />
+            <inertia ixx="0.0011969873864993257" iyy="0.0009456324882451857" izz="0.0002533232197152197" ixy="-1.3010426069826053e-18" iyz="1.734723475976807e-18" ixz="1.7802599672211983e-16" />
+        </inertial>
+        <visual name="flipper_link-v1_visual">
+            <origin xyz="0.00861550378970137 0.01247089554740951 -0.07550000482135592" rpy="-1.5707963267948968 -1.5707963267947291 0" />
+            <geometry>
+                <mesh filename="meshes/flipper_link-v1.stl" scale="0.001 0.001 0.001" />
+            </geometry>
+        </visual>
+        <collision name="flipper_link-v1_collision">
+            <origin xyz="0.00861550378970137 0.01247089554740951 -0.07550000482135592" rpy="-1.5707963267948968 -1.5707963267947291 0" />
+            <geometry>
+                <mesh filename="meshes/flipper_link-v1.stl" scale="0.001 0.001 0.001" />
+            </geometry>
+        </collision>
+    </link>
+    <link name="arm_link-v1">
+        <inertial>
+            <origin xyz="-9.798976132702034e-16 -2.2996226341901397e-07 0.003266587610266396" rpy="0.0 0.0 0.0" />
+            <mass value="0.5338474560099968" />
+            <inertia ixx="0.0009599083468218418" iyy="0.0002203089102536459" izz="0.0011328418152016686" ixy="5.970780693414603e-17" iyz="-9.724324403256641e-10" ixz="-6.801394570971657e-18" />
+        </inertial>
+        <visual name="arm_link-v1_visual">
+            <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+            <geometry>
+                <mesh filename="meshes/arm_link-v1.stl" scale="0.001 0.001 0.001" />
+            </geometry>
+        </visual>
+        <collision name="arm_link-v1_collision">
+            <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+            <geometry>
+                <mesh filename="meshes/arm_link-v1.stl" scale="0.001 0.001 0.001" />
+            </geometry>
+        </collision>
+    </link>
+    <link name="base_link-v5">
+        <inertial>
+            <origin xyz="-0.1806532478764334 0.10959136535685834 -0.09958100133613353" rpy="0.0 0.0 0.0" />
+            <mass value="10.846844826170994" />
+            <inertia ixx="0.1137300898429841" iyy="0.15506270343665957" izz="0.1525596007466387" ixy="0.0002636196730894534" iyz="0.0002706724915273537" ixz="0.008689234245133912" />
+        </inertial>
+        <visual name="base_link-v5_visual">
+            <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+            <geometry>
+                <mesh filename="meshes/base_link-v5.stl" scale="0.001 0.001 0.001" />
+            </geometry>
+        </visual>
+        <collision name="base_link-v5_collision">
+            <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+            <geometry>
+                <mesh filename="meshes/base_link-v5.stl" scale="0.001 0.001 0.001" />
+            </geometry>
+        </collision>
+    </link>
+    <link name="wheel_link-v1">
+        <inertial>
+            <origin xyz="2.9766545619658303e-05 4.304267826675812e-06 0.004179545797070823" rpy="0.0 -0.0 0.0" />
+            <mass value="0.3360663312138791" />
+            <inertia ixx="9.012634603781933e-05" iyy="9.001291913218745e-05" izz="0.00013234115795366513" ixy="1.8834943431300655e-09" iyz="1.41718145309222e-08" ixz="1.2750272517306205e-07" />
+        </inertial>
+        <visual name="wheel_link-v1_visual">
+            <origin xyz="-4.9972830140632145e-09 -4.767929127069692e-09 -0.011999998920319008" rpy="1.5707963267948974 2.7755575615628793e-17 1.5265566588595937e-16" />
+            <geometry>
+                <mesh filename="meshes/wheel_link-v1.stl" scale="0.001 0.001 0.001" />
+            </geometry>
+        </visual>
+        <collision name="wheel_link-v1_collision">
+            <origin xyz="-4.9972830140632145e-09 -4.767929127069692e-09 -0.011999998920319008" rpy="1.5707963267948974 2.7755575615628793e-17 1.5265566588595937e-16" />
+            <geometry>
+                <mesh filename="meshes/wheel_link-v1.stl" scale="0.001 0.001 0.001" />
+            </geometry>
+        </collision>
+    </link>
+    <link name="wheel_link-v1">
+        <inertial>
+            <origin xyz="2.9770008680891636e-05 4.304267826675812e-06 0.004179545797070076" rpy="0.0 -0.0 0.0" />
+            <mass value="0.3360663312138791" />
+            <inertia ixx="9.012634603780545e-05" iyy="9.001291913220827e-05" izz="0.00013234115795369462" ixy="1.8834943587429966e-09" iyz="1.4171814541469944e-08" ixz="1.275027251867153e-07" />
+        </inertial>
+        <visual name="wheel_link-v1_visual">
+            <origin xyz="-1.5342220649472438e-09 -4.767929162596829e-09 -0.011999998920319825" rpy="1.5707963267948974 2.7755575615628507e-17 1.52655665885957e-16" />
+            <geometry>
+                <mesh filename="meshes/wheel_link-v1.stl" scale="0.001 0.001 0.001" />
+            </geometry>
+        </visual>
+        <collision name="wheel_link-v1_collision">
+            <origin xyz="-1.5342220649472438e-09 -4.767929162596829e-09 -0.011999998920319825" rpy="1.5707963267948974 2.7755575615628507e-17 1.52655665885957e-16" />
+            <geometry>
+                <mesh filename="meshes/wheel_link-v1.stl" scale="0.001 0.001 0.001" />
+            </geometry>
+        </collision>
+    </link>
+    <link name="wheel_link-v1">
+        <inertial>
+            <origin xyz="-2.9768983099991432e-05 -4.304267826960029e-06 0.004179546726436565" rpy="0.0 -0.0 0.0" />
+            <mass value="0.3360663312138791" />
+            <inertia ixx="9.012634603783667e-05" iyy="9.001291913223602e-05" izz="0.00013234115795369636" ixy="1.883494383896067e-09" iyz="-1.4171814507720273e-08" ixz="-1.2750272519496293e-07" />
+        </inertial>
+        <visual name="wheel_link-v1_visual">
+            <origin xyz="2.559801970392073e-09 4.767928913906871e-09 -0.011999997990952985" rpy="1.5707963267948957 -7.600864382339965e-14 3.141592653589793" />
+            <geometry>
+                <mesh filename="meshes/wheel_link-v1.stl" scale="0.001 0.001 0.001" />
+            </geometry>
+        </visual>
+        <collision name="wheel_link-v1_collision">
+            <origin xyz="2.559801970392073e-09 4.767928913906871e-09 -0.011999997990952985" rpy="1.5707963267948957 -7.600864382339965e-14 3.141592653589793" />
+            <geometry>
+                <mesh filename="meshes/wheel_link-v1.stl" scale="0.001 0.001 0.001" />
+            </geometry>
+        </collision>
+    </link>
+    <link name="wheel_link-v1">
+        <inertial>
+            <origin xyz="-2.9772331126451947e-05 -4.304267826960029e-06 0.0041795467264360096" rpy="0.0 -0.0 0.0" />
+            <mass value="0.3360663312138791" />
+            <inertia ixx="9.012634603783667e-05" iyy="9.001291913222215e-05" izz="0.00013234115795368248" ixy="1.883494403845387e-09" iyz="-1.4171814508153954e-08" ixz="-1.2750272519626397e-07" />
+        </inertial>
+        <visual name="wheel_link-v1_visual">
+            <origin xyz="-7.882243835410918e-10 4.767928913906871e-09 -0.011999997990953547" rpy="1.5707963267948957 -7.600864382339965e-14 3.141592653589793" />
+            <geometry>
+                <mesh filename="meshes/wheel_link-v1.stl" scale="0.001 0.001 0.001" />
+            </geometry>
+        </visual>
+        <collision name="wheel_link-v1_collision">
+            <origin xyz="-7.882243835410918e-10 4.767928913906871e-09 -0.011999997990953547" rpy="1.5707963267948957 -7.600864382339965e-14 3.141592653589793" />
+            <geometry>
+                <mesh filename="meshes/wheel_link-v1.stl" scale="0.001 0.001 0.001" />
+            </geometry>
+        </collision>
+    </link>
+    <link name="arducam_link-v3">
+        <inertial>
+            <origin xyz="-0.00013322161290098224 0.0009504573350092649 0.00043137020324471645" rpy="0.0 -0.0 2.1971233086788544e-49" />
+            <mass value="0.0010174438167060709" />
+            <inertia ixx="4.5307132551562007e-08" iyy="3.5090242032863035e-08" izz="7.59611441794051e-08" ixy="1.0347644394329782e-09" iyz="-2.264070327162072e-09" ixz="1.3166586418150303e-10" />
+        </inertial>
+        <visual name="arducam_link-v3_visual">
+            <origin xyz="-2.352010142203653e-10 4.813011784676747e-09 -0.001750004628485895" rpy="8.52607141014584e-18 -5.5511151231257815e-17 9.485990215114392e-16" />
+            <geometry>
+                <mesh filename="meshes/arducam_link-v3.stl" scale="0.001 0.001 0.001" />
+            </geometry>
+        </visual>
+        <collision name="arducam_link-v3_collision">
+            <origin xyz="-2.352010142203653e-10 4.813011784676747e-09 -0.001750004628485895" rpy="8.52607141014584e-18 -5.5511151231257815e-17 9.485990215114392e-16" />
+            <geometry>
+                <mesh filename="meshes/arducam_link-v3.stl" scale="0.001 0.001 0.001" />
+            </geometry>
+        </collision>
+    </link>
+    <link name="suctioncup_link-v1">
+        <inertial>
+            <origin xyz="8.154303903751284e-07 1.2390689796881009e-05 -0.006028648295133863" rpy="0.0 0.0 0.0" />
+            <mass value="0.01610542090939767" />
+            <inertia ixx="5.828253651597379e-07" iyy="5.803205511464155e-07" izz="9.60184054302985e-07" ixy="-1.218964209084852e-10" iyz="2.35423160977113e-12" ixz="1.4040374982444028e-11" />
+        </inertial>
+        <visual name="suctioncup_link-v1_visual">
+            <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+            <geometry>
+                <mesh filename="meshes/suctioncup_link-v1.stl" scale="0.001 0.001 0.001" />
+            </geometry>
+        </visual>
+        <collision name="suctioncup_link-v1_collision">
+            <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+            <geometry>
+                <mesh filename="meshes/suctioncup_link-v1.stl" scale="0.001 0.001 0.001" />
+            </geometry>
+        </collision>
+    </link>
+    <link name="suctioncup_link-v1">
+        <inertial>
+            <origin xyz="8.154303903751284e-07 1.2390689796881009e-05 -0.006028648295133863" rpy="0.0 0.0 0.0" />
+            <mass value="0.01610542090939767" />
+            <inertia ixx="5.828253651598463e-07" iyy="5.803205511464155e-07" izz="9.601840543038524e-07" ixy="-1.218964209084852e-10" iyz="2.3542316639812384e-12" ixz="1.4040375199284462e-11" />
+        </inertial>
+        <visual name="suctioncup_link-v1_visual">
+            <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+            <geometry>
+                <mesh filename="meshes/suctioncup_link-v1.stl" scale="0.001 0.001 0.001" />
+            </geometry>
+        </visual>
+        <collision name="suctioncup_link-v1_collision">
+            <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+            <geometry>
+                <mesh filename="meshes/suctioncup_link-v1.stl" scale="0.001 0.001 0.001" />
+            </geometry>
+        </collision>
+    </link>
+    <link name="suctioncup_link-v1">
+        <inertial>
+            <origin xyz="8.154303903751284e-07 1.2390689796881009e-05 -0.006028648295133863" rpy="0.0 0.0 0.0" />
+            <mass value="0.01610542090939767" />
+            <inertia ixx="5.828253651597379e-07" iyy="5.803205511468491e-07" izz="9.601840543034187e-07" ixy="-1.218964209084852e-10" iyz="2.354231555561021e-12" ixz="1.4040374982444028e-11" />
+        </inertial>
+        <visual name="suctioncup_link-v1_visual">
+            <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+            <geometry>
+                <mesh filename="meshes/suctioncup_link-v1.stl" scale="0.001 0.001 0.001" />
+            </geometry>
+        </visual>
+        <collision name="suctioncup_link-v1_collision">
+            <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+            <geometry>
+                <mesh filename="meshes/suctioncup_link-v1.stl" scale="0.001 0.001 0.001" />
+            </geometry>
+        </collision>
+    </link>
+    <link name="suctioncup_link-v1">
+        <inertial>
+            <origin xyz="8.154303903751284e-07 1.2390689796881009e-05 -0.006028648295133863" rpy="0.0 0.0 0.0" />
+            <mass value="0.01610542090939767" />
+            <inertia ixx="5.828253651597379e-07" iyy="5.803205511472828e-07" izz="9.601840543038524e-07" ixy="-1.218964209084852e-10" iyz="2.354231555561021e-12" ixz="1.404037487402381e-11" />
+        </inertial>
+        <visual name="suctioncup_link-v1_visual">
+            <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+            <geometry>
+                <mesh filename="meshes/suctioncup_link-v1.stl" scale="0.001 0.001 0.001" />
+            </geometry>
+        </visual>
+        <collision name="suctioncup_link-v1_collision">
+            <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+            <geometry>
+                <mesh filename="meshes/suctioncup_link-v1.stl" scale="0.001 0.001 0.001" />
+            </geometry>
+        </collision>
+    </link>
+    <link name="deedhold_link-v1">
+        <inertial>
+            <origin xyz="0.011661859246225639 0.024249999999989433 0.019353392250147962" rpy="0.0 0.0 0.0" />
+            <mass value="0.10317370680697237" />
+            <inertia ixx="4.201686701103813e-05" iyy="1.6265345678463895e-05" izz="3.7942260704193405e-05" ixy="-1.3023397530046908e-17" iyz="-2.0787867489413835e-17" ixz="-7.553262003503873e-07" />
+        </inertial>
+        <visual name="deedhold_link-v1_visual">
+            <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+            <geometry>
+                <mesh filename="meshes/deedhold_link-v1.stl" scale="0.001 0.001 0.001" />
+            </geometry>
+        </visual>
+        <collision name="deedhold_link-v1_collision">
+            <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+            <geometry>
+                <mesh filename="meshes/deedhold_link-v1.stl" scale="0.001 0.001 0.001" />
+            </geometry>
+        </collision>
+    </link>
+    <link name="deedhold_link-v1">
+        <inertial>
+            <origin xyz="0.011661859246225622 0.02424999999998945 0.01935339225014792" rpy="0.0 0.0 0.0" />
+            <mass value="0.10317370680697237" />
+            <inertia ixx="4.201686701103996e-05" iyy="1.6265345678464803e-05" izz="3.794226070419427e-05" ixy="-1.293643731049161e-17" iyz="-2.1463246078178264e-17" ixz="-7.553262003508391e-07" />
+        </inertial>
+        <visual name="deedhold_link-v1_visual">
+            <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+            <geometry>
+                <mesh filename="meshes/deedhold_link-v1.stl" scale="0.001 0.001 0.001" />
+            </geometry>
+        </visual>
+        <collision name="deedhold_link-v1_collision">
+            <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+            <geometry>
+                <mesh filename="meshes/deedhold_link-v1.stl" scale="0.001 0.001 0.001" />
+            </geometry>
+        </collision>
+    </link>
+    <link name="deedhold_link-v1">
+        <inertial>
+            <origin xyz="0.01166185924622563 0.02424999999998945 0.01935339225014794" rpy="0.0 0.0 0.0" />
+            <mass value="0.10317370680697237" />
+            <inertia ixx="4.201686701103908e-05" iyy="1.6265345678464796e-05" izz="3.794226070419514e-05" ixy="-1.3946953984397162e-17" iyz="-2.1219671001657676e-17" ixz="-7.553262003508247e-07" />
+        </inertial>
+        <visual name="deedhold_link-v1_visual">
+            <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+            <geometry>
+                <mesh filename="meshes/deedhold_link-v1.stl" scale="0.001 0.001 0.001" />
+            </geometry>
+        </visual>
+        <collision name="deedhold_link-v1_collision">
+            <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+            <geometry>
+                <mesh filename="meshes/deedhold_link-v1.stl" scale="0.001 0.001 0.001" />
+            </geometry>
+        </collision>
+    </link>
+    <link name="deadwheel_strafe_link">
+        <inertial>
+            <origin xyz="-0.013660754545617913 -1.688365427483518e-06 1.7529772245339359e-06" rpy="0.0 -0.0 0.0" />
+            <mass value="0.24378344343430078" />
+            <inertia ixx="5.8944970484661394e-05" iyy="4.9653095231767114e-05" izz="4.9653212176099804e-05" ixy="2.904282536686509e-09" iyz="-1.6744274842529772e-09" ixz="2.8046330440359424e-09" />
+        </inertial>
+        <visual name="deadwheel_strafe_link_visual">
+            <origin xyz="-0.01366075454561134 3.6847911744075646e-09 8.079308777553252e-10" rpy="3.1415926535897927 -1.5707963267948957 0" />
+            <geometry>
+                <mesh filename="meshes/deadwheel_link-v1.stl" scale="0.001 0.001 0.001" />
+            </geometry>
+        </visual>
+        <collision name="deadwheel_strafe_link_collision">
+            <origin xyz="-0.01366075454561134 3.6847911744075646e-09 8.079308777553252e-10" rpy="3.1415926535897927 -1.5707963267948957 0" />
+            <geometry>
+                <mesh filename="meshes/deadwheel_link-v1.stl" scale="0.001 0.001 0.001" />
+            </geometry>
+        </collision>
+    </link>
+    <link name="deadwheel_left_link">
+        <inertial>
+            <origin xyz="1.7504406603308099e-06 1.693890528677855e-06 0.017410751436840677" rpy="0.0 -0.0 0.0" />
+            <mass value="0.24378344343430078" />
+            <inertia ixx="4.9653212176096334e-05" iyy="4.9653095231756705e-05" izz="5.89449704846666e-05" ixy="1.6744274803498493e-09" iyz="-2.9042825349517853e-09" ixz="2.804633044903304e-09" />
+        </inertial>
+        <visual name="deadwheel_left_link_visual">
+            <origin xyz="-1.7286333431343338e-09 1.840309984402211e-09 0.01741075143684732" rpy="-1.0339583746219128e-15 6.327191705894364e-31 5.387983141491689e-16" />
+            <geometry>
+                <mesh filename="meshes/deadwheel_link-v1.stl" scale="0.001 0.001 0.001" />
+            </geometry>
+        </visual>
+        <collision name="deadwheel_left_link_collision">
+            <origin xyz="-1.7286333431343338e-09 1.840309984402211e-09 0.01741075143684732" rpy="-1.0339583746219128e-15 6.327191705894364e-31 5.387983141491689e-16" />
+            <geometry>
+                <mesh filename="meshes/deadwheel_link-v1.stl" scale="0.001 0.001 0.001" />
+            </geometry>
+        </collision>
+    </link>
+    <link name="deadwheel_right_link">
+        <inertial>
+            <origin xyz="1.7504406603308099e-06 1.6938905288554907e-06 -0.018660747990959587" rpy="0.0 -0.0 0.0" />
+            <mass value="0.24378344343430078" />
+            <inertia ixx="4.9653212176096334e-05" iyy="4.9653095231760175e-05" izz="5.89449704846666e-05" ixy="1.6744274838192963e-09" iyz="-2.9042825360359875e-09" ixz="2.8046330429517402e-09" />
+        </inertial>
+        <visual name="deadwheel_right_link_visual">
+            <origin xyz="-1.7286333431343338e-09 1.8403101975650316e-09 -0.018660747990952988" rpy="-3.5300667265892806e-16 -2.6583370270615855e-32 4.2777601168665364e-16" />
+            <geometry>
+                <mesh filename="meshes/deadwheel_link-v1.stl" scale="0.001 0.001 0.001" />
+            </geometry>
+        </visual>
+        <collision name="deadwheel_right_link_collision">
+            <origin xyz="-1.7286333431343338e-09 1.8403101975650316e-09 -0.018660747990952988" rpy="-3.5300667265892806e-16 -2.6583370270615855e-32 4.2777601168665364e-16" />
+            <geometry>
+                <mesh filename="meshes/deadwheel_link-v1.stl" scale="0.001 0.001 0.001" />
+            </geometry>
+        </collision>
+    </link>
+    <link name="deadpod_link-v1">
+        <inertial>
+            <origin xyz="0.012312465144914827 0.018000000000000033 0.012011497951761678" rpy="0.0 0.0 0.0" />
+            <mass value="0.1829129893211952" />
+            <inertia ixx="4.256079054476207e-05" iyy="6.357880137414229e-05" izz="8.217583445954997e-05" ixy="1.2989321955885463e-19" iyz="9.783403168899057e-19" ixz="2.603198064256337e-06" />
+        </inertial>
+        <visual name="deadpod_link-v1_visual">
+            <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+            <geometry>
+                <mesh filename="meshes/deadpod_link-v1.stl" scale="0.001 0.001 0.001" />
+            </geometry>
+        </visual>
+        <collision name="deadpod_link-v1_collision">
+            <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+            <geometry>
+                <mesh filename="meshes/deadpod_link-v1.stl" scale="0.001 0.001 0.001" />
+            </geometry>
+        </collision>
+    </link>
+    <link name="deadpod_link-v1">
+        <inertial>
+            <origin xyz="0.012312465144914828 0.01800000000000004 0.012011497951761653" rpy="0.0 0.0 0.0" />
+            <mass value="0.1829129893211952" />
+            <inertia ixx="4.2560790544763806e-05" iyy="6.357880137414056e-05" izz="8.217583445955083e-05" ixy="5.618014364006527e-19" iyz="3.151553320676318e-19" ixz="2.6031980642546068e-06" />
+        </inertial>
+        <visual name="deadpod_link-v1_visual">
+            <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+            <geometry>
+                <mesh filename="meshes/deadpod_link-v1.stl" scale="0.001 0.001 0.001" />
+            </geometry>
+        </visual>
+        <collision name="deadpod_link-v1_collision">
+            <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+            <geometry>
+                <mesh filename="meshes/deadpod_link-v1.stl" scale="0.001 0.001 0.001" />
+            </geometry>
+        </collision>
+    </link>
+    <link name="deadpod_link-v1">
+        <inertial>
+            <origin xyz="0.01231246514491481 0.01800000000000008 0.012011497951761674" rpy="0.0 0.0 0.0" />
+            <mass value="0.1829129893211952" />
+            <inertia ixx="4.25607905447586e-05" iyy="6.357880137414316e-05" izz="8.217583445954997e-05" ixy="-1.5744881556855568e-18" iyz="9.670276554991931e-19" ixz="2.603198064256804e-06" />
+        </inertial>
+        <visual name="deadpod_link-v1_visual">
+            <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+            <geometry>
+                <mesh filename="meshes/deadpod_link-v1.stl" scale="0.001 0.001 0.001" />
+            </geometry>
+        </visual>
+        <collision name="deadpod_link-v1_collision">
+            <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+            <geometry>
+                <mesh filename="meshes/deadpod_link-v1.stl" scale="0.001 0.001 0.001" />
+            </geometry>
+        </collision>
+    </link>
+    <joint name="base_link-v5_Revolute-2" type="continuous">
+        <origin xyz="-0.0164154352862412 0.03393206200904719 -0.13965336918407295" rpy="1.5707963267948957 -1.5265566588595922e-16 7.21644966006352e-16" />
+        <parent link="base_link-v5" />
+        <child link="flipper_link-v1" />
+        <axis xyz="4.610720134861793e-33 0.0 1.0" />
+    </joint>
+    <joint name="base_link-v5_Revolute-3" type="continuous">
+        <origin xyz="-0.2329295352862411 -0.01429999799095302 -0.15665336918407297" rpy="1.5707963267948957 -1.5265566588595922e-16 7.21644966006352e-16" />
+        <parent link="base_link-v5" />
+        <child link="wheel_link-v1" />
+        <axis xyz="4.610720134861793e-33 0.0 1.0" />
+    </joint>
+    <joint name="base_link-v5_Revolute-4" type="continuous">
+        <origin xyz="-0.10492999528624117 -0.01429999799095293 -0.1566533691840729" rpy="1.5707963267948957 -1.5265566588595922e-16 7.21644966006352e-16" />
+        <parent link="base_link-v5" />
+        <child link="wheel_link-v1" />
+        <axis xyz="4.610720134861793e-33 0.0 1.0" />
+    </joint>
+    <joint name="base_link-v5_Revolute-5" type="continuous">
+        <origin xyz="-0.10490178528624114 0.23430000200904744 -0.15665336918407313" rpy="-1.5707963267948941 -1.5265566588595922e-16 7.21644966006352e-16" />
+        <parent link="base_link-v5" />
+        <child link="wheel_link-v1" />
+        <axis xyz="-4.610720134861793e-33 3.2934953429011658e-15 1.0" />
+    </joint>
+    <joint name="base_link-v5_Revolute-6" type="continuous">
+        <origin xyz="-0.23290132528624108 0.23430000200904733 -0.15665336918407316" rpy="-1.5707963267948974 -1.5265566588595922e-16 7.21644966006352e-16" />
+        <parent link="base_link-v5" />
+        <child link="wheel_link-v1" />
+        <axis xyz="-4.610720134861793e-33 0.0 1.0" />
+    </joint>
+    <joint name="base_link-v5_Rigid-12" type="fixed">
+        <origin xyz="-0.10964196528624118 0.10993206200904702 0.15264326081592658" rpy="-3.1415926535897922 -0.6973907898697068 -3.141592653589792" />
+        <parent link="base_link-v5" />
+        <child link="arducam_link-v3" />
+    </joint>
+    <joint name="base_link_to_base_link-v5" type="fixed">
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <parent link="base_link" />
+        <child link="base_link-v5" />
+    </joint>
+    <joint name="deadwheel_strafe_joint" type="continuous">
+        <origin xyz="0.03450011550654263 -1.4368473699732932e-09 0.00719936790926397" rpy="1.5707963267948977 4.163336342344341e-16 3.141592653589792" />
+        <parent link="base_link" />
+        <child link="deadwheel_strafe_link" />
+        <axis xyz="-4.1073491673677537e-32 0.0 -1.0" />
+    </joint>
+    <joint name="deadwheel_left_joint" type="continuous">
+        <origin xyz="0.03450011550654249 0.03599999799095296 0.007199367909263827" rpy="1.570796326794897 3.053113317719189e-16 3.141592653589792" />
+        <parent link="base_link" />
+        <child link="deadwheel_left_link" />
+        <axis xyz="-7.202424288201062e-32 0.0 -1.0" />
+    </joint>
+    <joint name="deadwheel_right_joint" type="continuous">
+        <origin xyz="0.034500118043106875 0.004999995454388433 0.007199366064782744" rpy="1.5707963267948961 -6.346538906529858e-16 -1.5707963267948972" />
+        <parent link="base_link" />
+        <child link="deadwheel_right_link" />
+        <axis xyz="-1.0 1.9721522630525295e-31 1.65972263379191e-32" />
+    </joint>
+</robot>
