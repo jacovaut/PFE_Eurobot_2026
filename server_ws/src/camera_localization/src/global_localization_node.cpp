@@ -30,8 +30,10 @@ public:
     // Parameters
     // ----------------------------
     // Camera device: prefer a by-id path for stability, fall back to index.
-    // Pass --ros-args -p camera_path:=/dev/video2  OR  -p camera_index:=2
-    const auto camera_path  = declare_parameter<std::string>("camera_path", "");
+    // Pass --ros-args -p camera_path:=/dev/v4l/by-id/usb-HD_USB_Camera_HD_USB_Camera_01.00.00-video-index0
+    // OR -p camera_index:=4
+    const auto camera_path  = declare_parameter<std::string>(
+      "camera_path", "/dev/v4l/by-id/usb-HD_USB_Camera_HD_USB_Camera_01.00.00-video-index0");
     const auto camera_index = declare_parameter<int>("camera_index", 0);
     device_ = camera_path.empty() ? "/dev/video" + std::to_string(camera_index) : camera_path;
 
@@ -43,6 +45,12 @@ public:
     // V4L2 hardware controls (set after open to survive driver resets)
     camera_gain_ = declare_parameter<int>("camera_gain", -1);
     camera_gamma_ = declare_parameter<int>("camera_gamma", -1);
+    camera_backlight_compensation_ =
+      declare_parameter<int>("camera_backlight_compensation", -1);
+    camera_autofocus_ = declare_parameter<int>("camera_autofocus", -1);
+    camera_focus_absolute_ = declare_parameter<int>("camera_focus_absolute", -1);
+    camera_exposure_time_absolute_ =
+      declare_parameter<int>("camera_exposure_time_absolute", -1);
 
     // CLAHE preprocessing on every frame (before main ArUco detection)
     enable_clahe_preprocessing_ =
@@ -137,6 +145,24 @@ public:
     rescue_error_correction_rate_ =
       declare_parameter<double>("rescue_error_correction_rate", 0.5);
 
+    // Optional rescue pass for block markers near frame borders (IDs 36/47)
+    enable_block_marker_border_rescue_pass_ =
+      declare_parameter<bool>("enable_block_marker_border_rescue_pass", true);
+    block_rescue_pad_ratio_ =
+      declare_parameter<double>("block_rescue_pad_ratio", 0.06);
+    block_rescue_clahe_clip_limit_ =
+      declare_parameter<double>("block_rescue_clahe_clip_limit", 3.0);
+    block_rescue_adaptive_thresh_win_size_max_ =
+      declare_parameter<int>("block_rescue_adaptive_thresh_win_size_max", 181);
+    block_rescue_adaptive_thresh_win_size_step_ =
+      declare_parameter<int>("block_rescue_adaptive_thresh_win_size_step", 30);
+    block_rescue_min_marker_perimeter_rate_ =
+      declare_parameter<double>("block_rescue_min_marker_perimeter_rate", 0.003);
+    block_rescue_error_correction_rate_ =
+      declare_parameter<double>("block_rescue_error_correction_rate", 0.6);
+    block_rescue_min_distance_to_border_ =
+      declare_parameter<int>("block_rescue_min_distance_to_border", 0);
+
     // Snapshot-based pose stabilization
     pose_update_interval_s_ =
       declare_parameter<double>("pose_update_interval_s", 5.0);
@@ -228,6 +254,26 @@ private:
       cap_.set(cv::CAP_PROP_GAMMA, camera_gamma_);
       RCLCPP_INFO(get_logger(), "Set camera gamma to %d (actual: %.0f)",
                   camera_gamma_, cap_.get(cv::CAP_PROP_GAMMA));
+    }
+    if (camera_backlight_compensation_ >= 0) {
+      cap_.set(cv::CAP_PROP_BACKLIGHT, camera_backlight_compensation_);
+      RCLCPP_INFO(get_logger(), "Set camera backlight compensation to %d (actual: %.0f)",
+                  camera_backlight_compensation_, cap_.get(cv::CAP_PROP_BACKLIGHT));
+    }
+    if (camera_autofocus_ >= 0) {
+      cap_.set(cv::CAP_PROP_AUTOFOCUS, camera_autofocus_);
+      RCLCPP_INFO(get_logger(), "Set camera autofocus to %d (actual: %.0f)",
+                  camera_autofocus_, cap_.get(cv::CAP_PROP_AUTOFOCUS));
+    }
+    if (camera_focus_absolute_ >= 0) {
+      cap_.set(cv::CAP_PROP_FOCUS, camera_focus_absolute_);
+      RCLCPP_INFO(get_logger(), "Set camera focus to %d (actual: %.0f)",
+                  camera_focus_absolute_, cap_.get(cv::CAP_PROP_FOCUS));
+    }
+    if (camera_exposure_time_absolute_ >= 0) {
+      cap_.set(cv::CAP_PROP_EXPOSURE, camera_exposure_time_absolute_);
+      RCLCPP_INFO(get_logger(), "Set camera exposure time absolute to %d (actual: %.0f)",
+                  camera_exposure_time_absolute_, cap_.get(cv::CAP_PROP_EXPOSURE));
     }
 
     RCLCPP_INFO(get_logger(), "Opened camera %s", device_.c_str());
@@ -447,6 +493,7 @@ private:
     }
 
     runTableMarkerRescuePass(gray, ids, corners);
+    runBlockMarkerBorderRescuePass(gray, ids, corners);
 
     bool marker20_accepted_after_rescue = false;
     for (int id : ids) {
@@ -610,18 +657,25 @@ if (ids.empty()) {
         continue;
       }
 
-      cv::Matx33d R_map_block;
-      cv::Vec3d t_map_block;
-      if (!estimateMarkerPoseInMap(
-            obj_points_block_, corners[i], R_map_camera, t_map_camera, R_map_block, t_map_block)) {
+      const cv::Point2f center_px = 0.25f * (
+        corners[i][0] + corners[i][1] + corners[i][2] + corners[i][3]);
+
+      cv::Point2d xy_map;
+      if (!pixelToMapXY(center_px, R_map_camera, t_map_camera, block_center_z_m_, xy_map)) {
+        continue;
+      }
+
+      double yaw_map = 0.0;
+      if (!yawFromMarkerCornersMap(
+            corners[i], R_map_camera, t_map_camera, block_center_z_m_, yaw_map)) {
         continue;
       }
 
       DetectedEntity e;
       e.marker_id = id;
       e.color = block_color_by_id_[id];
-      e.position_map = cv::Vec3d(t_map_block[0], t_map_block[1], block_center_z_m_);
-      e.yaw_rad = std::atan2(R_map_block(1, 0), R_map_block(0, 0));
+      e.position_map = cv::Vec3d(xy_map.x, xy_map.y, block_center_z_m_);
+      e.yaw_rad = yaw_map;
       e.size_x_m = block_size_x_m_;
       e.size_y_m = block_size_y_m_;
       e.is_dynamic = true;
@@ -800,6 +854,103 @@ if (ids.empty()) {
     }
   }
 
+  void runBlockMarkerBorderRescuePass(
+    const cv::Mat &gray,
+    std::vector<int> &ids,
+    std::vector<std::vector<cv::Point2f>> &corners)
+  {
+    if (!enable_block_marker_border_rescue_pass_) {
+      return;
+    }
+
+    // Always run the rescue pass for block markers — it adds instances of IDs that
+    // are only partially visible at the frame border, even if another instance of
+    // the same ID was already found in the main pass.
+
+    const int min_dim = std::min(gray.cols, gray.rows);
+    const int pad_px = std::max(8, static_cast<int>(std::round(block_rescue_pad_ratio_ * min_dim)));
+
+    cv::Mat padded;
+    cv::copyMakeBorder(
+      gray, padded,
+      pad_px, pad_px, pad_px, pad_px,
+      cv::BORDER_REPLICATE);
+
+    cv::Mat padded_rescue;
+    cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE(block_rescue_clahe_clip_limit_, cv::Size(16, 16));
+    clahe->apply(padded, padded_rescue);
+
+    cv::Ptr<cv::aruco::DetectorParameters> rescue_params = cv::aruco::DetectorParameters::create();
+    *rescue_params = *detector_params_;
+    rescue_params->adaptiveThreshWinSizeMax = block_rescue_adaptive_thresh_win_size_max_;
+    rescue_params->adaptiveThreshWinSizeStep = block_rescue_adaptive_thresh_win_size_step_;
+    rescue_params->minMarkerPerimeterRate = block_rescue_min_marker_perimeter_rate_;
+    rescue_params->errorCorrectionRate = static_cast<float>(block_rescue_error_correction_rate_);
+    rescue_params->minDistanceToBorder = block_rescue_min_distance_to_border_;
+
+    std::vector<int> rescue_ids;
+    std::vector<std::vector<cv::Point2f>> rescue_corners;
+    std::vector<std::vector<cv::Point2f>> rescue_rejected;
+    cv::aruco::detectMarkers(
+      padded_rescue,
+      dictionary_,
+      rescue_corners,
+      rescue_ids,
+      rescue_params,
+      rescue_rejected);
+
+    // Minimum pixel distance between two detections of the same ID to be considered distinct instances.
+    constexpr float kMinInstanceDistSq = 80.0f * 80.0f;
+
+    int recovered_count = 0;
+    for (std::size_t i = 0; i < rescue_ids.size(); ++i) {
+      const int id = rescue_ids[i];
+      if (!block_ids_.count(id)) {
+        continue;
+      }
+
+      // Compute centre of this rescue detection (in padded coords → subtract pad later)
+      auto &rc = rescue_corners[i];
+      cv::Point2f rescue_centre(0.f, 0.f);
+      for (auto &pt : rc) rescue_centre += pt;
+      rescue_centre *= 0.25f;
+      rescue_centre.x -= static_cast<float>(pad_px);
+      rescue_centre.y -= static_cast<float>(pad_px);
+
+      // Skip if a detection of the same ID already exists nearby in the merged set.
+      bool duplicate = false;
+      for (std::size_t j = 0; j < ids.size(); ++j) {
+        if (ids[j] != id) continue;
+        auto &ec = corners[j];
+        cv::Point2f existing_centre(0.f, 0.f);
+        for (auto &pt : ec) existing_centre += pt;
+        existing_centre *= 0.25f;
+        float dx = rescue_centre.x - existing_centre.x;
+        float dy = rescue_centre.y - existing_centre.y;
+        if (dx * dx + dy * dy < kMinInstanceDistSq) { duplicate = true; break; }
+      }
+      if (duplicate) continue;
+
+      std::vector<cv::Point2f> adjusted = rescue_corners[i];
+      for (auto &pt : adjusted) {
+        pt.x -= static_cast<float>(pad_px);
+        pt.y -= static_cast<float>(pad_px);
+        pt.x = std::clamp(pt.x, 0.0f, static_cast<float>(gray.cols - 1));
+        pt.y = std::clamp(pt.y, 0.0f, static_cast<float>(gray.rows - 1));
+      }
+
+      ids.push_back(id);
+      corners.push_back(adjusted);
+      recovered_count++;
+    }
+
+    if (recovered_count > 0) {
+      RCLCPP_INFO_THROTTLE(
+        get_logger(), *get_clock(), 2000,
+        "Recovered %d block marker(s) in border rescue pass", recovered_count);
+    }
+  }
+
   bool estimateMarkerPoseInMap(
     const cv::Mat &obj_points,
     const std::vector<cv::Point2f> &img_corners,
@@ -901,6 +1052,65 @@ if (ids.empty()) {
       c, -s, 0.0,
       s,  c, 0.0,
       0.0, 0.0, 1.0);
+  }
+
+  bool pixelToMapXY(
+    const cv::Point2f &uv_px,
+    const cv::Matx33d &R_map_camera,
+    const cv::Vec3d &t_map_camera,
+    double z_plane,
+    cv::Point2d &out_xy) const
+  {
+    std::vector<cv::Point2f> src = {uv_px};
+    std::vector<cv::Point2f> undistorted;
+    cv::undistortPoints(src, undistorted, camera_matrix_, dist_coeffs_);
+
+    const cv::Vec3d ray_camera(undistorted[0].x, undistorted[0].y, 1.0);
+    const cv::Vec3d ray_map = R_map_camera * ray_camera;
+
+    const double denom = ray_map[2];
+    if (std::abs(denom) < 1e-9) {
+      return false;
+    }
+
+    const double scale = (z_plane - t_map_camera[2]) / denom;
+    if (scale <= 0.0) {
+      return false;
+    }
+
+    const cv::Vec3d p_map = t_map_camera + scale * ray_map;
+    out_xy = cv::Point2d(p_map[0], p_map[1]);
+    return true;
+  }
+
+  bool yawFromMarkerCornersMap(
+    const std::vector<cv::Point2f> &px_corners,
+    const cv::Matx33d &R_map_camera,
+    const cv::Vec3d &t_map_camera,
+    double z_plane,
+    double &yaw_out) const
+  {
+    if (px_corners.size() != 4) {
+      return false;
+    }
+
+    cv::Point2d p0;
+    cv::Point2d p1;
+    if (!pixelToMapXY(px_corners[0], R_map_camera, t_map_camera, z_plane, p0)) {
+      return false;
+    }
+    if (!pixelToMapXY(px_corners[1], R_map_camera, t_map_camera, z_plane, p1)) {
+      return false;
+    }
+
+    const double vx = p1.x - p0.x;
+    const double vy = p1.y - p0.y;
+    if ((vx * vx + vy * vy) < 1e-12) {
+      return false;
+    }
+
+    yaw_out = std::atan2(vy, vx);
+    return true;
   }
 
   bool getTableMarkerCornersGlobal(
@@ -1140,6 +1350,10 @@ if (ids.empty()) {
   int fps_{30};
   int camera_gain_{-1};
   int camera_gamma_{-1};
+  int camera_backlight_compensation_{-1};
+  int camera_autofocus_{-1};
+  int camera_focus_absolute_{-1};
+  int camera_exposure_time_absolute_{-1};
   bool enable_clahe_preprocessing_{false};
   double clahe_clip_limit_{3.0};
   int clahe_tile_size_{16};
@@ -1180,6 +1394,15 @@ if (ids.empty()) {
   int rescue_adaptive_thresh_win_size_step_{20};
   double rescue_min_marker_perimeter_rate_{0.01};
   double rescue_error_correction_rate_{0.5};
+
+  bool enable_block_marker_border_rescue_pass_{true};
+  double block_rescue_pad_ratio_{0.06};
+  double block_rescue_clahe_clip_limit_{3.0};
+  int block_rescue_adaptive_thresh_win_size_max_{181};
+  int block_rescue_adaptive_thresh_win_size_step_{30};
+  double block_rescue_min_marker_perimeter_rate_{0.003};
+  double block_rescue_error_correction_rate_{0.6};
+  int block_rescue_min_distance_to_border_{0};
 };
 
 int main(int argc, char **argv)

@@ -119,7 +119,7 @@ class LocalCameraPerceptionNode(Node):
 
         # ---------- Camera Isaac ----------
         self.declare_parameter('camera_device', 4) # Host-local default; override from launch on machines where the camera is elsewhere.
-        self.declare_parameter('camera_path', '')
+        self.declare_parameter('camera_path', '/dev/v4l/by-id/usb-HD_USB_Camera_HD_USB_Camera_01.00.00-video-index0')
         self.declare_parameter('show_debug_window', True)
 
         self.cameraDeviceNumber = int(self.get_parameter('camera_device').value)

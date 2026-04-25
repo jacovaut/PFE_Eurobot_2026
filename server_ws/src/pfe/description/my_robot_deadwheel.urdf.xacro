@@ -228,7 +228,7 @@
             </geometry>
         </collision>
     </link>
-    <link name="deedhold_link-v1">
+    <link name="deadpod_mount_1">
         <inertial>
             <origin xyz="0.011661859246225639 0.024249999999989433 0.019353392250147962" rpy="0.0 0.0 0.0" />
             <mass value="0.10317370680697237" />
@@ -247,7 +247,7 @@
             </geometry>
         </collision>
     </link>
-    <link name="deedhold_link-v1">
+    <link name="deadpod_mount_2">
         <inertial>
             <origin xyz="0.011661859246225622 0.02424999999998945 0.01935339225014792" rpy="0.0 0.0 0.0" />
             <mass value="0.10317370680697237" />
@@ -266,7 +266,7 @@
             </geometry>
         </collision>
     </link>
-    <link name="deedhold_link-v1">
+    <link name="deadpod_mount_3">
         <inertial>
             <origin xyz="0.01166185924622563 0.02424999999998945 0.01935339225014794" rpy="0.0 0.0 0.0" />
             <mass value="0.10317370680697237" />
@@ -285,7 +285,7 @@
             </geometry>
         </collision>
     </link>
-    <link name="deadwheel_link-v1">
+    <link name="deadwheel_link_1">
         <inertial>
             <origin xyz="-0.013660754545617913 -1.688365427483518e-06 1.7529772245339359e-06" rpy="0.0 -0.0 0.0" />
             <mass value="0.24378344343430078" />
@@ -304,7 +304,7 @@
             </geometry>
         </collision>
     </link>
-    <link name="deadwheel_link-v1">
+    <link name="deadwheel_link_2">
         <inertial>
             <origin xyz="1.7504406603308099e-06 1.693890528677855e-06 0.017410751436840677" rpy="0.0 -0.0 0.0" />
             <mass value="0.24378344343430078" />
@@ -323,7 +323,7 @@
             </geometry>
         </collision>
     </link>
-    <link name="deadwheel_link-v1">
+    <link name="deadwheel_link_3">
         <inertial>
             <origin xyz="1.7504406603308099e-06 1.6938905288554907e-06 -0.018660747990959587" rpy="0.0 -0.0 0.0" />
             <mass value="0.24378344343430078" />
@@ -342,7 +342,7 @@
             </geometry>
         </collision>
     </link>
-    <link name="deadpod_link-v1">
+    <link name="deadpod_link_1">
         <inertial>
             <origin xyz="0.012312465144914827 0.018000000000000033 0.012011497951761678" rpy="0.0 0.0 0.0" />
             <mass value="0.1829129893211952" />
@@ -361,7 +361,7 @@
             </geometry>
         </collision>
     </link>
-    <link name="deadpod_link-v1">
+    <link name="deadpod_link_2">
         <inertial>
             <origin xyz="0.012312465144914828 0.01800000000000004 0.012011497951761653" rpy="0.0 0.0 0.0" />
             <mass value="0.1829129893211952" />
@@ -380,7 +380,7 @@
             </geometry>
         </collision>
     </link>
-    <link name="deadpod_link-v1">
+    <link name="deadpod_link_3">
         <inertial>
             <origin xyz="0.01231246514491481 0.01800000000000008 0.012011497951761674" rpy="0.0 0.0 0.0" />
             <mass value="0.1829129893211952" />
@@ -436,20 +436,20 @@
     </joint>
     <joint name="deadpod_link-v1_Revolute-17" type="continuous">
         <origin xyz="0.03450011550654263 -1.4368473699732932e-09 0.00719936790926397" rpy="1.5707963267948977 4.163336342344341e-16 3.141592653589792" />
-        <parent link="deadpod_link-v1" />
-        <child link="deadwheel_link-v1" />
+        <parent link="deadpod_link_1" />
+        <child link="deadwheel_link_1" />
         <axis xyz="-4.1073491673677537e-32 0.0 -1.0" />
     </joint>
     <joint name="deadpod_link-v1_Revolute-19" type="continuous">
         <origin xyz="0.03450011550654249 0.03599999799095296 0.007199367909263827" rpy="1.570796326794897 3.053113317719189e-16 3.141592653589792" />
-        <parent link="deadpod_link-v1" />
-        <child link="deadwheel_link-v1" />
+        <parent link="deadpod_link_2" />
+        <child link="deadwheel_link_2" />
         <axis xyz="-7.202424288201062e-32 0.0 -1.0" />
     </joint>
     <joint name="deadpod_link-v1_Revolute-21" type="continuous">
         <origin xyz="0.034500118043106875 0.004999995454388433 0.007199366064782744" rpy="1.5707963267948961 -6.346538906529858e-16 -1.5707963267948972" />
-        <parent link="deadpod_link-v1" />
-        <child link="deadwheel_link-v1" />
+        <parent link="deadpod_link_3" />
+        <child link="deadwheel_link_3" />
         <axis xyz="-1.0 1.9721522630525295e-31 1.65972263379191e-32" />
     </joint>
 </robot>
