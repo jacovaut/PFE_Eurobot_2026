@@ -1,5 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <robot name="my_robot">
+    <link name="base_link" />
+
     <link name="flipper_link-v1">
         <inertial>
             <origin xyz="2.6474475234294913e-09 4.767925592119582e-09 -0.07580524145430977" rpy="0.0 -0.0 0.0" />
@@ -285,57 +287,57 @@
             </geometry>
         </collision>
     </link>
-    <link name="deadwheel_link-v1">
+    <link name="deadwheel_strafe_link">
         <inertial>
             <origin xyz="-0.013660754545617913 -1.688365427483518e-06 1.7529772245339359e-06" rpy="0.0 -0.0 0.0" />
             <mass value="0.24378344343430078" />
             <inertia ixx="5.8944970484661394e-05" iyy="4.9653095231767114e-05" izz="4.9653212176099804e-05" ixy="2.904282536686509e-09" iyz="-1.6744274842529772e-09" ixz="2.8046330440359424e-09" />
         </inertial>
-        <visual name="deadwheel_link-v1_visual">
+        <visual name="deadwheel_strafe_link_visual">
             <origin xyz="-0.01366075454561134 3.6847911744075646e-09 8.079308777553252e-10" rpy="3.1415926535897927 -1.5707963267948957 0" />
             <geometry>
                 <mesh filename="meshes/deadwheel_link-v1.stl" scale="0.001 0.001 0.001" />
             </geometry>
         </visual>
-        <collision name="deadwheel_link-v1_collision">
+        <collision name="deadwheel_strafe_link_collision">
             <origin xyz="-0.01366075454561134 3.6847911744075646e-09 8.079308777553252e-10" rpy="3.1415926535897927 -1.5707963267948957 0" />
             <geometry>
                 <mesh filename="meshes/deadwheel_link-v1.stl" scale="0.001 0.001 0.001" />
             </geometry>
         </collision>
     </link>
-    <link name="deadwheel_link-v1">
+    <link name="deadwheel_left_link">
         <inertial>
             <origin xyz="1.7504406603308099e-06 1.693890528677855e-06 0.017410751436840677" rpy="0.0 -0.0 0.0" />
             <mass value="0.24378344343430078" />
             <inertia ixx="4.9653212176096334e-05" iyy="4.9653095231756705e-05" izz="5.89449704846666e-05" ixy="1.6744274803498493e-09" iyz="-2.9042825349517853e-09" ixz="2.804633044903304e-09" />
         </inertial>
-        <visual name="deadwheel_link-v1_visual">
+        <visual name="deadwheel_left_link_visual">
             <origin xyz="-1.7286333431343338e-09 1.840309984402211e-09 0.01741075143684732" rpy="-1.0339583746219128e-15 6.327191705894364e-31 5.387983141491689e-16" />
             <geometry>
                 <mesh filename="meshes/deadwheel_link-v1.stl" scale="0.001 0.001 0.001" />
             </geometry>
         </visual>
-        <collision name="deadwheel_link-v1_collision">
+        <collision name="deadwheel_left_link_collision">
             <origin xyz="-1.7286333431343338e-09 1.840309984402211e-09 0.01741075143684732" rpy="-1.0339583746219128e-15 6.327191705894364e-31 5.387983141491689e-16" />
             <geometry>
                 <mesh filename="meshes/deadwheel_link-v1.stl" scale="0.001 0.001 0.001" />
             </geometry>
         </collision>
     </link>
-    <link name="deadwheel_link-v1">
+    <link name="deadwheel_right_link">
         <inertial>
             <origin xyz="1.7504406603308099e-06 1.6938905288554907e-06 -0.018660747990959587" rpy="0.0 -0.0 0.0" />
             <mass value="0.24378344343430078" />
             <inertia ixx="4.9653212176096334e-05" iyy="4.9653095231760175e-05" izz="5.89449704846666e-05" ixy="1.6744274838192963e-09" iyz="-2.9042825360359875e-09" ixz="2.8046330429517402e-09" />
         </inertial>
-        <visual name="deadwheel_link-v1_visual">
+        <visual name="deadwheel_right_link_visual">
             <origin xyz="-1.7286333431343338e-09 1.8403101975650316e-09 -0.018660747990952988" rpy="-3.5300667265892806e-16 -2.6583370270615855e-32 4.2777601168665364e-16" />
             <geometry>
                 <mesh filename="meshes/deadwheel_link-v1.stl" scale="0.001 0.001 0.001" />
             </geometry>
         </visual>
-        <collision name="deadwheel_link-v1_collision">
+        <collision name="deadwheel_right_link_collision">
             <origin xyz="-1.7286333431343338e-09 1.8403101975650316e-09 -0.018660747990952988" rpy="-3.5300667265892806e-16 -2.6583370270615855e-32 4.2777601168665364e-16" />
             <geometry>
                 <mesh filename="meshes/deadwheel_link-v1.stl" scale="0.001 0.001 0.001" />
@@ -434,22 +436,27 @@
         <parent link="base_link-v5" />
         <child link="arducam_link-v3" />
     </joint>
-    <joint name="deadpod_link-v1_Revolute-17" type="continuous">
+    <joint name="base_link_to_base_link-v5" type="fixed">
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <parent link="base_link" />
+        <child link="base_link-v5" />
+    </joint>
+    <joint name="deadwheel_strafe_joint" type="continuous">
         <origin xyz="0.03450011550654263 -1.4368473699732932e-09 0.00719936790926397" rpy="1.5707963267948977 4.163336342344341e-16 3.141592653589792" />
-        <parent link="deadpod_link-v1" />
-        <child link="deadwheel_link-v1" />
+        <parent link="base_link" />
+        <child link="deadwheel_strafe_link" />
         <axis xyz="-4.1073491673677537e-32 0.0 -1.0" />
     </joint>
-    <joint name="deadpod_link-v1_Revolute-19" type="continuous">
+    <joint name="deadwheel_left_joint" type="continuous">
         <origin xyz="0.03450011550654249 0.03599999799095296 0.007199367909263827" rpy="1.570796326794897 3.053113317719189e-16 3.141592653589792" />
-        <parent link="deadpod_link-v1" />
-        <child link="deadwheel_link-v1" />
+        <parent link="base_link" />
+        <child link="deadwheel_left_link" />
         <axis xyz="-7.202424288201062e-32 0.0 -1.0" />
     </joint>
-    <joint name="deadpod_link-v1_Revolute-21" type="continuous">
+    <joint name="deadwheel_right_joint" type="continuous">
         <origin xyz="0.034500118043106875 0.004999995454388433 0.007199366064782744" rpy="1.5707963267948961 -6.346538906529858e-16 -1.5707963267948972" />
-        <parent link="deadpod_link-v1" />
-        <child link="deadwheel_link-v1" />
+        <parent link="base_link" />
+        <child link="deadwheel_right_link" />
         <axis xyz="-1.0 1.9721522630525295e-31 1.65972263379191e-32" />
     </joint>
 </robot>
