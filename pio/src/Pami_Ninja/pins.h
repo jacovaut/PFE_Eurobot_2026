@@ -11,12 +11,6 @@
 #define MOTOR_RR_IN1  17    // Rear-Right
 #define MOTOR_RR_IN2  16
 
-// Motor PWM pins
-#define MOTOR1_PWM  25    // Front-Left PWM
-#define MOTOR2_PWM  26    // Front-Right PWM
-#define MOTOR3_PWM  27    // Rear-Left PWM
-#define MOTOR4_PWM  14    // Rear-Right PWM
-
 // Encoder pins
 // GPIO 34, 35, 36, 39 are input-only — perfect for encoders
 #define ENC_FL_A  34
@@ -30,7 +24,7 @@
 
 // Servo pins
 #define SERVO_LEFT_PIN 13
-#define SERVO_Right_PIN 12
+#define SERVO_RIGHT_PIN 12
 
 // Pump pin
 #define PUMP_PIN 4
@@ -47,9 +41,9 @@
 //  TUNABLE CONSTANTS
 // ============================================================
 
-#define ARM_DOWN_ANGLE   10     // Degrees: arms fully lowered
-#define ARM_UP_ANGLE     90     // Degrees: arms fully raised
-#define ARM_MOVE_DELAY   600    // ms to wait for servo to reach position
+#define ARM_DOWN_ANGLE   95     // Degrees: arms fully lowered
+#define ARM_UP_ANGLE     55     // Degrees: arms fully raised
+#define ARM_MOVE_DELAY   100    // ms to wait for servo to reach position
 
 #define MAX_PWM          255    // Maximum motor PWM (0-255)
 #define STICK_DEADZONE   10     // Ignore stick noise within ±this range
