@@ -6,14 +6,17 @@ import sys
 def main():
     cmd = [
         "rpicam-vid",
-        "-t", "0",                 # run forever
-        "-n",                      # no preview window
-        "--inline",                # required for streaming
-        "--listen",                # act as server
+        "-t", "0",
+        "-n",
+        "--listen",
+        "--codec", "mjpeg",
+        "--width", "1280",
+        "--height", "720",
+        "--framerate", "30",
         "-o", "tcp://0.0.0.0:8888"
     ]
 
-    print("🚀 Starting Arducam TCP stream...")
+    print("🚀 Starting Arducam MJPEG TCP stream...")
     print("📡 Stream available at tcp://127.0.0.1:8888")
 
     proc = subprocess.Popen(cmd)
@@ -28,7 +31,6 @@ def main():
     signal.signal(signal.SIGTERM, shutdown)
 
     proc.wait()
-
 
 if __name__ == "__main__":
     main()
