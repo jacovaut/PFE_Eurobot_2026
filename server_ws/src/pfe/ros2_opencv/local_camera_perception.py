@@ -114,46 +114,70 @@ class CaisseNoisette:
 # MERGED CAMERA + PERCEPTION NODE
 # ===========================================================
 class LocalCameraPerceptionNode(Node):
+        self.declare_parameter('debug_save_image', False)
+        self.debug_save_image = bool(self.get_parameter('debug_save_image').value)
     def __init__(self):
         super().__init__('local_camera_perception_node')
 
-        # ---------- Camera Isaac ----------
-        self.declare_parameter('camera_device', 4) # Host-local default; override from launch on machines where the camera is elsewhere.
-        self.declare_parameter('camera_path', '')
-        self.declare_parameter('show_debug_window', True)
+            # ---------- Camera ----------
 
+        self.declare_parameter('camera_mode', 'stream')
+        self.declare_parameter('stream_url', 'tcp://192.168.1.185:8888')
+        self.declare_parameter('camera_device', 0)
+        self.declare_parameter('show_debug_window', False)
+
+        self.camera_mode = str(self.get_parameter('camera_mode').value).strip().lower()
+        self.stream_url = str(self.get_parameter('stream_url').value).strip()
         self.cameraDeviceNumber = int(self.get_parameter('camera_device').value)
-        self.camera_path = str(self.get_parameter('camera_path').value).strip()
-        self.show_debug_window = bool(self.get_parameter('show_debug_window').value)
-
-        camera_source = self.camera_path if self.camera_path else self.cameraDeviceNumber
-
-        # Try V4L2 backend first (most reliable for USB cameras on Linux)
-        self.camera = cv2.VideoCapture(camera_source, cv2.CAP_V4L2)
-
-        # Fallback: default backend
-        if not self.camera.isOpened():
-            self.camera = cv2.VideoCapture(camera_source)
-
-        # Last fallback: GStreamer/libcamera pipeline (for CSI camera setups)
-        if not self.camera.isOpened():
-            pipeline = (
-                "libcamerasrc ! "
-                "video/x-raw,width=640,height=480,framerate=30/1 ! "
-                "videoconvert ! appsink"
-            )
-            self.camera = cv2.VideoCapture(pipeline, cv2.CAP_GSTREAMER)
-
-        if not self.camera.isOpened():
-            self.get_logger().error(f"Could not open camera source {camera_source}")
-            raise RuntimeError("Camera open failed")
-
-        self.get_logger().info(f"Using camera source: {camera_source}")
-        self.get_logger().info(f"Debug preview window enabled: {self.show_debug_window}")
-
-        # Keep this consistent with your current setup
+        self.show_debug_window = True  # Force debug window ON for visual feedback
         self.output_width = 1280
         self.output_height = 720
+
+        self.camera = None
+        if self.camera_mode == 'stream':
+            self.get_logger().info(f"Opening host stream: {self.stream_url}")
+            self.camera = cv2.VideoCapture(self.stream_url)
+
+            # If Docker DNS alias is unavailable, try localhost fallback.
+            if (not self.camera.isOpened()) and ('host.docker.internal' in self.stream_url):
+                fallback_url = self.stream_url.replace('host.docker.internal', '127.0.0.1')
+                self.get_logger().warn(
+                    f"Stream open failed at {self.stream_url}, retrying {fallback_url}"
+                )
+                self.camera = cv2.VideoCapture(fallback_url)
+
+            if not self.camera.isOpened():
+                self.get_logger().warn(
+                    "Stream mode failed, falling back to /dev/video device input"
+                )
+
+        if self.camera is None or not self.camera.isOpened():
+            # Use /dev/videoX directly (works better for USB cameras)
+            self.camera = cv2.VideoCapture(self.cameraDeviceNumber, cv2.CAP_V4L2)
+
+            # Fallback if V4L2 fails
+            if not self.camera.isOpened():
+                self.get_logger().warn("V4L2 failed, trying default backend...")
+                self.camera = cv2.VideoCapture(self.cameraDeviceNumber)
+
+        if not self.camera.isOpened():
+            self.get_logger().error(
+                f"Could not open camera stream '{self.stream_url}' or /dev/video{self.cameraDeviceNumber}"
+            )
+            raise RuntimeError("Camera open failed")
+
+        # Configure frame size for processing consistency.
+        self.camera.set(cv2.CAP_PROP_FRAME_WIDTH, self.output_width)
+        self.camera.set(cv2.CAP_PROP_FRAME_HEIGHT, self.output_height)
+        self.camera.set(cv2.CAP_PROP_FPS, 30)
+
+        if self.camera_mode == 'stream':
+            self.get_logger().info(f"Camera mode: stream ({self.stream_url})")
+        else:
+            self.get_logger().info(f"Camera mode: device (/dev/video{self.cameraDeviceNumber})")
+        self.get_logger().info(f"Debug preview window enabled: {self.show_debug_window}")
+
+        
 
         # ---------- ROS ----------
         self.bridge = CvBridge()
@@ -400,6 +424,18 @@ class LocalCameraPerceptionNode(Node):
     # Main camera loop
     # -------------------------------------------------------------------------
     def timer_callback(self):
+        self.get_logger().info("TIMER CALLBACK RUNNING")
+
+        success, frame = self.camera.read()
+        self.get_logger().info(f"camera.read() success={success}, frame_is_none={frame is None}")
+
+        if not success or frame is None:
+            self.get_logger().warn("No frame captured from camera")
+            return
+
+        cv2.imwrite("/tmp/arducam_raw.jpg", frame)
+        self.get_logger().info("Saved /tmp/arducam_raw.jpg")
+        
         success, frame = self.camera.read()
         if not success or frame is None:
             self.get_logger().warn("No frame captured from camera")
@@ -575,10 +611,12 @@ class LocalCameraPerceptionNode(Node):
         msg.data = json.dumps([c.to_dict() for c in self.memory.values()])
         self.pub_blocks.publish(msg)
 
-        # Debug view
-        if self.show_debug_window:
-            cv2.imshow("Merged Camera + Tracking", display_frame)
-            cv2.waitKey(1)
+        # Save raw frame for debugging if enabled
+        if self.debug_save_image:
+            try:
+                cv2.imwrite("/tmp/arducam_raw.jpg", display_frame)
+            except Exception as e:
+                self.get_logger().warn(f"Could not write /tmp/arducam_raw.jpg: {e}")
 
 
 # ===========================================================
@@ -595,7 +633,6 @@ def main(args=None):
         except Exception:
             pass
         node.destroy_node()
-        cv2.destroyAllWindows()
         rclpy.shutdown()
 
 

@@ -12,12 +12,12 @@ def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument(
             'local_camera_device',
-            default_value='0',
+            default_value='4',
             description='Camera index for local_camera_perception_node on this machine'
         ),
         DeclareLaunchArgument(
             'local_camera_path',
-            default_value='',
+            default_value='/dev/v4l/by-id/usb-HD_USB_Camera_HD_USB_Camera_01.00.00-video-index0',
             description='Optional camera path for local_camera_perception_node, e.g. /dev/v4l/by-id/...'
         ),
         DeclareLaunchArgument(

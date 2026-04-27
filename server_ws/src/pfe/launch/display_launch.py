@@ -12,11 +12,9 @@ def generate_launch_description():
     available_packages = get_packages_with_prefixes()
 
     # Use GUI publisher when available, otherwise fallback to headless publisher.
-    jsp_pkg = 'joint_state_publisher_gui'
-    jsp_exec = 'joint_state_publisher_gui'
-    if jsp_pkg not in available_packages:
-        jsp_pkg = 'joint_state_publisher'
-        jsp_exec = 'joint_state_publisher'
+   
+    jsp_pkg = 'joint_state_publisher'
+    jsp_exec = 'joint_state_publisher'
 
     robot_description = ParameterValue(
         Command(['xacro ', urdf_file]),
@@ -38,9 +36,9 @@ def generate_launch_description():
             output='screen'
         ),
 
-        Node(
-            package='rviz2',
-            executable='rviz2',
-            output='screen'
-        )
+        # Node(
+        #     package='rviz2',
+        #     executable='rviz2',
+        #     output='screen'
+        # )
     ])

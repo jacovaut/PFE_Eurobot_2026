@@ -38,7 +38,9 @@ public:
     PerceptionNode() : rclcpp::Node("external_perception_node") {
     
     // Camera settings
-    const auto camera_path = declare_parameter<std::string>("camera_path", "");
+    const auto camera_path = declare_parameter<std::string>(
+        "camera_path",
+        "/dev/v4l/by-id/usb-HD_USB_Camera_HD_USB_Camera_01.00.00-video-index0");
     const auto camera_index = declare_parameter<int>("camera_index", 0);
     device_  = declare_parameter<std::string>(
         "device",
@@ -50,7 +52,9 @@ public:
 
     // Team and display parameters
     our_team_         = declare_parameter<int>   ("our_team",          0);    // 0=blue, 1=yellow
+    const bool debug_view = declare_parameter<bool>("debug_view", false);
     show_display_     = declare_parameter<bool>  ("show_display",      false); // false for headless deployment
+    show_display_ = show_display_ || debug_view;
     max_missed_frames_= declare_parameter<int>   ("max_missed_frames", 5);
     ema_alpha_        = declare_parameter<double>("ema_alpha",          0.5);
     yaw_alpha_        = declare_parameter<double>("yaw_alpha",          0.5);
