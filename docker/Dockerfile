@@ -68,3 +68,28 @@ fi
 EOF
 
 CMD ["bash"]
+
+# USER root
+
+# RUN echo '' >> /home/${USERNAME}/.bashrc && \
+#     echo '# ROS 2 setup' >> /home/${USERNAME}/.bashrc && \
+#     echo 'export ROS_DOMAIN_ID=0' >> /home/${USERNAME}/.bashrc && \
+#     echo "export USERNAME=${USERNAME}" >> /home/${USERNAME}/.bashrc && \
+#     echo 'source /opt/ros/jazzy/setup.bash' >> /home/${USERNAME}/.bashrc && \
+#     echo '' >> /home/${USERNAME}/.bashrc && \
+#     echo 'if [ -f /home/${USERNAME}/PFE_Eurobot_2026/robot_ws/install/setup.bash ]; then' >> /home/${USERNAME}/.bashrc && \
+#     echo '    source /home/${USERNAME}/PFE_Eurobot_2026/robot_ws/install/setup.bash' >> /home/${USERNAME}/.bashrc && \
+#     echo 'fi' >> /home/${USERNAME}/.bashrc && \
+#     echo '' >> /home/${USERNAME}/.bashrc && \
+#     echo 'if [ -f /home/${USERNAME}/PFE_Eurobot_2026/server_ws/install/setup.bash ]; then' >> /home/${USERNAME}/.bashrc && \
+#     echo '    source /home/${USERNAME}/PFE_Eurobot_2026/server_ws/install/setup.bash' >> /home/${USERNAME}/.bashrc && \
+#     echo 'fi' >> /home/${USERNAME}/.bashrc && \
+#     echo '' >> /home/${USERNAME}/.bashrc && \
+#     echo 'if [ -f /home/${USERNAME}/PFE_Eurobot_2026/uros_ws/install/setup.bash ]; then' >> /home/${USERNAME}/.bashrc && \
+#     echo '    source /home/${USERNAME}/PFE_Eurobot_2026/uros_ws/install/setup.bash' >> /home/${USERNAME}/.bashrc && \
+#     echo 'fi' >> /home/${USERNAME}/.bashrc && \
+#     chown ${USERNAME}:${USERNAME} /home/${USERNAME}/.bashrc
+
+# USER ${USERNAME}
+
+# CMD ["bash"]

@@ -137,17 +137,15 @@ void setMecanumSpeeds(float vx, float vy, float omega) {
 
 
 void loop() {
-  // Print encoder values only when moving
-  if (motorSpeeds[0] != 0 || motorSpeeds[1] != 0 || motorSpeeds[2] != 0 || motorSpeeds[3] != 0) {
-    Serial.print("Encoders: ");
-    Serial.print(encoder1.getCount());
-    Serial.print(", ");
-    Serial.print(encoder2.getCount());
-    Serial.print(", ");
-    Serial.print(encoder3.getCount());
-    Serial.print(", ");
-    Serial.println(encoder4.getCount());
-  }
+  // Print encoder values
+  Serial.print("Encoders: ");
+  Serial.print(encoder1.getCount());
+  Serial.print(", ");
+  Serial.print(encoder2.getCount());
+  Serial.print(", ");
+  Serial.print(encoder3.getCount());
+  Serial.print(", ");
+  Serial.println(encoder4.getCount());
 
   // Check for serial commands
   if (Serial.available()) {
@@ -201,10 +199,12 @@ void loop() {
       // Servo command: s <angle>
       int spaceIndex = command.indexOf(' ');
       if (spaceIndex > 0) {
+        int servo = command.substring(1, spaceIndex).toInt();
         int angle = command.substring(spaceIndex + 1).toInt();
-        setServo(1, angle);
-        setServo(2, angle);
-        Serial.print("Set servo 1 and 2 to angle ");
+        setServo(servo, angle);
+        Serial.print("Set servo ");
+        Serial.print(servo);
+        Serial.print(" to angle ");
         Serial.println(angle);
       }
     } else if (command.startsWith("p ")) {

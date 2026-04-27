@@ -230,7 +230,7 @@
             </geometry>
         </collision>
     </link>
-    <link name="deedhold_link-v1">
+    <link name="deadpod_mount_1">
         <inertial>
             <origin xyz="0.011661859246225639 0.024249999999989433 0.019353392250147962" rpy="0.0 0.0 0.0" />
             <mass value="0.10317370680697237" />
@@ -249,7 +249,7 @@
             </geometry>
         </collision>
     </link>
-    <link name="deedhold_link-v1">
+    <link name="deadpod_mount_2">
         <inertial>
             <origin xyz="0.011661859246225622 0.02424999999998945 0.01935339225014792" rpy="0.0 0.0 0.0" />
             <mass value="0.10317370680697237" />
@@ -268,7 +268,7 @@
             </geometry>
         </collision>
     </link>
-    <link name="deedhold_link-v1">
+    <link name="deadpod_mount_3">
         <inertial>
             <origin xyz="0.01166185924622563 0.02424999999998945 0.01935339225014794" rpy="0.0 0.0 0.0" />
             <mass value="0.10317370680697237" />
@@ -344,7 +344,7 @@
             </geometry>
         </collision>
     </link>
-    <link name="deadpod_link-v1">
+    <link name="deadpod_link_1">
         <inertial>
             <origin xyz="0.012312465144914827 0.018000000000000033 0.012011497951761678" rpy="0.0 0.0 0.0" />
             <mass value="0.1829129893211952" />
@@ -363,7 +363,7 @@
             </geometry>
         </collision>
     </link>
-    <link name="deadpod_link-v1">
+    <link name="deadpod_link_2">
         <inertial>
             <origin xyz="0.012312465144914828 0.01800000000000004 0.012011497951761653" rpy="0.0 0.0 0.0" />
             <mass value="0.1829129893211952" />
@@ -382,7 +382,7 @@
             </geometry>
         </collision>
     </link>
-    <link name="deadpod_link-v1">
+    <link name="deadpod_link_3">
         <inertial>
             <origin xyz="0.01231246514491481 0.01800000000000008 0.012011497951761674" rpy="0.0 0.0 0.0" />
             <mass value="0.1829129893211952" />
