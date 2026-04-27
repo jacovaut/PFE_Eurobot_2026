@@ -114,7 +114,7 @@ class CaisseNoisette:
 # MERGED CAMERA + PERCEPTION NODE
 # ===========================================================
 class LocalCameraPerceptionNode(Node):
-        self.declare_parameter('debug_save_image', True)
+        self.declare_parameter('debug_save_image', False)
         self.debug_save_image = bool(self.get_parameter('debug_save_image').value)
     def __init__(self):
         super().__init__('local_camera_perception_node')
@@ -424,6 +424,18 @@ class LocalCameraPerceptionNode(Node):
     # Main camera loop
     # -------------------------------------------------------------------------
     def timer_callback(self):
+        self.get_logger().info("TIMER CALLBACK RUNNING")
+
+        success, frame = self.camera.read()
+        self.get_logger().info(f"camera.read() success={success}, frame_is_none={frame is None}")
+
+        if not success or frame is None:
+            self.get_logger().warn("No frame captured from camera")
+            return
+
+        cv2.imwrite("/tmp/arducam_raw.jpg", frame)
+        self.get_logger().info("Saved /tmp/arducam_raw.jpg")
+        
         success, frame = self.camera.read()
         if not success or frame is None:
             self.get_logger().warn("No frame captured from camera")
