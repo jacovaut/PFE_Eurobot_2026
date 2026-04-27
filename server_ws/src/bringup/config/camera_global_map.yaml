@@ -5,13 +5,17 @@ global_localization_node:
 
     # Camera and detection settings
     camera_path: "/dev/v4l/by-id/usb-HD_USB_Camera_HD_USB_Camera_01.00.00-video-index0" # Primary (stable) camera selector
-    camera_index: 4 # Fallback only if camera_path is empty
+    camera_index: 0 # Fallback only if camera_path is empty
     width: 3840
     height: 2160
     fps: 15
     fourcc: "MJPG"
-    camera_gain: 220    # V4L2 gain (robot markers need ≥220 for 100% detection)
-    camera_gamma: 200   # V4L2 gamma (moderate - resilient to lighting changes)
+    camera_gain: 210
+    camera_gamma: 230
+    camera_backlight_compensation: 50
+    camera_autofocus: 0
+    camera_focus_absolute: 0
+    camera_exposure_time_absolute: 200
 
     # CLAHE preprocessing on every frame (before main ArUco detection)
     # DISABLED: CLAHE(3,16) kills small robot marker detection (26% vs 100% without).
@@ -19,7 +23,10 @@ global_localization_node:
     enable_clahe_preprocessing: false
     clahe_clip_limit: 3.0
     clahe_tile_size: 16
-    calibration_file: "/home/isaac/PFE_Eurobot_2026/server_ws/src/pfe/camera_calibration/global_cam_test.yml"
+    # global_cam_test.yml has a badly off-center principal point (cx=2232, cy=1409 vs expected 1920,1080)
+    # which causes systematic solvePnP origin errors. Use the properly calibrated file instead.
+    # TODO: recalibrate the global camera specifically for best results.
+    calibration_file: "/home/isaac/PFE_Eurobot_2026/server_ws/src/pfe/camera_calibration/3840_2160_ELM12MP.yml"
     debug_view: true
 
     # Frames / topics
@@ -58,6 +65,22 @@ global_localization_node:
     rescue_min_marker_perimeter_rate: 0.015
     rescue_error_correction_rate: 0.6
 
+    # 3rd pass for block markers near frame borders (IDs 36/47)
+    enable_block_marker_border_rescue_pass: true
+    block_rescue_pad_ratio: 0.02
+    block_rescue_clahe_clip_limit: 2.0
+    block_rescue_adaptive_thresh_win_size_max: 200
+    block_rescue_adaptive_thresh_win_size_step: 30
+    block_rescue_min_marker_perimeter_rate: 0.003
+    block_rescue_error_correction_rate: 0.8
+    block_rescue_min_distance_to_border: 0
+
+    # 4th pass: bird's-eye-view rescue (requires valid camera pose)
+    # Warps image to a top-down table view to eliminate perspective distortion
+    # at borders. BEV scale: 1000 px/m = 1px per mm (3cm marker = 30px).
+    enable_bev_block_rescue_pass: true
+    bev_block_rescue_scale_px_per_m: 1000.0
+
     # Snapshot-based pose stabilization
     pose_update_interval_s: 5.0
 
@@ -65,6 +88,17 @@ global_localization_node:
     marker_to_base_x: 0.0
     marker_to_base_y: 0.0
     marker_to_base_z: 0.0
+
+external_perception_node:
+  ros__parameters:
+    camera_path: "/dev/v4l/by-id/usb-HD_USB_Camera_HD_USB_Camera_01.00.00-video-index0"
+    camera_index: 0
+    width: 3840
+    height: 2160
+    fps: 15
+    fourcc: "MJPG"
+    calibration_file: "/home/isaac/PFE_Eurobot_2026/server_ws/src/pfe/camera_calibration/3840_2160_ELM12MP.yml"
+    debug_view: true
     marker_to_base_yaw: 0.0
 
     # Measurement covariance
