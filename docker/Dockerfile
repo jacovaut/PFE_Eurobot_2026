@@ -50,25 +50,21 @@ USER ${USERNAME}
 RUN cat >> /home/${USERNAME}/.bashrc << EOF
 
 # ROS 2 setup
-RUN
-    echo 'export ROS_DOMAIN_ID=0' >> /home/${USERNAME}/.bashrc && \
-    echo 'export USERNAME='${USERNAME} >> /home/${USERNAME}/.bashrc && \
-    echo 'source /opt/ros/jazzy/setup.bash' >> /home/${USERNAME}/.bashrc && \
-    echo 'if [ -f /home/'${USERNAME}'/PFE_Eurobot_2026/robot_ws/install/setup.bash ]; then source /home/'${USERNAME}'/PFE_Eurobot_2026/robot_ws/install/setup.bash; fi' >> /home/${USERNAME}/.bashrc && \
-    echo 'if [ -f /home/'${USERNAME}'/PFE_Eurobot_2026/server_ws/install/setup.bash ]; then source /home/'${USERNAME}'/PFE_Eurobot_2026/server_ws/install/setup.bash; fi' >> /home/${USERNAME}/.bashrc && \
-    echo 'if [ -f /home/'${USERNAME}'/PFE_Eurobot_2026/uros_ws/install/setup.bash ]; then source /home/'${USERNAME}'/PFE_Eurobot_2026/uros_ws/install/setup.bash; fi' >> /home/${USERNAME}/.bashrc
+export ROS_DOMAIN_ID=0
+export USERNAME=${USERNAME}
+source /opt/ros/jazzy/setup.bash
 
-# if [ -f /home/${USERNAME}/PFE_Eurobot_2026/robot_ws/install/setup.bash ]; then
-#     source /home/${USERNAME}/PFE_Eurobot_2026/robot_ws/install/setup.bash
-# fi
+if [ -f /home/${USERNAME}/PFE_Eurobot_2026/robot_ws/install/setup.bash ]; then
+    source /home/${USERNAME}/PFE_Eurobot_2026/robot_ws/install/setup.bash
+fi
 
-# if [ -f /home/${USERNAME}/PFE_Eurobot_2026/server_ws/install/setup.bash ]; then
-#     source /home/${USERNAME}/PFE_Eurobot_2026/server_ws/install/setup.bash
-# fi
+if [ -f /home/${USERNAME}/PFE_Eurobot_2026/server_ws/install/setup.bash ]; then
+    source /home/${USERNAME}/PFE_Eurobot_2026/server_ws/install/setup.bash
+fi
 
-# if [ -f /home/${USERNAME}/PFE_Eurobot_2026/uros_ws/install/setup.bash ]; then
-#     source /home/${USERNAME}/PFE_Eurobot_2026/uros_ws/install/setup.bash
-# fi
+if [ -f /home/${USERNAME}/PFE_Eurobot_2026/uros_ws/install/setup.bash ]; then
+    source /home/${USERNAME}/PFE_Eurobot_2026/uros_ws/install/setup.bash
+fi
 EOF
 
 CMD ["bash"]
