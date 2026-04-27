@@ -117,16 +117,17 @@ class LocalCameraPerceptionNode(Node):
     def __init__(self):
         super().__init__('local_camera_perception_node')
 
-        # ---------- Camera ----------
+            # ---------- Camera ----------
+
         self.declare_parameter('camera_mode', 'stream')
-        self.declare_parameter('stream_url', 'tcp://host.docker.internal:8888')
+        self.declare_parameter('stream_url', 'tcp://192.168.1.185:8888')
         self.declare_parameter('camera_device', 0)
         self.declare_parameter('show_debug_window', False)
 
         self.camera_mode = str(self.get_parameter('camera_mode').value).strip().lower()
         self.stream_url = str(self.get_parameter('stream_url').value).strip()
         self.cameraDeviceNumber = int(self.get_parameter('camera_device').value)
-        self.show_debug_window = bool(self.get_parameter('show_debug_window').value)
+        self.show_debug_window = True  # Force debug window ON for visual feedback
         self.output_width = 1280
         self.output_height = 720
 
@@ -164,8 +165,8 @@ class LocalCameraPerceptionNode(Node):
             raise RuntimeError("Camera open failed")
 
         # Configure frame size for processing consistency.
-        self.camera.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
-        self.camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+        self.camera.set(cv2.CAP_PROP_FRAME_WIDTH, self.output_width)
+        self.camera.set(cv2.CAP_PROP_FRAME_HEIGHT, self.output_height)
         self.camera.set(cv2.CAP_PROP_FPS, 30)
 
         if self.camera_mode == 'stream':
@@ -596,10 +597,9 @@ class LocalCameraPerceptionNode(Node):
         msg.data = json.dumps([c.to_dict() for c in self.memory.values()])
         self.pub_blocks.publish(msg)
 
-        # Debug view
-        if self.show_debug_window:
-            cv2.imshow("Merged Camera + Tracking", display_frame)
-            cv2.waitKey(1)
+        # Always show debug window for user feedback
+        cv2.imshow("Merged Camera + Tracking", display_frame)
+        cv2.waitKey(1)
 
 
 # ===========================================================
