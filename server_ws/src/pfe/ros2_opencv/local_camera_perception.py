@@ -117,31 +117,61 @@ class LocalCameraPerceptionNode(Node):
     def __init__(self):
         super().__init__('local_camera_perception_node')
 
-            # ---------- Camera ----------
+        # ---------- Camera ----------
+        self.declare_parameter('camera_mode', 'stream')
+        self.declare_parameter('stream_url', 'tcp://host.docker.internal:8888')
         self.declare_parameter('camera_device', 0)
         self.declare_parameter('show_debug_window', False)
 
+        self.camera_mode = str(self.get_parameter('camera_mode').value).strip().lower()
+        self.stream_url = str(self.get_parameter('stream_url').value).strip()
         self.cameraDeviceNumber = int(self.get_parameter('camera_device').value)
         self.show_debug_window = bool(self.get_parameter('show_debug_window').value)
+        self.output_width = 1280
+        self.output_height = 720
 
-        # Use /dev/videoX directly (works better in Docker)
-        self.camera = cv2.VideoCapture(self.cameraDeviceNumber, cv2.CAP_V4L2)
+        self.camera = None
+        if self.camera_mode == 'stream':
+            self.get_logger().info(f"Opening host stream: {self.stream_url}")
+            self.camera = cv2.VideoCapture(self.stream_url)
 
-        # Fallback if V4L2 fails
+            # If Docker DNS alias is unavailable, try localhost fallback.
+            if (not self.camera.isOpened()) and ('host.docker.internal' in self.stream_url):
+                fallback_url = self.stream_url.replace('host.docker.internal', '127.0.0.1')
+                self.get_logger().warn(
+                    f"Stream open failed at {self.stream_url}, retrying {fallback_url}"
+                )
+                self.camera = cv2.VideoCapture(fallback_url)
+
+            if not self.camera.isOpened():
+                self.get_logger().warn(
+                    "Stream mode failed, falling back to /dev/video device input"
+                )
+
+        if self.camera is None or not self.camera.isOpened():
+            # Use /dev/videoX directly (works better for USB cameras)
+            self.camera = cv2.VideoCapture(self.cameraDeviceNumber, cv2.CAP_V4L2)
+
+            # Fallback if V4L2 fails
+            if not self.camera.isOpened():
+                self.get_logger().warn("V4L2 failed, trying default backend...")
+                self.camera = cv2.VideoCapture(self.cameraDeviceNumber)
+
         if not self.camera.isOpened():
-            self.get_logger().warn("V4L2 failed, trying default backend...")
-            self.camera = cv2.VideoCapture(self.cameraDeviceNumber)
-
-        if not self.camera.isOpened():
-            self.get_logger().error(f"Could not open camera /dev/video{self.cameraDeviceNumber}")
+            self.get_logger().error(
+                f"Could not open camera stream '{self.stream_url}' or /dev/video{self.cameraDeviceNumber}"
+            )
             raise RuntimeError("Camera open failed")
 
-        # Set resolution manually (IMPORTANT)
+        # Configure frame size for processing consistency.
         self.camera.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
         self.camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
         self.camera.set(cv2.CAP_PROP_FPS, 30)
 
-        self.get_logger().info(f"Using camera /dev/video{self.cameraDeviceNumber}")
+        if self.camera_mode == 'stream':
+            self.get_logger().info(f"Camera mode: stream ({self.stream_url})")
+        else:
+            self.get_logger().info(f"Camera mode: device (/dev/video{self.cameraDeviceNumber})")
         self.get_logger().info(f"Debug preview window enabled: {self.show_debug_window}")
 
         
