@@ -597,17 +597,39 @@ class LocalCameraPerceptionNode(Node):
         msg.data = json.dumps([c.to_dict() for c in self.memory.values()])
         self.pub_blocks.publish(msg)
 
+        # Save raw frame for debugging
+        try:
+            cv2.imwrite("/tmp/arducam_raw.jpg", display_frame)
+        except Exception as e:
+            self.get_logger().warn(f"Could not write /tmp/arducam_raw.jpg: {e}")
+
         # Always show debug window for user feedback
         cv2.imshow("Merged Camera + Tracking", display_frame)
-        cv2.waitKey(1)
+        # Use a short waitKey to allow window events and Ctrl+C
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            self.get_logger().info("'q' pressed, shutting down node.")
+            rclpy.shutdown()
 
 
 # ===========================================================
 # MAIN
 # ===========================================================
 def main(args=None):
+    import signal
     rclpy.init(args=args)
     node = LocalCameraPerceptionNode()
+
+    def shutdown_handler(signum, frame):
+        node.get_logger().info("SIGINT received, shutting down cleanly...")
+        try:
+            node.camera.release()
+        except Exception:
+            pass
+        node.destroy_node()
+        cv2.destroyAllWindows()
+        rclpy.shutdown()
+
+    signal.signal(signal.SIGINT, shutdown_handler)
     try:
         rclpy.spin(node)
     finally:
