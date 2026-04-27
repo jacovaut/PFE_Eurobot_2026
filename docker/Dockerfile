@@ -65,6 +65,6 @@ RUN cat >> /home/${USERNAME}/.bashrc << EOF
 # if [ -f /home/${USERNAME}/PFE_Eurobot_2026/uros_ws/install/setup.bash ]; then
 #     source /home/${USERNAME}/PFE_Eurobot_2026/uros_ws/install/setup.bash
 # fi
-EOF
+# EOF
 
 CMD ["bash"]
