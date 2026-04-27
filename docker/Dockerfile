@@ -49,22 +49,22 @@ USER ${USERNAME}
 
 RUN cat >> /home/${USERNAME}/.bashrc << EOF
 
-# ROS 2 setup
-export ROS_DOMAIN_ID=0
-export USERNAME=${USERNAME}
-source /opt/ros/jazzy/setup.bash
+# # ROS 2 setup
+# export ROS_DOMAIN_ID=0
+# export USERNAME=${USERNAME}
+# source /opt/ros/jazzy/setup.bash
 
-if [ -f /home/${USERNAME}/PFE_Eurobot_2026/robot_ws/install/setup.bash ]; then
-    source /home/${USERNAME}/PFE_Eurobot_2026/robot_ws/install/setup.bash
-fi
+# if [ -f /home/${USERNAME}/PFE_Eurobot_2026/robot_ws/install/setup.bash ]; then
+#     source /home/${USERNAME}/PFE_Eurobot_2026/robot_ws/install/setup.bash
+# fi
 
-if [ -f /home/${USERNAME}/PFE_Eurobot_2026/server_ws/install/setup.bash ]; then
-    source /home/${USERNAME}/PFE_Eurobot_2026/server_ws/install/setup.bash
-fi
+# if [ -f /home/${USERNAME}/PFE_Eurobot_2026/server_ws/install/setup.bash ]; then
+#     source /home/${USERNAME}/PFE_Eurobot_2026/server_ws/install/setup.bash
+# fi
 
-if [ -f /home/${USERNAME}/PFE_Eurobot_2026/uros_ws/install/setup.bash ]; then
-    source /home/${USERNAME}/PFE_Eurobot_2026/uros_ws/install/setup.bash
-fi
-EOF
+# if [ -f /home/${USERNAME}/PFE_Eurobot_2026/uros_ws/install/setup.bash ]; then
+#     source /home/${USERNAME}/PFE_Eurobot_2026/uros_ws/install/setup.bash
+# fi
+# EOF
 
 CMD ["bash"]

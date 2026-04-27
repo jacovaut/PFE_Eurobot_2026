@@ -163,6 +163,12 @@ public:
     block_rescue_min_distance_to_border_ =
       declare_parameter<int>("block_rescue_min_distance_to_border", 0);
 
+    // Bird's-eye-view rescue pass for block markers (requires valid pose)
+    enable_bev_block_rescue_pass_ =
+      declare_parameter<bool>("enable_bev_block_rescue_pass", true);
+    bev_block_rescue_scale_px_per_m_ =
+      declare_parameter<double>("bev_block_rescue_scale_px_per_m", 1000.0);
+
     // Snapshot-based pose stabilization
     pose_update_interval_s_ =
       declare_parameter<double>("pose_update_interval_s", 5.0);
@@ -634,6 +640,10 @@ if (ids.empty()) {
       return;
     }
 
+    // Update BEV homography from current active pose, then run BEV block rescue.
+    updateBevHomography();
+    runBirdEyeBlockRescuePass(gray, ids, corners);
+
     // Use the active (golden or fallback) pose
     cv::Mat Rcv_camera_map;
     cv::Rodrigues(active_rvec_, Rcv_camera_map);
@@ -851,6 +861,126 @@ if (ids.empty()) {
       RCLCPP_INFO_THROTTLE(
         get_logger(), *get_clock(), 2000,
         "Recovered %d table marker(s) in rescue pass", recovered_count);
+    }
+  }
+
+  // Compute and cache the homography from image pixels to a flat bird's-eye-view
+  // image of the table (z = block_center_z_m plane).
+  // H maps image pixel (u,v,1) to BEV pixel (x,y,w).
+  // Uses the pinhole model without distortion (good approximation for small distortion).
+  void updateBevHomography()
+  {
+    if (!have_active_pose_) { bev_H_valid_ = false; return; }
+
+    cv::Mat R_cv;
+    cv::Rodrigues(active_rvec_, R_cv);
+
+    const double h = block_center_z_m_;
+    const double s = bev_block_rescue_scale_px_per_m_;
+
+    // H_map_to_img: maps table (X,Y) at z=h to image pixel (u,v,w).
+    // Point [X,Y,h]^T in map -> camera: R*[X,Y,h] + t = X*r1 + Y*r2 + (h*r3 + t)
+    cv::Mat r1 = R_cv.col(0).clone();
+    cv::Mat r2 = R_cv.col(1).clone();
+    cv::Mat r3 = R_cv.col(2).clone();
+    cv::Mat tvec = cv::Mat(active_tvec_);
+    cv::Mat col3 = h * r3 + tvec;
+
+    cv::Mat H34(3, 3, CV_64F);
+    r1.copyTo(H34.col(0));
+    r2.copyTo(H34.col(1));
+    col3.copyTo(H34.col(2));
+
+    cv::Mat H_map_to_img = cv::Mat(camera_matrix_) * H34;  // 3x3
+
+    // Scale from map (meters) to BEV pixels
+    cv::Mat S = (cv::Mat_<double>(3, 3) <<
+      s, 0, 0,
+      0, s, 0,
+      0, 0, 1);
+
+    // H_img_to_bev = S * H_map_to_img^{-1}
+    bev_H_     = S * H_map_to_img.inv();
+    bev_H_inv_ = bev_H_.inv();
+    bev_H_valid_ = true;
+  }
+
+  void runBirdEyeBlockRescuePass(
+    const cv::Mat &gray,
+    std::vector<int> &ids,
+    std::vector<std::vector<cv::Point2f>> &corners)
+  {
+    if (!enable_bev_block_rescue_pass_ || !bev_H_valid_) { return; }
+
+    const int bev_w = static_cast<int>(std::round(3.0 * bev_block_rescue_scale_px_per_m_));
+    const int bev_h = static_cast<int>(std::round(2.0 * bev_block_rescue_scale_px_per_m_));
+
+    cv::Mat bev_gray;
+    cv::warpPerspective(gray, bev_gray, bev_H_, cv::Size(bev_w, bev_h));
+
+    cv::Mat bev_enhanced;
+    cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE(block_rescue_clahe_clip_limit_, cv::Size(16, 16));
+    clahe->apply(bev_gray, bev_enhanced);
+
+    // Scale min perimeter rate to BEV image size
+    const double bev_min_perim_rate =
+      (block_marker_length_m_ * 4.0 * bev_block_rescue_scale_px_per_m_) /
+      (4.0 * static_cast<double>(std::min(bev_w, bev_h))) * 0.5;
+
+    cv::Ptr<cv::aruco::DetectorParameters> bev_params = cv::aruco::DetectorParameters::create();
+    *bev_params = *detector_params_;
+    bev_params->adaptiveThreshWinSizeMax = block_rescue_adaptive_thresh_win_size_max_;
+    bev_params->adaptiveThreshWinSizeStep = block_rescue_adaptive_thresh_win_size_step_;
+    bev_params->minMarkerPerimeterRate = bev_min_perim_rate;
+    bev_params->errorCorrectionRate = static_cast<float>(block_rescue_error_correction_rate_);
+    bev_params->minDistanceToBorder = 0;
+
+    std::vector<int> bev_ids;
+    std::vector<std::vector<cv::Point2f>> bev_corners;
+    cv::aruco::detectMarkers(bev_enhanced, dictionary_, bev_corners, bev_ids, bev_params);
+
+    constexpr float kMinInstanceDistSq = 80.0f * 80.0f;
+    int recovered_count = 0;
+
+    for (std::size_t i = 0; i < bev_ids.size(); ++i) {
+      const int id = bev_ids[i];
+      if (!block_ids_.count(id)) { continue; }
+
+      // Map corners back to image space
+      std::vector<cv::Point2f> img_corners(4);
+      cv::perspectiveTransform(bev_corners[i], img_corners, bev_H_inv_);
+
+      // Compute centre in image space for dedup
+      cv::Point2f centre(0.f, 0.f);
+      for (auto &pt : img_corners) centre += pt;
+      centre *= 0.25f;
+
+      // Clamp to image bounds
+      for (auto &pt : img_corners) {
+        pt.x = std::clamp(pt.x, 0.0f, static_cast<float>(gray.cols - 1));
+        pt.y = std::clamp(pt.y, 0.0f, static_cast<float>(gray.rows - 1));
+      }
+
+      // Skip duplicates (same ID already detected nearby)
+      bool duplicate = false;
+      for (std::size_t j = 0; j < ids.size(); ++j) {
+        if (ids[j] != id) { continue; }
+        cv::Point2f ec(0.f, 0.f);
+        for (auto &pt : corners[j]) ec += pt;
+        ec *= 0.25f;
+        float dx = centre.x - ec.x, dy = centre.y - ec.y;
+        if (dx * dx + dy * dy < kMinInstanceDistSq) { duplicate = true; break; }
+      }
+      if (duplicate) { continue; }
+
+      ids.push_back(id);
+      corners.push_back(img_corners);
+      recovered_count++;
+    }
+
+    if (recovered_count > 0) {
+      RCLCPP_INFO_THROTTLE(get_logger(), *get_clock(), 2000,
+        "BEV rescue recovered %d block marker(s)", recovered_count);
     }
   }
 
@@ -1403,6 +1533,13 @@ if (ids.empty()) {
   double block_rescue_min_marker_perimeter_rate_{0.003};
   double block_rescue_error_correction_rate_{0.6};
   int block_rescue_min_distance_to_border_{0};
+
+  // Bird's-eye-view block rescue
+  bool enable_bev_block_rescue_pass_{true};
+  double bev_block_rescue_scale_px_per_m_{1000.0};
+  cv::Mat bev_H_;      // image pixel → BEV pixel (computed when pose is valid)
+  cv::Mat bev_H_inv_;  // BEV pixel → image pixel
+  bool bev_H_valid_{false};
 };
 
 int main(int argc, char **argv)

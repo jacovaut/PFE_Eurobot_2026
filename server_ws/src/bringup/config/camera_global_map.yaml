@@ -75,6 +75,12 @@ global_localization_node:
     block_rescue_error_correction_rate: 0.8
     block_rescue_min_distance_to_border: 0
 
+    # 4th pass: bird's-eye-view rescue (requires valid camera pose)
+    # Warps image to a top-down table view to eliminate perspective distortion
+    # at borders. BEV scale: 1000 px/m = 1px per mm (3cm marker = 30px).
+    enable_bev_block_rescue_pass: true
+    bev_block_rescue_scale_px_per_m: 1000.0
+
     # Snapshot-based pose stabilization
     pose_update_interval_s: 5.0
 

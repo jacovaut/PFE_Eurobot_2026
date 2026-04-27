@@ -30,10 +30,15 @@ docker rm -f "$CONTAINER_NAME" || true
 docker run -d \
   --privileged \
   --group-add dialout \
+  --group-add video \
   --network host \
   --name "$CONTAINER_NAME" \
   -e ROS_DOMAIN_ID=0 \
   -e TERM=xterm-256color \
+  -e DISPLAY="$DISPLAY" \
+  -v /dev:/dev \
+  -v /run/udev:/run/udev:ro \
+  -v /tmp/.X11-unix:/tmp/.X11-unix \
   -v /run/user/1000:/run/user/1000 \
   -v "$WORKSPACE_HOST":"$WORKSPACE_CONTAINER" \
   --workdir "$WORKSPACE_CONTAINER" \
