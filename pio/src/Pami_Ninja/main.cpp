@@ -13,6 +13,9 @@ ESP32Encoder encoder4;
 Servo servo1;
 Servo servo2;
 
+// Track motor speeds to know if robot is moving
+int motorSpeeds[4] = {0, 0, 0, 0};
+
 void setup() {
   Serial.begin(115200);
 
@@ -38,8 +41,10 @@ void setup() {
   ledcAttachPin(MOTOR3_PWM, PWM_CH3);
   ledcSetup(PWM_CH4, PWM_FREQ, PWM_RES);
   ledcAttachPin(MOTOR4_PWM, PWM_CH4);
-  ledcSetup(PWM_CH_PUMP, PWM_FREQ, PWM_RES);
-  ledcAttachPin(PUMP_PIN, PWM_CH_PUMP);
+
+  // Initialize pump pin (digital on/off)
+  pinMode(PUMP_PIN, OUTPUT);
+  digitalWrite(PUMP_PIN, LOW);
 
   // Initialize encoders
   encoder1.attachHalfQuad(ENC_FL_A, ENC_FL_B);
@@ -81,6 +86,9 @@ void setMotor(int motor, int speed) {
       return;
   }
 
+  // Track motor speed
+  motorSpeeds[motor - 1] = speed;
+
   if (speed > 0) {
     digitalWrite(in1, HIGH);
     digitalWrite(in2, LOW);
@@ -104,10 +112,12 @@ void setServo(int servo, int angle) {
   }
 }
 
-void setPump(int speed) {
-  if (speed < 0) speed = 0;
-  if (speed > 255) speed = 255;
-  ledcWrite(PWM_CH_PUMP, speed);
+void setPump(bool state) {
+  if (state) {
+    digitalWrite(PUMP_PIN, HIGH);
+  } else {
+    digitalWrite(PUMP_PIN, LOW);
+  }
 }
 
 void setMecanumSpeeds(float vx, float vy, float omega) {
@@ -145,72 +155,90 @@ void setMecanumSpeeds(float vx, float vy, float omega) {
 }
 
 void loop() {
-  // Print encoder values
-  Serial.print("Encoders: ");
-  Serial.print(encoder1.getCount());
-  Serial.print(", ");
-  Serial.print(encoder2.getCount());
-  Serial.print(", ");
-  Serial.print(encoder3.getCount());
-  Serial.print(", ");
-  Serial.println(encoder4.getCount());
+  // Print encoder values only when moving
+  if (motorSpeeds[0] != 0 || motorSpeeds[1] != 0 || motorSpeeds[2] != 0 || motorSpeeds[3] != 0) {
+    Serial.print("Encoders: ");
+    Serial.print(encoder1.getCount());
+    Serial.print(", ");
+    Serial.print(encoder2.getCount());
+    Serial.print(", ");
+    Serial.print(encoder3.getCount());
+    Serial.print(", ");
+    Serial.println(encoder4.getCount());
+  }
 
   // Check for serial commands
   if (Serial.available()) {
     String command = Serial.readStringUntil('\n');
     command.trim();
 
-    if (command.startsWith("m")) {
-      // Motor command: m<motor> <speed>
-      int spaceIndex = command.indexOf(' ');
-      if (spaceIndex > 0) {
-        int motor = command.substring(1, spaceIndex).toInt();
-        int speed = command.substring(spaceIndex + 1).toInt();
-        setMotor(motor, speed);
-        Serial.print("Set motor ");
-        Serial.print(motor);
-        Serial.print(" to speed ");
-        Serial.println(speed);
-      }
+    if (command.startsWith("f ")) {
+      // Forward: f <speed>
+      int speed = command.substring(2).toInt();
+      setMecanumSpeeds(speed / 255.0, 0, 0);
+      Serial.print("Moving forward at speed ");
+      Serial.println(speed);
+    } else if (command.startsWith("b ")) {
+      // Backward: b <speed>
+      int speed = command.substring(2).toInt();
+      setMecanumSpeeds(-speed / 255.0, 0, 0);
+      Serial.print("Moving backward at speed ");
+      Serial.println(speed);
+    } else if (command.startsWith("l ")) {
+      // Left strafe: l <speed>
+      int speed = command.substring(2).toInt();
+      setMecanumSpeeds(0, speed / 255.0, 0);
+      Serial.print("Strafing left at speed ");
+      Serial.println(speed);
+    } else if (command.startsWith("r ")) {
+      // Right strafe: r <speed>
+      int speed = command.substring(2).toInt();
+      setMecanumSpeeds(0, -speed / 255.0, 0);
+      Serial.print("Strafing right at speed ");
+      Serial.println(speed);
+    } else if (command.startsWith("cw ")) {
+      // Clockwise rotation: cw <speed>
+      int speed = command.substring(3).toInt();
+      setMecanumSpeeds(0, 0, speed / 255.0);
+      Serial.print("Rotating clockwise at speed ");
+      Serial.println(speed);
+    } else if (command.startsWith("ccw ")) {
+      // Counter-clockwise rotation: ccw <speed>
+      int speed = command.substring(4).toInt();
+      setMecanumSpeeds(0, 0, -speed / 255.0);
+      Serial.print("Rotating counter-clockwise at speed ");
+      Serial.println(speed);
+    } else if (command.startsWith("stop")) {
+      // Stop all motors
+      setMecanumSpeeds(0, 0, 0);
+      Serial.println("Stopped");
     } else if (command.startsWith("s")) {
-      // Servo command: s<servo> <angle>
+      // Servo command: s <angle>
       int spaceIndex = command.indexOf(' ');
       if (spaceIndex > 0) {
-        int servo = command.substring(1, spaceIndex).toInt();
         int angle = command.substring(spaceIndex + 1).toInt();
-        setServo(servo, angle);
-        Serial.print("Set servo ");
-        Serial.print(servo);
-        Serial.print(" to angle ");
+        setServo(1, angle);
+        setServo(2, angle);
+        Serial.print("Set servo 1 and 2 to angle ");
         Serial.println(angle);
       }
     } else if (command.startsWith("p")) {
-      // Pump command: p <speed>
+      // Pump command: p on or p off
       int spaceIndex = command.indexOf(' ');
       if (spaceIndex > 0) {
-        int speed = command.substring(spaceIndex + 1).toInt();
-        setPump(speed);
-        Serial.print("Set pump to speed ");
-        Serial.println(speed);
+        String state = command.substring(spaceIndex + 1);
+        if (state == "on") {
+          setPump(true);
+          Serial.println("Pump ON");
+        } else if (state == "off") {
+          setPump(false);
+          Serial.println("Pump OFF");
+        } else {
+          Serial.println("Pump: use 'p on' or 'p off'");
+        }
       }
-    } else if (command.startsWith("move")) {
-      // Mecanum move command: move <vx> <vy> <omega>
-      // Parse three floats
-      int space1 = command.indexOf(' ');
-      int space2 = command.indexOf(' ', space1 + 1);
-      int space3 = command.indexOf(' ', space2 + 1);
-      if (space1 > 0 && space2 > 0 && space3 > 0) {
-        float vx = command.substring(space1 + 1, space2).toFloat();
-        float vy = command.substring(space2 + 1, space3).toFloat();
-        float omega = command.substring(space3 + 1).toFloat();
-        setMecanumSpeeds(vx, vy, omega);
-        Serial.print("Set mecanum speeds: vx=");
-        Serial.print(vx);
-        Serial.print(", vy=");
-        Serial.print(vy);
-        Serial.print(", omega=");
-        Serial.println(omega);
-      }
+    } else {
+      Serial.println("Unknown command. Use: f/b/l/r/cw/ccw <speed>, stop, s <angle>, p on/off");
     }
   }
 
