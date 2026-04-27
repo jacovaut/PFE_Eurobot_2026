@@ -43,6 +43,7 @@ setup(
             'local_pickup_solver_node = ros2_opencv.local_pickup_solver:main',
             'merged_local_pickup_node = ros2_opencv.merged_local_pickup_node:main',
             'cluster_analyze_node = pfe.strategy.clusterAnalyze:main',
+            'match_timer_node = pfe.match_timer:main',
         ],
     },
 )
