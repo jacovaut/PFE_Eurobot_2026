@@ -118,12 +118,11 @@ class LocalCameraPerceptionNode(Node):
         super().__init__('local_camera_perception_node')
         self.declare_parameter('debug_save_image', False)
         self.debug_save_image = bool(self.get_parameter('debug_save_image').value)
-        super().__init__('local_camera_perception_node')
-
+        
             # ---------- Camera ----------
 
         self.declare_parameter('camera_mode', 'stream')
-        self.declare_parameter('stream_url', 'tcp://192.168.1.185:8888')
+        self.declare_parameter('stream_url', 'tcp://127.0.0.1:8888')
         self.declare_parameter('camera_device', 0)
         self.declare_parameter('show_debug_window', False)
 

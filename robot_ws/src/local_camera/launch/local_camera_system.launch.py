@@ -1,3 +1,4 @@
+
 from launch import LaunchDescription
 from launch_ros.actions import Node
 from launch.substitutions import Command
@@ -16,7 +17,6 @@ def generate_launch_description():
     )
 
     return LaunchDescription([
-
         Node(
             package='robot_state_publisher',
             executable='robot_state_publisher',
@@ -26,17 +26,30 @@ def generate_launch_description():
             }],
             output='screen'
         ),
-
         Node(
             package='joint_state_publisher',
             executable='joint_state_publisher',
             name='joint_state_publisher',
-            output='screen'
+            output='screen',
         ),
-
-        # Node(
-        #     package='rviz2',
-        #     executable='rviz2',
-        #     output='screen'
-        # )
+        Node(
+            package='rviz2',
+            executable='rviz2',
+            name='rviz2',
+            output='screen',
+            arguments=['-d', os.path.join(pkg_path, 'rviz', 'local_camera.rviz')],
+        ),
+        Node(
+            package='local_camera',
+            executable='merged_local_pickup_node',
+            name='merged_local_pickup_node',
+            output='screen',
+            parameters=[{
+                'camera_mode': 'stream',
+                'stream_url': 'tcp://127.0.0.1:8888',
+                'camera_device': 0,
+                'show_debug_window': False,
+                'debug_save_image': True,
+            }],
+        ),
     ])
