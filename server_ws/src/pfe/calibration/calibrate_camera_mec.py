@@ -2,6 +2,7 @@ import argparse
 import cv2
 import numpy as np
 from pathlib import Path
+import os
 
 def compute_reprojection_error(objpoints, imgpoints, rvecs, tvecs, K, dist):
     total_err = 0.0
@@ -16,25 +17,43 @@ def compute_reprojection_error(objpoints, imgpoints, rvecs, tvecs, K, dist):
     return np.sqrt(total_err / max(total_points, 1))
 
 def main():
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    default_images = os.path.join(script_dir, "calibration_images")
+    default_out = os.path.join(script_dir, "..", "camera_calibration", "calibration_mec.yml")
+
     ap = argparse.ArgumentParser()
-    ap.add_argument("--images", type=str, required=True, help="Path to folder with images")
+    ap.add_argument("--images", type=str, default=default_images, help="Path to folder with images (default: calibration_images/)")
     ap.add_argument("--dict", type=str, default="DICT_4X4_250")
     ap.add_argument("--squares_x", type=int, default=9)
     ap.add_argument("--squares_y", type=int, default=7)
     ap.add_argument("--square_length_m", type=float, default=0.065)
     ap.add_argument("--marker_length_m", type=float, default=0.050)
     ap.add_argument("--min_corners", type=int, default=12)
-    ap.add_argument("--out", type=str, default="calibration.yml")
+    ap.add_argument("--out", type=str, default=default_out)
     args = ap.parse_args()
 
     dictionary = cv2.aruco.getPredefinedDictionary(getattr(cv2.aruco, args.dict))
-    board = cv2.aruco.CharucoBoard(
-        (args.squares_x, args.squares_y),
-        args.square_length_m,
-        args.marker_length_m,
-        dictionary
-    )
-    detector = cv2.aruco.ArucoDetector(dictionary, cv2.aruco.DetectorParameters())
+
+    # OpenCV >= 4.7 uses new API; older versions use legacy functions
+    new_api = hasattr(cv2.aruco, 'ArucoDetector')
+
+    if new_api:
+        board = cv2.aruco.CharucoBoard(
+            (args.squares_x, args.squares_y),
+            args.square_length_m,
+            args.marker_length_m,
+            dictionary
+        )
+        detector = cv2.aruco.ArucoDetector(dictionary, cv2.aruco.DetectorParameters())
+    else:
+        board = cv2.aruco.CharucoBoard_create(
+            args.squares_x,
+            args.squares_y,
+            args.square_length_m,
+            args.marker_length_m,
+            dictionary
+        )
+        aruco_params = cv2.aruco.DetectorParameters_create()
 
     # Get all images
     image_paths = sorted(Path(args.images).glob("*.jpg")) + \
@@ -62,7 +81,10 @@ def main():
             image_size = (frame.shape[1], frame.shape[0])
 
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        corners, ids, _ = detector.detectMarkers(gray)
+        if new_api:
+            corners, ids, _ = detector.detectMarkers(gray)
+        else:
+            corners, ids, _ = cv2.aruco.detectMarkers(gray, dictionary, parameters=aruco_params)
 
         vis = frame.copy()
         detected_corners = 0
@@ -87,7 +109,11 @@ def main():
             
             if key == ord('k'):
                 if detected_corners >= args.min_corners:
-                    obj_pts, img_pts = board.matchImagePoints(cc, ci)
+                    if new_api:
+                        obj_pts, img_pts = board.matchImagePoints(cc, ci)
+                    else:
+                        obj_pts = board.chessboardCorners[ci.flatten()]
+                        img_pts = cc
                     all_objpoints.append(obj_pts.astype(np.float32))
                     all_imgpoints.append(img_pts.astype(np.float32))
                     print(f"✓ Kept: {len(all_objpoints)} total")
@@ -133,6 +159,7 @@ def main():
     print("Camera matrix:\n", K)
     print("Distortion:\n", dist.ravel())
 
+    os.makedirs(os.path.dirname(os.path.abspath(args.out)), exist_ok=True)
     fs = cv2.FileStorage(args.out, cv2.FILE_STORAGE_WRITE)
     fs.write("image_width", image_size[0])
     fs.write("image_height", image_size[1])
