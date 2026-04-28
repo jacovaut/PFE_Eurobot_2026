@@ -34,14 +34,14 @@ pkill -9 -f ffmpeg
 pkill -9 -f libcamera
 sleep 1
 
-# Always reload v4l2loopback with exclusive_caps=0 for OpenCV compatibility
+# Always reload v4l2loopback with exclusive_caps=1 (previous working state)
 sudo modprobe -r v4l2loopback
-sudo modprobe v4l2loopback video_nr=10 card_label=VirtualCam exclusive_caps=0
+sudo modprobe v4l2loopback video_nr=10 card_label=VirtualCam exclusive_caps=1
 
 
 # Start the camera pipeline in the background (entire pipeline as a group)
 ( rpicam-vid -t 0 -n --codec mjpeg --width 1280 --height 720 --framerate 30 -o - | \
-    ffmpeg -i - -f v4l2 -pix_fmt mjpeg /dev/video10 ) &
+    ffmpeg -i - -f v4l2 -pix_fmt yuyv422 /dev/video10 ) &
 # Debug: Print first few frames' shape in block_publisher.py
 PIPELINE_PID=$!
 
