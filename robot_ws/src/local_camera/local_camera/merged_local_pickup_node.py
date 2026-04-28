@@ -1,0 +1,168 @@
+#!/usr/bin/env python3
+import os
+import cv2
+import rclpy
+from rclpy.node import Node
+from sensor_msgs.msg import Image
+from cv_bridge import CvBridge
+from std_msgs.msg import String
+from geometry_msgs.msg import TransformStamped
+from visualization_msgs.msg import Marker, MarkerArray
+import numpy as np
+import json
+import time
+import tf_transformations
+import rclpy.duration
+from tf2_ros import TransformBroadcaster, Buffer, TransformListener
+from tf2_msgs.msg import TFMessage
+from collections import defaultdict
+import math
+from dataclasses import dataclass
+from typing import Dict, List, Tuple, Optional
+
+@dataclass
+class XY:
+    x: float
+    y: float
+
+class MergedLocalPickupNode(Node):
+    def __init__(self):
+        super().__init__('merged_local_pickup_node')
+        # Parameters
+        self.declare_parameter('debug_save_image', False)
+        self.debug_save_image = bool(self.get_parameter('debug_save_image').value)
+        self.declare_parameter('camera_mode', 'stream')
+        self.declare_parameter('stream_url', 'tcp://127.0.0.1:8888')
+        self.declare_parameter('camera_device', 0)
+        self.declare_parameter('show_debug_window', False)
+        self.camera_mode = str(self.get_parameter('camera_mode').value).strip().lower()
+        self.stream_url = str(self.get_parameter('stream_url').value).strip()
+        self.cameraDeviceNumber = int(self.get_parameter('camera_device').value)
+        self.show_debug_window = bool(self.get_parameter('show_debug_window').value)
+        self.output_width = 1280
+        self.output_height = 720
+        # Camera
+        self.camera = None
+        self.state = 'init_camera'
+        self.state_timer = self.create_timer(0.2, self.state_machine)
+        # Perception
+        self.bridge = CvBridge()
+        self.image_pub = self.create_publisher(Image, 'topic_camera_image', 10)
+        self.marker_pub = self.create_publisher(MarkerArray, 'aruco_markers', 10)
+        self.tf_broadcaster = TransformBroadcaster(self)
+        self.tf_buffer = Buffer()
+        self.tf_listener = TransformListener(self.tf_buffer, self)
+        # Pickup
+        self.cup_frames = ["cup_0", "cup_1", "cup_2", "cup_3"]
+        self.required_cups = len(self.cup_frames)
+        self.memory = {}
+        self.memory_timeout = 1.0
+        self.next_track_index = {}
+        self.match_dist = 0.12
+        self.block_size = 0.05
+        self.block_center_z = self.block_size / 2.0
+        self.pickup_frame_parent = "base_link"
+        self.pickup_frame_name = "pickup_frame"
+        self.pickup_tx = 0.0
+        self.pickup_ty = 0.0
+        self.pickup_tz = 0.0
+        self.pickup_roll = 0.0
+        self.pickup_pitch = 0.0
+        self.pickup_yaw = 0.0
+        self.id_color_map = {47: "jaune", 36: "bleu"}
+        self.cups_detected = 0
+        self.blocks_detected = 0
+        self.cups_ready = False
+        self.blocks_ready = False
+        self.solver_ready = False
+        # ArUco
+        self.dictionary = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
+        self.parameters = cv2.aruco.DetectorParameters_create()
+        self.marker_length = 0.03
+        self.camera_matrix = np.array([
+            [457.33917579,   0.0,         637.592287  ],
+            [  0.0,         453.81772548, 374.90978642],
+            [  0.0,           0.0,           1.        ] 
+        ], dtype=np.float64)
+        self.dist_coeffs = np.array([
+            -0.0241479, 
+            -0.01872201,  
+            0.00181977, 
+            -0.00044101,  
+            0.04127062
+        ], dtype=np.float64)
+        self.get_logger().info("[MERGED] Node initialized. Starting state machine.")
+
+    def state_machine(self):
+        if self.state == 'init_camera':
+            self.get_logger().info('[SEQ] Connecting to camera...')
+            self.camera = cv2.VideoCapture(self.stream_url if self.camera_mode == 'stream' else self.cameraDeviceNumber)
+            if self.camera.isOpened():
+                self.camera.set(cv2.CAP_PROP_FRAME_WIDTH, self.output_width)
+                self.camera.set(cv2.CAP_PROP_FRAME_HEIGHT, self.output_height)
+                self.camera.set(cv2.CAP_PROP_FPS, 30)
+                self.get_logger().info('[SEQ] Camera connected.')
+                self.state = 'detect_cups'
+            else:
+                self.get_logger().warn('[SEQ] Camera not ready, retrying...')
+        elif self.state == 'detect_cups':
+            self.get_logger().info('[SEQ] Looking for suction cups...')
+            success, frame = self.camera.read()
+            if not success or frame is None:
+                self.get_logger().warn('[SEQ] No frame from camera, waiting...')
+                return
+            gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY) if frame.ndim == 3 else frame
+            corners, ids, _ = cv2.aruco.detectMarkers(gray_frame, self.dictionary, parameters=self.parameters)
+            found_cups = 0
+            if ids is not None:
+                for marker_id in ids.flatten():
+                    if int(marker_id) in self.id_color_map:
+                        found_cups += 1
+            self.get_logger().info(f'[SEQ] Cups detected: {found_cups}/{self.required_cups}')
+            if found_cups >= self.required_cups:
+                self.cups_ready = True
+                self.state = 'detect_blocks'
+        elif self.state == 'detect_blocks':
+            self.get_logger().info('[SEQ] Looking for fresh blocks...')
+            success, frame = self.camera.read()
+            if not success or frame is None:
+                self.get_logger().warn('[SEQ] No frame from camera, waiting...')
+                return
+            gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY) if frame.ndim == 3 else frame
+            corners, ids, _ = cv2.aruco.detectMarkers(gray_frame, self.dictionary, parameters=self.parameters)
+            found_blocks = 0
+            if ids is not None:
+                for marker_id in ids.flatten():
+                    if int(marker_id) in self.id_color_map:
+                        found_blocks += 1
+            self.get_logger().info(f'[SEQ] Blocks detected: {found_blocks}')
+            if found_blocks > 0:
+                self.blocks_ready = True
+                self.state = 'run_solver'
+        elif self.state == 'run_solver':
+            self.get_logger().info('[SEQ] Running pickup calculation!')
+            # Here you would call your solver logic, e.g. compute_best_alignment()
+            # For now, just log and stay in this state
+            self.solver_ready = True
+            self.get_logger().info('[SEQ] Pickup calculation complete. (Placeholder)')
+            # Optionally, transition to a new state or repeat
+            # self.state = 'done'
+        else:
+            self.get_logger().warn(f'[SEQ] Unknown state: {self.state}')
+
+def main(args=None):
+    rclpy.init(args=args)
+    node = MergedLocalPickupNode()
+    try:
+        rclpy.spin(node)
+    finally:
+        try:
+            if node.camera is not None:
+                node.camera.release()
+        except Exception:
+            pass
+        node.destroy_node()
+        rclpy.shutdown()
+
+if __name__ == '__main__':
+    main()

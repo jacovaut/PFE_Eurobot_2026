@@ -27,6 +27,7 @@ setup(
         'console_scripts': [
             'local_perception_node = local_camera.local_perception_node:main',
             'local_pickup_solver_node = local_camera.local_pickup_solver_node:main',
+            'merged_local_pickup_node = local_camera.merged_local_pickup_node:main',
         ],
     },
 )
