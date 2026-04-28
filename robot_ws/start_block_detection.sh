@@ -1,4 +1,4 @@
-# Ensure venv exists and is activated
+# --- VENV SETUP: Always ensure venv exists and is activated FIRST ---
 if [ ! -d venv ]; then
     echo "[INFO] Creating Python virtual environment..."
     python3 -m venv venv
@@ -9,8 +9,8 @@ if [ ! -d venv ]; then
     exit 0
 fi
 
-# Activate venv
 source venv/bin/activate
+# --- END VENV SETUP ---
 
 #!/bin/bash
 
