@@ -65,7 +65,12 @@ sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 # ArUco setup
 dictionary = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
 parameters = cv2.aruco.DetectorParameters()
+
 cap = cv2.VideoCapture('/dev/video10', cv2.CAP_V4L2)  # Use device path and force V4L2 backend
+# Debug: Print first few frames' shape
+for i in range(5):
+    ret, frame = cap.read()
+    print(f"[DEBUG] Frame {i}: ret={ret}, shape={None if frame is None else frame.shape}")
 
 while True:
     ret, frame = cap.read()
