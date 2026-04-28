@@ -146,37 +146,32 @@ class MergedLocalPickupNode(Node):
                 return
         self.get_logger().info(f'[SEQ] All cup frames found in TF.')
 
-        # 3. Detect blocks with vision
-        success, frame = self.camera.read()
-        if not success or frame is None:
-            self.get_logger().warn('[SEQ] No frame from camera, waiting...')
-            return
-        gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY) if frame.ndim == 3 else frame
-        # Save debug image for troubleshooting
-        try:
-            cv2.imwrite(self.debug_image_path, frame)
-            self.get_logger().info(f'[SEQ] Saved debug image to {self.debug_image_path}')
-        except Exception as e:
-            self.get_logger().warn(f'[SEQ] Could not save debug image: {e}')
-        corners, ids, _ = cv2.aruco.detectMarkers(gray_frame, self.dictionary, parameters=self.parameters)
+
+        # 3. Receive blocks via UDP
+        import socket
+        import json
+        UDP_IP = "0.0.0.0"
+        UDP_PORT = 5005
+        if not hasattr(self, 'udp_sock'):
+            self.udp_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            self.udp_sock.bind((UDP_IP, UDP_PORT))
+            self.udp_sock.setblocking(False)
+
         blocks = {}
-        if ids is not None:
-            for i, marker_id in enumerate(ids.flatten()):
-                # Use all detected markers as blocks
-                ok, rvec, tvec = cv2.solvePnP(
-                    self.obj_points_blc,
-                    np.array(corners[i], dtype=np.float32),
-                    self.camera_matrix,
-                    self.dist_coeffs,
-                    flags=cv2.SOLVEPNP_IPPE_SQUARE
-                )
-                if not ok:
-                    continue
-                tvec = tvec.reshape(3)
-                blocks[f'block_{int(marker_id)}'] = XY(tvec[0], tvec[1])
-        self.get_logger().info(f'[SEQ] Blocks detected: {len(blocks)}')
+        try:
+            data, addr = self.udp_sock.recvfrom(4096)
+            block_list = json.loads(data.decode())
+            for block in block_list:
+                blocks[f"block_{block['id']}"] = XY(block['cx'], block['cy'])
+            self.get_logger().info(f'[SEQ][UDP] Blocks received: {len(blocks)}')
+        except BlockingIOError:
+            self.get_logger().info('[SEQ][UDP] No block info received yet...')
+            return
+        except Exception as e:
+            self.get_logger().warn(f'[SEQ][UDP] Error receiving block info: {e}')
+            return
         if len(blocks) == 0:
-            self.get_logger().info('[SEQ] Waiting for blocks...')
+            self.get_logger().info('[SEQ][UDP] Waiting for blocks...')
             return
 
         # 4. Run pickup calculation (placeholder)
