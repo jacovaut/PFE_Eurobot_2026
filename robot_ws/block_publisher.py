@@ -48,6 +48,7 @@ if '--start-pipeline' in sys.argv:
     subprocess.run(cmd, shell=True)
     sys.exit(0)
 
+
 import cv2
 import numpy as np
 import socket
@@ -56,6 +57,22 @@ import time
 import os
 import sys
 import subprocess
+
+# Try both device path and index for camera access
+print('[DEBUG] Trying OpenCV camera access: /dev/video10')
+cap = cv2.VideoCapture('/dev/video10', cv2.CAP_V4L2)
+for i in range(3):
+    ret, frame = cap.read()
+    print(f"[DEBUG] Path /dev/video10: ret={ret}, shape={None if frame is None else frame.shape}")
+if not ret or frame is None:
+    print('[DEBUG] Trying OpenCV camera access: index 10')
+    cap.release()
+    cap = cv2.VideoCapture(10, cv2.CAP_V4L2)
+    for i in range(3):
+        ret, frame = cap.read()
+        print(f"[DEBUG] Index 10: ret={ret}, shape={None if frame is None else frame.shape}")
+    if not ret or frame is None:
+        print('[ERROR] Could not open camera by path or index.')
 
 # UDP setup
 UDP_IP = "127.0.0.1"  # Use "127.0.0.1" for host-networked Docker, or container IP if bridged
