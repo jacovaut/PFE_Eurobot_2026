@@ -1,3 +1,15 @@
+# Trap SIGINT/SIGTERM and clean up pipeline
+cleanup() {
+    echo "[INFO] Caught exit signal, killing pipeline..."
+    pkill -9 -f rpicam-vid
+    pkill -9 -f ffmpeg
+    pkill -9 -f libcamera
+    if [ -n "$PIPELINE_PID" ]; then
+        kill $PIPELINE_PID 2>/dev/null
+    fi
+    exit 0
+}
+trap cleanup SIGINT SIGTERM
 # Kill any old camera pipeline processes
 echo "[INFO] Killing old rpicam-vid, ffmpeg, and libcamera processes..."
 pkill -9 -f rpicam-vid
