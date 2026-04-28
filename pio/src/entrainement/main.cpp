@@ -34,6 +34,7 @@
 #include "deadwheels.h"
 #include <stdint.h>
 #include <micro_ros_platformio.h>
+#include <WiFi.h>
 
 /* ---------------------- ROS INCLUDES ---------------------- */
 #include <rcl/rcl.h>
@@ -87,7 +88,7 @@ void error_loop(){
 }
 /* ------------------------------------------------------------- */
 
-deadwheels Deadwheel(36, 34, 2, 19, 35, 32); // A0, B0, A1, B1, A2, B2
+deadwheels Deadwheel(35, 32, 2, 19, 36, 34); // A0, B0, A1, B1, A2, B2
 
 struct CmdVel {
   float vx;
@@ -173,14 +174,22 @@ void setup() {
     
     allocator = rcl_get_default_allocator();
     
-    Serial.begin(115200);
-    set_microros_serial_transports(Serial);
+    Serial.begin(2000000);
+    // set_microros_serial_transports(Serial);
+    IPAddress agent_ip(192,168,1,185);
+
+    set_microros_wifi_transports(
+        "GRUM",
+        "GELE>GMEC",
+        agent_ip,
+        8888
+    );
     
     // Wait for agent
     while (rmw_uros_ping_agent(1000, 1) != RMW_RET_OK) {
         delay(1000);
     }
-    
+
     rmw_uros_sync_session(1000);  // try to sync with agent for up to 1s
     
     RCCHECK(rclc_support_init(&support, 0, NULL, &allocator));
@@ -221,7 +230,7 @@ void setup() {
         &cmdvel_sub,
         &node,
         ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, Twist),
-        "cmd_vel"
+        "cmd_vel_smoothed"
     ));
     
     RCCHECK(rclc_executor_add_subscription(
@@ -347,8 +356,7 @@ void core1 (void* pvParameters){
 void core2(void* pvParameters){
     for (;;)
     {
-        RCSOFTCHECK(rclc_executor_spin_some(&executor, RCL_MS_TO_NS(10)));
-        vTaskDelay(1);
+        RCSOFTCHECK(rclc_executor_spin_some(&executor, 0));
     }
 }
 

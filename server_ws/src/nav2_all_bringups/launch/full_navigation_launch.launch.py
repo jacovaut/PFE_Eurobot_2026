@@ -39,6 +39,7 @@ def generate_launch_description():
     container_name_full = (namespace, '/', container_name)
     use_respawn = LaunchConfiguration('use_respawn')
     log_level = LaunchConfiguration('log_level')
+    map_yaml = LaunchConfiguration('map')
 
     lifecycle_nodes = [
         'controller_server',
@@ -48,6 +49,7 @@ def generate_launch_description():
         'velocity_smoother',
         'bt_navigator',
         'waypoint_follower',
+        'map_server',
     ]
 
     # Map fully qualified names to relative ones so the node's namespace can be prepended.
@@ -117,6 +119,12 @@ def generate_launch_description():
 
     declare_log_level_cmd = DeclareLaunchArgument(
         'log_level', default_value='info', description='log level'
+    )
+
+    declare_map_file_cmd = DeclareLaunchArgument(
+        'map',
+        # default_value=os.path.join(bringup_dir, 'params', 'map_config.yaml'),
+        # description='Full path to the map yaml file to use for the map_server node',
     )
 
     load_nodes = GroupAction(
@@ -207,6 +215,17 @@ def generate_launch_description():
                 arguments=['--ros-args', '--log-level', log_level],
                 parameters=[{'autostart': autostart}, {'node_names': lifecycle_nodes}],
             ),
+            Node(
+                package='nav2_map_server',
+                executable='map_server',
+                name='map_server',
+                output='screen',
+                arguments=['--ros-args', '--log-level', log_level],
+                parameters=[
+                    {'yaml_filename': LaunchConfiguration('map')},
+                    configured_params
+                ],
+            ),
         ],
     )
 
@@ -274,6 +293,15 @@ def generate_launch_description():
                             {'autostart': autostart, 'node_names': lifecycle_nodes}
                         ],
                     ),
+                    ComposableNode(
+                        package='nav2_map_server',
+                        plugin='nav2_map_server::MapServer',
+                        name='map_server',
+                        parameters=[
+                            {'yaml_filename': LaunchConfiguration('map')},
+                            configured_params
+                        ],
+                    ),
                 ],
             ),
         ],
@@ -297,5 +325,6 @@ def generate_launch_description():
     # Add the actions to launch all of the navigation nodes
     ld.add_action(load_nodes)
     ld.add_action(load_composable_nodes)
+    ld.add_action(declare_map_file_cmd)
 
     return ld

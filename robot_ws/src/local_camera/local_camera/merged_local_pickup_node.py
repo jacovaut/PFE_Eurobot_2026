@@ -29,21 +29,8 @@ class MergedLocalPickupNode(Node):
     def __init__(self):
         super().__init__('merged_local_pickup_node')
         # Parameters
-        self.declare_parameter('debug_save_image', False)
-        self.debug_save_image = bool(self.get_parameter('debug_save_image').value)
-        self.declare_parameter('camera_mode', 'stream')
-        self.declare_parameter('stream_url', 'tcp://127.0.0.1:8888')
-        self.declare_parameter('camera_device', 0)
-        self.declare_parameter('show_debug_window', False)
-        self.camera_mode = str(self.get_parameter('camera_mode').value).strip().lower()
-        self.stream_url = str(self.get_parameter('stream_url').value).strip()
-        self.cameraDeviceNumber = int(self.get_parameter('camera_device').value)
-        self.show_debug_window = bool(self.get_parameter('show_debug_window').value)
-        self.output_width = 1280
-        self.output_height = 720
-        # Camera
-        self.camera = None
-        self.state = 'init_camera'
+        self.declare_parameter('udp_port', 5005)
+        self.udp_port = int(self.get_parameter('udp_port').value)
         self.state_timer = self.create_timer(0.2, self.state_machine)
         # Perception
         self.bridge = CvBridge()
@@ -91,6 +78,17 @@ class MergedLocalPickupNode(Node):
             -0.00044101,  
             0.04127062
         ], dtype=np.float64)
+        # Add missing object points for solvePnP (marker corners in 3D)
+        m = self.marker_length / 2.0
+        self.obj_points_blc = np.array([
+            [-m,  m, 0.0],
+            [ m,  m, 0.0],
+            [ m, -m, 0.0],
+            [-m, -m, 0.0],
+        ], dtype=np.float32)
+
+        # Optional: Debug image saving
+        self.debug_image_path = '/tmp/merged_node_debug.jpg'
         self.get_logger().info("[MERGED] Node initialized. Starting state machine.")
 
     def publish_cup_tf(self, cup_index, tvec, q_cam, stamp=None):
@@ -109,18 +107,8 @@ class MergedLocalPickupNode(Node):
         self.tf_broadcaster.sendTransform(t)
 
     def state_machine(self):
-        # 1. Ensure camera is connected
-        if self.camera is None or not self.camera.isOpened():
-            self.get_logger().info('[SEQ] Connecting to camera...')
-            self.camera = cv2.VideoCapture(self.stream_url if self.camera_mode == 'stream' else self.cameraDeviceNumber)
-            if self.camera.isOpened():
-                self.camera.set(cv2.CAP_PROP_FRAME_WIDTH, self.output_width)
-                self.camera.set(cv2.CAP_PROP_FRAME_HEIGHT, self.output_height)
-                self.camera.set(cv2.CAP_PROP_FPS, 30)
-                self.get_logger().info('[SEQ] Camera connected.')
-            else:
-                self.get_logger().warn('[SEQ] Camera not ready, retrying...')
-                return
+
+        # 1. (Camera logic removed, not used)
 
         # 2. Try to lookup all cup frames in TF
         cups = {}
@@ -134,31 +122,32 @@ class MergedLocalPickupNode(Node):
                 return
         self.get_logger().info(f'[SEQ] All cup frames found in TF.')
 
-        # 3. Detect blocks with vision
-        success, frame = self.camera.read()
-        if not success or frame is None:
-            self.get_logger().warn('[SEQ] No frame from camera, waiting...')
-            return
-        gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY) if frame.ndim == 3 else frame
-        corners, ids, _ = cv2.aruco.detectMarkers(gray_frame, self.dictionary, parameters=self.parameters)
+
+        # 3. Receive blocks via UDP
+        import socket
+        import json
+        UDP_IP = "0.0.0.0"
+        UDP_PORT = self.udp_port
+        if not hasattr(self, 'udp_sock'):
+            self.udp_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            self.udp_sock.bind((UDP_IP, UDP_PORT))
+            self.udp_sock.setblocking(False)
+
         blocks = {}
-        if ids is not None:
-            for i, marker_id in enumerate(ids.flatten()):
-                # Use all detected markers as blocks
-                ok, rvec, tvec = cv2.solvePnP(
-                    self.obj_points_blc,
-                    np.array(corners[i], dtype=np.float32),
-                    self.camera_matrix,
-                    self.dist_coeffs,
-                    flags=cv2.SOLVEPNP_IPPE_SQUARE
-                )
-                if not ok:
-                    continue
-                tvec = tvec.reshape(3)
-                blocks[f'block_{int(marker_id)}'] = XY(tvec[0], tvec[1])
-        self.get_logger().info(f'[SEQ] Blocks detected: {len(blocks)}')
+        try:
+            data, addr = self.udp_sock.recvfrom(4096)
+            block_list = json.loads(data.decode())
+            for block in block_list:
+                blocks[f"block_{block['id']}"] = XY(block['cx'], block['cy'])
+            self.get_logger().info(f'[SEQ][UDP] Blocks received: {len(blocks)}')
+        except BlockingIOError:
+            self.get_logger().info('[SEQ][UDP] No block info received yet...')
+            return
+        except Exception as e:
+            self.get_logger().warn(f'[SEQ][UDP] Error receiving block info: {e}')
+            return
         if len(blocks) == 0:
-            self.get_logger().info('[SEQ] Waiting for blocks...')
+            self.get_logger().info('[SEQ][UDP] Waiting for blocks...')
             return
 
         # 4. Run pickup calculation (placeholder)
