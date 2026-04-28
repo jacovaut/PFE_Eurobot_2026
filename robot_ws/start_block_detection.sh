@@ -10,6 +10,9 @@ if [ ! -d venv ]; then
 fi
 
 source venv/bin/activate
+# Print active venv for confirmation
+echo "[INFO] Using Python from: $(which python3)"
+echo "[INFO] Python version: $(python3 --version)"
 # --- END VENV SETUP ---
 
 #!/bin/bash
