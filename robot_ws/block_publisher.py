@@ -2,16 +2,39 @@ import sys
 import os
 import subprocess
 
-# Utility: create venv if requested (must be before cv2 import)
-if '--make-venv' in sys.argv:
-    venv_dir = 'venv'
-    if not os.path.exists(venv_dir):
-        print(f"[INFO] Creating virtual environment in {venv_dir}...")
-        subprocess.run([sys.executable, '-m', 'venv', venv_dir], check=True)
-        print(f"[INFO] Run: source {venv_dir}/bin/activate && pip install opencv-contrib-python numpy")
-    else:
-        print(f"[INFO] Virtual environment already exists: {venv_dir}")
+venv_dir = os.path.join(os.path.dirname(__file__), 'venv')
+
+# 1. Auto-create venv if missing
+if not os.path.exists(venv_dir):
+    print(f"[AUTO] Creating virtual environment in {venv_dir}...")
+    subprocess.run([sys.executable, '-m', 'venv', venv_dir], check=True)
+    print(f"[AUTO] Installing dependencies (opencv-contrib-python, numpy)...")
+    subprocess.run([os.path.join(venv_dir, 'bin', 'pip'), 'install', 'opencv-contrib-python', 'numpy'], check=True)
+    print(f"[AUTO] Please re-run: source venv/bin/activate && python block_publisher.py")
     sys.exit(0)
+
+# 2. Auto-activate venv if not already active
+if sys.prefix != os.path.abspath(venv_dir):
+    activate_this = os.path.join(venv_dir, 'bin', 'activate_this.py')
+    if os.path.exists(activate_this):
+        exec(open(activate_this).read(), {'__file__': activate_this})
+    else:
+        # Fallback: print instructions
+        print(f"[AUTO] Please run: source venv/bin/activate && python block_publisher.py")
+        sys.exit(0)
+
+# 3. Start rpicam-vid pipeline if not running
+import psutil
+pipeline_running = any('rpicam-vid' in p.name() or 'ffmpeg' in p.name() for p in psutil.process_iter())
+if not pipeline_running:
+    print('[AUTO] Starting rpicam-vid + ffmpeg pipeline...')
+    subprocess.Popen(['sudo', 'modprobe', 'v4l2loopback', 'video_nr=10', 'card_label=VirtualCam', 'exclusive_caps=1'])
+    cmd = (
+        'rpicam-vid -t 0 -n --codec mjpeg --width 1280 --height 720 --framerate 30 -o - | '
+        'ffmpeg -i - -f v4l2 -pix_fmt yuv420p /dev/video10'
+    )
+    subprocess.Popen(cmd, shell=True)
+    import time; time.sleep(2)  # Give pipeline time to start
 
 # Utility: start rpicam-vid pipeline if requested (must be before cv2 import)
 if '--start-pipeline' in sys.argv:
