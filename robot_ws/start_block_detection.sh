@@ -1,19 +1,8 @@
-# --- VENV SETUP: Always ensure venv exists and is activated FIRST ---
-if [ ! -d venv ]; then
-    echo "[INFO] Creating Python virtual environment..."
-    python3 -m venv venv
-    echo "[INFO] Installing dependencies (opencv-contrib-python, numpy, psutil)..."
-    ./venv/bin/pip install --upgrade pip
-    ./venv/bin/pip install opencv-contrib-python numpy psutil
-    echo "[INFO] Virtual environment ready. Please re-run this script."
-    exit 0
-fi
 
-source venv/bin/activate
-# Print active venv for confirmation
-echo "[INFO] Using Python from: $(which python3)"
+# --- SYSTEM PYTHON/OPENCV: No venv required ---
+echo "[INFO] Using system Python: $(which python3)"
 echo "[INFO] Python version: $(python3 --version)"
-# --- END VENV SETUP ---
+# --- END SYSTEM PYTHON/OPENCV ---
 
 #!/bin/bash
 
@@ -62,10 +51,8 @@ done
 sleep 2
 
 
-# Activate venv if needed
-if [ -f venv/bin/activate ]; then
-    source venv/bin/activate
-fi
+
+# No venv activation needed; using system Python
 
 # Start block detection (main script)
 python3 block_publisher.py
