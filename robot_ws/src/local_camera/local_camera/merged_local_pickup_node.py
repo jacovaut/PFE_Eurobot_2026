@@ -31,7 +31,7 @@ class MergedLocalPickupNode(Node):
         # Parameters
         self.declare_parameter('udp_port', 5005)
         self.udp_port = int(self.get_parameter('udp_port').value)
-        self.state_timer = self.create_timer(0.2, self.state_machine)
+        self.state_timer = self.create_timer(0.05, self.state_machine)  # 20Hz for lower latency
         # Perception
         self.bridge = CvBridge()
         self.image_pub = self.create_publisher(Image, 'topic_camera_image', 10)
