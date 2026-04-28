@@ -65,7 +65,7 @@ sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 # ArUco setup
 dictionary = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
 parameters = cv2.aruco.DetectorParameters()
-cap = cv2.VideoCapture(10)  # Use your camera device
+cap = cv2.VideoCapture('/dev/video10')  # Use device path for robust access
 
 while True:
     ret, frame = cap.read()
