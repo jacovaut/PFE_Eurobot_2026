@@ -1,14 +1,8 @@
-#!/usr/bin/env python3
-import cv2
-import numpy as np
-import socket
-import json
-import time
-import os
 import sys
+import os
 import subprocess
 
-# Utility: create venv if requested
+# Utility: create venv if requested (must be before cv2 import)
 if '--make-venv' in sys.argv:
     venv_dir = 'venv'
     if not os.path.exists(venv_dir):
@@ -19,11 +13,9 @@ if '--make-venv' in sys.argv:
         print(f"[INFO] Virtual environment already exists: {venv_dir}")
     sys.exit(0)
 
-# Utility: start rpicam-vid pipeline if requested
+# Utility: start rpicam-vid pipeline if requested (must be before cv2 import)
 if '--start-pipeline' in sys.argv:
-    # Load v4l2loopback if needed
     subprocess.run(['sudo', 'modprobe', 'v4l2loopback', 'video_nr=10', 'card_label=VirtualCam', 'exclusive_caps=1'])
-    # Start pipeline
     cmd = (
         'rpicam-vid -t 0 -n --codec mjpeg --width 1280 --height 720 --framerate 30 -o - | '
         'ffmpeg -i - -f v4l2 -pix_fmt yuv420p /dev/video10'
@@ -32,6 +24,15 @@ if '--start-pipeline' in sys.argv:
     print('[INFO] Press Ctrl+C to stop.')
     subprocess.run(cmd, shell=True)
     sys.exit(0)
+
+import cv2
+import numpy as np
+import socket
+import json
+import time
+import os
+import sys
+import subprocess
 
 # UDP setup
 UDP_IP = "127.0.0.1"  # Use "127.0.0.1" for host-networked Docker, or container IP if bridged
