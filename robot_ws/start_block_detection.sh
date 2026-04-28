@@ -1,3 +1,9 @@
+# Kill any old camera pipeline processes
+echo "[INFO] Killing old rpicam-vid, ffmpeg, and libcamera processes..."
+pkill -9 -f rpicam-vid
+pkill -9 -f ffmpeg
+pkill -9 -f libcamera
+sleep 1
 #!/bin/bash
 
 # Start v4l2loopback (if not already loaded)
