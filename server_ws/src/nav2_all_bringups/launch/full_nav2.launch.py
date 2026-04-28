@@ -15,7 +15,7 @@ def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument(
             'params_file',
-            default_value=os.path.join(pkg_share, 'config', 'nav2_no_lidar.yaml'),
+            default_value=os.path.join(pkg_share, 'config', 'nav2_full.yaml'),
         ),
         DeclareLaunchArgument(
             'use_sim_time',
