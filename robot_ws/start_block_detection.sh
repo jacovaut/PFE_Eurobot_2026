@@ -1,5 +1,5 @@
 #!/bin/bash
-done
+
 # Start v4l2loopback (if not already loaded)
 sudo modprobe v4l2loopback video_nr=10 card_label=VirtualCam exclusive_caps=1
 
