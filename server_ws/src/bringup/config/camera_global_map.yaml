@@ -23,10 +23,8 @@ global_localization_node:
     enable_clahe_preprocessing: false
     clahe_clip_limit: 3.0
     clahe_tile_size: 16
-    # global_cam_test.yml has a badly off-center principal point (cx=2232, cy=1409 vs expected 1920,1080)
-    # which causes systematic solvePnP origin errors. Use the properly calibrated file instead.
-    # TODO: recalibrate the global camera specifically for best results.
-    calibration_file: "/home/isaac/PFE_Eurobot_2026/server_ws/src/pfe/camera_calibration/calibration_mec.yml"
+    # Calibration file defaults to the installed pfe package share path.
+    # Override calibration_file at launch only when testing a different calibration.
     debug_view: true
 
     # Frames / topics
@@ -97,7 +95,6 @@ external_perception_node:
     height: 2160
     fps: 15
     fourcc: "MJPG"
-    calibration_file: "/home/isaac/PFE_Eurobot_2026/server_ws/src/pfe/camera_calibration/3840_2160_ELM12MP.yml"
     debug_view: true
     marker_to_base_yaw: 0.0
 
