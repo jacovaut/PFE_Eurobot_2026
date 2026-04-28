@@ -54,7 +54,7 @@ class ClusterAnalyzeNode(Node):
 
         # --- Parameters (tunable later) ---
         self.team_color = self.declare_parameter("team_color", "jaune").value
-        self.robot_marker_id = int(self.declare_parameter("robot_marker_id", 7).value)
+        self.robot_marker_id = int(self.declare_parameter("robot_marker_id", 1).value)
 
         self.cluster_eps_m = float(self.declare_parameter("cluster_eps_m", 0.15).value)
         self.cluster_min_samples = int(self.declare_parameter("cluster_min_samples", 2).value)

@@ -33,6 +33,7 @@ def generate_launch_description():
     publish_block_obstacles = LaunchConfiguration('publish_block_obstacles')
     use_cluster_pipeline = LaunchConfiguration('use_cluster_pipeline')
     cluster_team_color = LaunchConfiguration('cluster_team_color')
+    cluster_robot_marker_id = LaunchConfiguration('cluster_robot_marker_id')
     cluster_show_debug_window = LaunchConfiguration('cluster_show_debug_window')
     cluster_goal_min_score = LaunchConfiguration('cluster_goal_min_score')
     cluster_goal_offset_m = LaunchConfiguration('cluster_goal_offset_m')
@@ -73,6 +74,11 @@ def generate_launch_description():
             'cluster_team_color',
             default_value='jaune',
             description='Team color for cluster scoring (jaune|bleu)'
+        ),
+        DeclareLaunchArgument(
+            'cluster_robot_marker_id',
+            default_value='1',
+            description='Robot ArUco marker id used in detected_blocks for cluster scoring'
         ),
         DeclareLaunchArgument(
             'cluster_show_debug_window',
@@ -127,6 +133,7 @@ def generate_launch_description():
             condition=IfCondition(use_cluster_pipeline),
             parameters=[{
                 'team_color': cluster_team_color,
+                'robot_marker_id': cluster_robot_marker_id,
                 'show_debug_window': cluster_show_debug_window,
             }],
         ),
