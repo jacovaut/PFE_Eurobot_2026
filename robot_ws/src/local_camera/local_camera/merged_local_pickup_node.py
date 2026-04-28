@@ -91,6 +91,17 @@ class MergedLocalPickupNode(Node):
             -0.00044101,  
             0.04127062
         ], dtype=np.float64)
+        # Add missing object points for solvePnP (marker corners in 3D)
+        m = self.marker_length / 2.0
+        self.obj_points_blc = np.array([
+            [-m,  m, 0.0],
+            [ m,  m, 0.0],
+            [ m, -m, 0.0],
+            [-m, -m, 0.0],
+        ], dtype=np.float32)
+
+        # Optional: Debug image saving
+        self.debug_image_path = '/tmp/merged_node_debug.jpg'
         self.get_logger().info("[MERGED] Node initialized. Starting state machine.")
 
     def publish_cup_tf(self, cup_index, tvec, q_cam, stamp=None):
@@ -141,6 +152,12 @@ class MergedLocalPickupNode(Node):
             self.get_logger().warn('[SEQ] No frame from camera, waiting...')
             return
         gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY) if frame.ndim == 3 else frame
+        # Save debug image for troubleshooting
+        try:
+            cv2.imwrite(self.debug_image_path, frame)
+            self.get_logger().info(f'[SEQ] Saved debug image to {self.debug_image_path}')
+        except Exception as e:
+            self.get_logger().warn(f'[SEQ] Could not save debug image: {e}')
         corners, ids, _ = cv2.aruco.detectMarkers(gray_frame, self.dictionary, parameters=self.parameters)
         blocks = {}
         if ids is not None:
