@@ -93,6 +93,21 @@ class MergedLocalPickupNode(Node):
         ], dtype=np.float64)
         self.get_logger().info("[MERGED] Node initialized. Starting state machine.")
 
+    def publish_cup_tf(self, cup_index, tvec, q_cam, stamp=None):
+        # Publish TF for cup_N in base_link or arducam_optical_frame
+        t = TransformStamped()
+        t.header.stamp = self.get_clock().now().to_msg() if stamp is None else stamp
+        t.header.frame_id = "arducam_optical_frame"  # or "base_link" if you prefer
+        t.child_frame_id = f"cup_{cup_index}"
+        t.transform.translation.x = float(tvec[0])
+        t.transform.translation.y = float(tvec[1])
+        t.transform.translation.z = float(tvec[2])
+        t.transform.rotation.x = float(q_cam[0])
+        t.transform.rotation.y = float(q_cam[1])
+        t.transform.rotation.z = float(q_cam[2])
+        t.transform.rotation.w = float(q_cam[3])
+        self.tf_broadcaster.sendTransform(t)
+
     def state_machine(self):
         if self.state == 'init_camera':
             self.get_logger().info('[SEQ] Connecting to camera...')
@@ -115,9 +130,28 @@ class MergedLocalPickupNode(Node):
             corners, ids, _ = cv2.aruco.detectMarkers(gray_frame, self.dictionary, parameters=self.parameters)
             found_cups = 0
             if ids is not None:
-                for marker_id in ids.flatten():
+                for i, marker_id in enumerate(ids.flatten()):
                     if int(marker_id) in self.id_color_map:
                         found_cups += 1
+                        # Estimate pose for each detected cup marker
+                        ok, rvec, tvec = cv2.solvePnP(
+                            self.obj_points_blc,
+                            np.array(corners[i], dtype=np.float32),
+                            self.camera_matrix,
+                            self.dist_coeffs,
+                            flags=cv2.SOLVEPNP_IPPE_SQUARE
+                        )
+                        if not ok:
+                            continue
+                        rvec = rvec.reshape(3)
+                        tvec = tvec.reshape(3)
+                        R, _ = cv2.Rodrigues(rvec)
+                        T_rot = np.eye(4)
+                        T_rot[:3, :3] = R
+                        q_cam = tf_transformations.quaternion_from_matrix(T_rot)
+                        # Map marker_id to cup index (assuming 47:jaune->cup_0, 36:bleu->cup_1, etc.)
+                        cup_index = list(self.id_color_map.keys()).index(int(marker_id))
+                        self.publish_cup_tf(cup_index, tvec, q_cam)
             self.get_logger().info(f'[SEQ] Cups detected: {found_cups}/{self.required_cups}')
             if found_cups >= self.required_cups:
                 self.cups_ready = True
