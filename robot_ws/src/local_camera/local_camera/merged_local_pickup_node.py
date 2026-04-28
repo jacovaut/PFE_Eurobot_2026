@@ -114,10 +114,11 @@ class MergedLocalPickupNode(Node):
             self.get_logger().info('[SEQ] Connecting to camera...')
             self.camera = cv2.VideoCapture(self.stream_url if self.camera_mode == 'stream' else self.cameraDeviceNumber)
             if self.camera.isOpened():
+                self.camera.set(cv2.CAP_PROP_AUTOFOCUS, 1)  # Enable autofocus
                 self.camera.set(cv2.CAP_PROP_FRAME_WIDTH, self.output_width)
                 self.camera.set(cv2.CAP_PROP_FRAME_HEIGHT, self.output_height)
                 self.camera.set(cv2.CAP_PROP_FPS, 30)
-                self.get_logger().info('[SEQ] Camera connected.')
+                self.get_logger().info('[SEQ] Camera connected with autofocus ON.')
             else:
                 self.get_logger().warn('[SEQ] Camera not ready, retrying...')
                 return
