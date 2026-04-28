@@ -44,6 +44,7 @@ sudo modprobe v4l2loopback video_nr=10 card_label=VirtualCam exclusive_caps=1
 PIPELINE_PID=$!
 
 
+
 # Wait for /dev/video10 to be ready (max 10 seconds)
 for i in {1..10}; do
     if [ -e /dev/video10 ]; then
@@ -51,6 +52,9 @@ for i in {1..10}; do
     fi
     sleep 1
 done
+
+# Extra delay to ensure device is ready
+sleep 2
 
 
 # Activate venv if needed
