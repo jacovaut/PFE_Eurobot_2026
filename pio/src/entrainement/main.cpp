@@ -12,7 +12,7 @@
 //                     |   
 //                     | lx
 //                     |
-//  [2] /        \ [3] |
+//  [3] /        \ [2] |
 //        Back         ⊥
 //  ⊢-----------------⊣
 //           ly
@@ -140,7 +140,7 @@ void timercallback(rcl_timer_t *timer, int64_t last_call_time)
     RCSOFTCHECK(rcl_publish(&deadwheel_pub, &deadwheel_msg, NULL));
 
     //Update local odometry
-    double time = esp_timer_get_time() * 1e-6; // possible improvement : use rcl time instead of esp_timer
+    // double time = esp_timer_get_time() * 1e-6; // possible improvement : use rcl time instead of esp_timer
     // Deadwheel.deadwheel_odometry(ticks[0], ticks[1], ticks[2], time);
   }
 }
@@ -152,7 +152,7 @@ MotorDriver motor1(17, 16, 4);
 MotorDriver motor2(15, 13, 12);
 MotorDriver motor3(26, 25, 33);
 MotorDriver motor4(23, 22, 21);
-MotorDriver* motors[] = { &motor1, &motor2, &motor3, &motor4 };
+MotorDriver* motors[] = { &motor1, &motor2, &motor3, &motor4 }; // FL, FR, RR, RL
 
 // Robot motion and dimmention variables
 float vx = 0; // m/s
@@ -286,7 +286,7 @@ void setSpeed(float new_vx, float new_vy, float new_w) {
         return;
     }
     
-    float wheelSpeeds [4] = {0, 0, 0, 0};
+    float wheelSpeeds [4] = {0, 0, 0, 0}; // FL, FR, RR, RL
     
     // get the wheel speeds in rad/s
     calculateWheelSpeeds(vx, vy, w, wheelSpeeds);
@@ -306,10 +306,10 @@ void setSpeed(float new_vx, float new_vy, float new_w) {
 }
 
 void calculateWheelSpeeds(float vx, float vy, float w, float* wheelSpeeds) { // self explanatory
-    wheelSpeeds[0] = (1/r) * ( vx + vy - w*lxy ); // FL
-    wheelSpeeds[1] = (1/r) * ( vx - vy + w*lxy ); // FR
-    wheelSpeeds[2] = (1/r) * ( vx - vy - w*lxy ); // RL
-    wheelSpeeds[3] = (1/r) * ( vx + vy + w*lxy ); // RR
+    wheelSpeeds[0] =   (1/r) * ( vx + vy - w*lxy ); // FL
+    wheelSpeeds[1] = - (1/r) * ( vx + vy + w*lxy ); // FR
+    wheelSpeeds[2] = - (1/r) * ( vx - vy + w*lxy ); // RR
+    wheelSpeeds[3] =   (1/r) * ( vx - vy - w*lxy ); // RL
 }
 
 
