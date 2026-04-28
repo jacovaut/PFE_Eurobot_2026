@@ -29,21 +29,8 @@ class MergedLocalPickupNode(Node):
     def __init__(self):
         super().__init__('merged_local_pickup_node')
         # Parameters
-        self.declare_parameter('debug_save_image', False)
-        self.debug_save_image = bool(self.get_parameter('debug_save_image').value)
-        self.declare_parameter('camera_mode', 'stream')
-        self.declare_parameter('stream_url', 'tcp://127.0.0.1:8888')
-        self.declare_parameter('camera_device', 0)
-        self.declare_parameter('show_debug_window', False)
-        self.camera_mode = str(self.get_parameter('camera_mode').value).strip().lower()
-        self.stream_url = str(self.get_parameter('stream_url').value).strip()
-        self.cameraDeviceNumber = int(self.get_parameter('camera_device').value)
-        self.show_debug_window = bool(self.get_parameter('show_debug_window').value)
-        self.output_width = 1280
-        self.output_height = 720
-        # Camera
-        self.camera = None
-        self.state = 'init_camera'
+        self.declare_parameter('udp_port', 5005)
+        self.udp_port = int(self.get_parameter('udp_port').value)
         self.state_timer = self.create_timer(0.2, self.state_machine)
         # Perception
         self.bridge = CvBridge()
@@ -120,19 +107,8 @@ class MergedLocalPickupNode(Node):
         self.tf_broadcaster.sendTransform(t)
 
     def state_machine(self):
-        # 1. Ensure camera is connected
-        if self.camera is None or not self.camera.isOpened():
-            self.get_logger().info('[SEQ] Connecting to camera...')
-            self.camera = cv2.VideoCapture(self.stream_url if self.camera_mode == 'stream' else self.cameraDeviceNumber)
-            if self.camera.isOpened():
-                self.camera.set(cv2.CAP_PROP_AUTOFOCUS, 1)  # Enable autofocus
-                self.camera.set(cv2.CAP_PROP_FRAME_WIDTH, self.output_width)
-                self.camera.set(cv2.CAP_PROP_FRAME_HEIGHT, self.output_height)
-                self.camera.set(cv2.CAP_PROP_FPS, 30)
-                self.get_logger().info('[SEQ] Camera connected with autofocus ON.')
-            else:
-                self.get_logger().warn('[SEQ] Camera not ready, retrying...')
-                return
+
+        # 1. (Camera logic removed, not used)
 
         # 2. Try to lookup all cup frames in TF
         cups = {}
@@ -151,7 +127,7 @@ class MergedLocalPickupNode(Node):
         import socket
         import json
         UDP_IP = "0.0.0.0"
-        UDP_PORT = 5005
+        UDP_PORT = self.udp_port
         if not hasattr(self, 'udp_sock'):
             self.udp_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             self.udp_sock.bind((UDP_IP, UDP_PORT))
