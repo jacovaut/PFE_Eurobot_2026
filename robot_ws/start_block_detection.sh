@@ -1,3 +1,16 @@
+# Ensure venv exists and is activated
+if [ ! -d venv ]; then
+    echo "[INFO] Creating Python virtual environment..."
+    python3 -m venv venv
+    echo "[INFO] Installing dependencies (opencv-contrib-python, numpy, psutil)..."
+    ./venv/bin/pip install --upgrade pip
+    ./venv/bin/pip install opencv-contrib-python numpy psutil
+    echo "[INFO] Virtual environment ready. Please re-run this script."
+    exit 0
+fi
+
+# Activate venv
+source venv/bin/activate
 
 #!/bin/bash
 
