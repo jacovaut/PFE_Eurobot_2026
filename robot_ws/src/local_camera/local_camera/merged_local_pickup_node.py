@@ -62,33 +62,10 @@ class MergedLocalPickupNode(Node):
         self.cups_ready = False
         self.blocks_ready = False
         self.solver_ready = False
-        # ArUco
-        self.dictionary = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
-        self.parameters = cv2.aruco.DetectorParameters_create()
-        self.marker_length = 0.03
-        self.camera_matrix = np.array([
-            [457.33917579,   0.0,         637.592287  ],
-            [  0.0,         453.81772548, 374.90978642],
-            [  0.0,           0.0,           1.        ] 
-        ], dtype=np.float64)
-        self.dist_coeffs = np.array([
-            -0.0241479, 
-            -0.01872201,  
-            0.00181977, 
-            -0.00044101,  
-            0.04127062
-        ], dtype=np.float64)
-        # Add missing object points for solvePnP (marker corners in 3D)
-        m = self.marker_length / 2.0
-        self.obj_points_blc = np.array([
-            [-m,  m, 0.0],
-            [ m,  m, 0.0],
-            [ m, -m, 0.0],
-            [-m, -m, 0.0],
-        ], dtype=np.float32)
 
-        # Optional: Debug image saving
-        self.debug_image_path = '/tmp/merged_node_debug.jpg'
+        """
+        MergedLocalPickupNode: Receives block info via UDP and runs pickup logic.
+        """
         self.get_logger().info("[MERGED] Node initialized. Starting state machine.")
 
     def publish_cup_tf(self, cup_index, tvec, q_cam, stamp=None):
@@ -121,6 +98,7 @@ class MergedLocalPickupNode(Node):
                 self.get_logger().info(f'[SEQ] Waiting for TF: {cup_name}')
                 return
         self.get_logger().info(f'[SEQ] All cup frames found in TF.')
+
 
 
         # 3. Receive blocks via UDP
