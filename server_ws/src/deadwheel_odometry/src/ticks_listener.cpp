@@ -1,9 +1,7 @@
 #include <rclcpp/rclcpp.hpp>
 #include "custom_msgs/msg/deadwheel_ticks.hpp"
 #include <cmath>
-#include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 #include <nav_msgs/msg/odometry.hpp>
-#include <tf2/LinearMath/Matrix3x3.h>
 #include <tf2/LinearMath/Quaternion.h>
 #include <mutex>
 //#include <tf2_ros/transform_broadcaster.h>
@@ -17,7 +15,6 @@ class TicksListener : public rclcpp::Node
 {
   private : 
     rclcpp::Subscription<custom_msgs::msg::DeadwheelTicks>::SharedPtr subscription_;
-    rclcpp::Subscription<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr initial_pose_sub_;
     rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_pub_;
     //std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
 
@@ -37,37 +34,6 @@ class TicksListener : public rclcpp::Node
     int64_t prevTicks[3] = {0, 0, 0};
     bool initialized_{false};
     rclcpp::Time prev_stamp_;
-
-    double yawFromQuaternion(const geometry_msgs::msg::Quaternion& orientation)
-    {
-      tf2::Quaternion q(
-        orientation.x,
-        orientation.y,
-        orientation.z,
-        orientation.w);
-      q.normalize();
-
-      double roll = 0.0;
-      double pitch = 0.0;
-      double yaw = 0.0;
-      tf2::Matrix3x3(q).getRPY(roll, pitch, yaw);
-      return normalizeAngleSigned(yaw);
-    }
-
-    void setPose(double x, double y, double yaw, const rclcpp::Time& stamp)
-    {
-      x__ = x;
-      y__ = y;
-      theta__ = normalizeAngleSigned(yaw);
-      vx = 0.0;
-      vy = 0.0;
-      omega = 0.0;
-
-      if (initialized_) {
-        prev_stamp_ = stamp;
-        publishOdom(stamp);
-      }
-    }
 
     void publishOdom(const rclcpp::Time& stamp)
     { 
@@ -142,26 +108,6 @@ class TicksListener : public rclcpp::Node
 
       odom_pub_ = this->create_publisher<nav_msgs::msg::Odometry>("odom_deadwheels", 10);
       //tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
-
-      initial_pose_sub_ = this->create_subscription<geometry_msgs::msg::PoseWithCovarianceStamped>(
-      "/initialpose", 10,[this](geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg)
-      {
-        std::lock_guard<std::mutex> lock(mtx_);
-
-        const rclcpp::Time stamp = msg->header.stamp.sec == 0 && msg->header.stamp.nanosec == 0
-          ? this->now()
-          : rclcpp::Time(msg->header.stamp);
-
-        const double x = msg->pose.pose.position.x;
-        const double y = msg->pose.pose.position.y;
-        const double yaw = yawFromQuaternion(msg->pose.pose.orientation);
-        setPose(x, y, yaw, stamp);
-
-        RCLCPP_INFO(
-          this->get_logger(),
-          "Initial pose set from RViz: frame=%s x=%.3f y=%.3f yaw=%.1f deg",
-          msg->header.frame_id.c_str(), x__, y__, theta__ * 180.0 / M_PI);
-      });
 
       subscription_ = this->create_subscription<custom_msgs::msg::DeadwheelTicks>(
       "deadwheel_ticks", 50,[this](custom_msgs::msg::DeadwheelTicks::SharedPtr msg)

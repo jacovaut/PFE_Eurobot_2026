@@ -28,6 +28,7 @@ setup(
     },
     entry_points={
         'console_scripts': [
+            'initial_pose_bridge = ekf_bringup.initial_pose_bridge:main',
         ],
     },
 )

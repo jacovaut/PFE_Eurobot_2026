@@ -60,5 +60,16 @@ def generate_launch_description():
             output='screen',
             parameters=[ekf2_config],
             remappings=[('/odometry/filtered', '/odometry/global')],
+        ),
+        Node(
+            package='ekf_bringup',
+            executable='initial_pose_bridge',
+            name='initial_pose_bridge',
+            output='screen',
+            parameters=[{
+                'input_topic': '/initialpose',
+                'set_pose_service': '/ekf_global_node/set_pose',
+                'map_frame': 'map',
+            }],
         )
     ])
