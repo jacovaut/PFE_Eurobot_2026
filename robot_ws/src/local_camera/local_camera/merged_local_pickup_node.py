@@ -62,7 +62,7 @@ def wrap_angle(a):
 
 
 def compute_best_pickup(cups, blocks):
-    MAX_ERROR = 0.03
+    MAX_ERROR = 2.0
     MAX_YAW = math.radians(90)
 
     W_BLOCKS = 100.0
@@ -208,7 +208,7 @@ class MergedLocalPickupNode(Node):
         if abs(d[2]) < 1e-6:
             return None
 
-        TABLE_Z = 0.0
+        TABLE_Z = -0.153
 
         s = (TABLE_Z - origin[2]) / d[2]
 
