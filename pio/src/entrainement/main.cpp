@@ -12,7 +12,7 @@
 //                     |   
 //                     | lx
 //                     |
-//  [2] /        \ [3] |
+//  [3] /        \ [2] |
 //        Back         ⊥
 //  ⊢-----------------⊣
 //           ly
@@ -34,6 +34,7 @@
 #include "deadwheels.h"
 #include <stdint.h>
 #include <micro_ros_platformio.h>
+#include <WiFi.h>
 
 /* ---------------------- ROS INCLUDES ---------------------- */
 #include <rcl/rcl.h>
@@ -87,7 +88,7 @@ void error_loop(){
 }
 /* ------------------------------------------------------------- */
 
-deadwheels Deadwheel(36, 34, 2, 19, 35, 32); // A0, B0, A1, B1, A2, B2
+deadwheels Deadwheel(35, 32, 2, 19, 36, 34); // A0, B0, A1, B1, A2, B2
 
 struct CmdVel {
   float vx;
@@ -140,7 +141,7 @@ void timercallback(rcl_timer_t *timer, int64_t last_call_time)
     RCSOFTCHECK(rcl_publish(&deadwheel_pub, &deadwheel_msg, NULL));
 
     //Update local odometry
-    double time = esp_timer_get_time() * 1e-6; // possible improvement : use rcl time instead of esp_timer
+    // double time = esp_timer_get_time() * 1e-6; // possible improvement : use rcl time instead of esp_timer
     // Deadwheel.deadwheel_odometry(ticks[0], ticks[1], ticks[2], time);
   }
 }
@@ -152,7 +153,7 @@ MotorDriver motor1(17, 16, 4);
 MotorDriver motor2(15, 13, 12);
 MotorDriver motor3(26, 25, 33);
 MotorDriver motor4(23, 22, 21);
-MotorDriver* motors[] = { &motor1, &motor2, &motor3, &motor4 };
+MotorDriver* motors[] = { &motor1, &motor2, &motor3, &motor4 }; // FL, FR, RR, RL
 
 // Robot motion and dimmention variables
 float vx = 0; // m/s
@@ -173,14 +174,22 @@ void setup() {
     
     allocator = rcl_get_default_allocator();
     
-    Serial.begin(115200);
-    set_microros_serial_transports(Serial);
+    Serial.begin(2000000);
+    // set_microros_serial_transports(Serial);
+    IPAddress agent_ip(192,168,1,185);
+
+    set_microros_wifi_transports(
+        "GRUM",
+        "GELE>GMEC",
+        agent_ip,
+        8888
+    );
     
     // Wait for agent
     while (rmw_uros_ping_agent(1000, 1) != RMW_RET_OK) {
         delay(1000);
     }
-    
+
     rmw_uros_sync_session(1000);  // try to sync with agent for up to 1s
     
     RCCHECK(rclc_support_init(&support, 0, NULL, &allocator));
@@ -221,7 +230,7 @@ void setup() {
         &cmdvel_sub,
         &node,
         ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, Twist),
-        "cmd_vel"
+        "cmd_vel_smoothed"
     ));
     
     RCCHECK(rclc_executor_add_subscription(
@@ -286,7 +295,7 @@ void setSpeed(float new_vx, float new_vy, float new_w) {
         return;
     }
     
-    float wheelSpeeds [4] = {0, 0, 0, 0};
+    float wheelSpeeds [4] = {0, 0, 0, 0}; // FL, FR, RR, RL
     
     // get the wheel speeds in rad/s
     calculateWheelSpeeds(vx, vy, w, wheelSpeeds);
@@ -306,10 +315,10 @@ void setSpeed(float new_vx, float new_vy, float new_w) {
 }
 
 void calculateWheelSpeeds(float vx, float vy, float w, float* wheelSpeeds) { // self explanatory
-    wheelSpeeds[0] = (1/r) * ( vx + vy - w*lxy ); // FL
-    wheelSpeeds[1] = (1/r) * ( vx - vy + w*lxy ); // FR
-    wheelSpeeds[2] = (1/r) * ( vx - vy - w*lxy ); // RL
-    wheelSpeeds[3] = (1/r) * ( vx + vy + w*lxy ); // RR
+    wheelSpeeds[0] =   (1/r) * ( vx + vy - w*lxy ); // FL
+    wheelSpeeds[1] = - (1/r) * ( vx + vy + w*lxy ); // FR
+    wheelSpeeds[2] = - (1/r) * ( vx - vy + w*lxy ); // RR
+    wheelSpeeds[3] =   (1/r) * ( vx - vy - w*lxy ); // RL
 }
 
 
@@ -347,8 +356,7 @@ void core1 (void* pvParameters){
 void core2(void* pvParameters){
     for (;;)
     {
-        RCSOFTCHECK(rclc_executor_spin_some(&executor, RCL_MS_TO_NS(10)));
-        vTaskDelay(1);
+        RCSOFTCHECK(rclc_executor_spin_some(&executor, 0));
     }
 }
 

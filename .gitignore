@@ -46,3 +46,5 @@ venv/
 sklearn-env/
 
 uros_ws/*
+
+/server_ws/src/camera_calibration/calibration/calibration_images/*.png
