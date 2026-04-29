@@ -49,12 +49,12 @@ class PickupCandidate:
 
 
 # =========================
-# MATH HELPERS
+# MATH
 # =========================
 def rotate_xy(p, yaw):
     c = math.cos(yaw)
     s = math.sin(yaw)
-    return XY(c * p.x - s * p.y, s * p.x + c * p.y)
+    return XY(c*p.x - s*p.y, s*p.x + c*p.y)
 
 
 def angle_between(a, b):
@@ -63,18 +63,13 @@ def angle_between(a, b):
 
 def wrap_angle(a):
     while a > math.pi:
-        a -= 2 * math.pi
+        a -= 2*math.pi
     while a < -math.pi:
-        a += 2 * math.pi
+        a += 2*math.pi
     return a
 
 
 def rectangular_yaw_diff_deg(a, b):
-    """
-    For rectangular blocks:
-    0 deg and 180 deg are equivalent.
-    0 deg and 90 deg are perpendicular.
-    """
     return abs((a - b + 90.0) % 180.0 - 90.0)
 
 
@@ -82,6 +77,7 @@ def rectangular_yaw_diff_deg(a, b):
 # SOLVER
 # =========================
 def compute_best_pickup(cups, blocks, team_color="blue"):
+
     MAX_ERROR = 0.040
     MAX_YAW = math.radians(105)
     MAX_BLOCK_YAW_DIFF_DEG = 20.0
@@ -98,25 +94,25 @@ def compute_best_pickup(cups, blocks, team_color="blue"):
     best = None
 
     for n in range(1, min(len(cup_items), len(block_items)) + 1):
+
         for cup_subset in combinations(cup_items, n):
             for block_subset in combinations(block_items, n):
 
-                # Reject groups where blocks are not parallel
+                # --- YAW CONSISTENCY ---
                 if n > 1:
-                    reference_yaw = block_subset[0][1].yaw_deg
-
+                    ref = block_subset[0][1].yaw_deg
                     yaw_spread = 0.0
-                    parallel_ok = True
+                    valid_parallel = True
 
-                    for _, block in block_subset[1:]:
-                        diff = rectangular_yaw_diff_deg(reference_yaw, block.yaw_deg)
+                    for _, b in block_subset[1:]:
+                        diff = rectangular_yaw_diff_deg(ref, b.yaw_deg)
                         yaw_spread = max(yaw_spread, diff)
 
                         if diff > MAX_BLOCK_YAW_DIFF_DEG:
-                            parallel_ok = False
+                            valid_parallel = False
                             break
 
-                    if not parallel_ok:
+                    if not valid_parallel:
                         continue
                 else:
                     yaw_spread = 0.0
@@ -136,13 +132,12 @@ def compute_best_pickup(cups, blocks, team_color="blue"):
                     if abs(yaw) > MAX_YAW:
                         continue
 
-                    dx = 0.0
-                    dy = 0.0
+                    dx = dy = 0.0
 
-                    for (cup_name, cup_xy), (block_name, block) in zip(cup_subset, perm):
-                        rc = rotate_xy(cup_xy, yaw)
-                        dx += block.x - rc.x
-                        dy += block.y - rc.y
+                    for (cn, cxy), (bn, b) in zip(cup_subset, perm):
+                        rc = rotate_xy(cxy, yaw)
+                        dx += b.x - rc.x
+                        dy += b.y - rc.y
 
                     dx /= n
                     dy /= n
@@ -150,37 +145,35 @@ def compute_best_pickup(cups, blocks, team_color="blue"):
                     total_err = 0.0
                     color_score = 0.0
                     valid = True
-                    assignments = []
+                    assigns = []
 
-                    for (cup_name, cup_xy), (block_name, block) in zip(cup_subset, perm):
-                        rc = rotate_xy(cup_xy, yaw)
+                    for (cn, cxy), (bn, b) in zip(cup_subset, perm):
+                        rc = rotate_xy(cxy, yaw)
 
-                        projected_x = rc.x + dx
-                        projected_y = rc.y + dy
+                        px = rc.x + dx
+                        py = rc.y + dy
 
-                        err = math.hypot(projected_x - block.x, projected_y - block.y)
+                        err = math.hypot(px - b.x, py - b.y)
 
                         if err > MAX_ERROR:
                             valid = False
                             break
 
-                        if block.color == team_color:
-                            color_score += 1.0
-                        elif block.color == "unknown":
-                            color_score += 0.0
-                        else:
+                        if b.color == team_color:
+                            color_score += 1
+                        elif b.color != "unknown":
                             color_score -= 0.5
 
                         total_err += err
 
-                        assignments.append({
-                            "cup": cup_name,
-                            "block": block.name,
-                            "color": block.color,
+                        assigns.append({
+                            "cup": cn,
+                            "block": b.name,
+                            "color": b.color,
                             "err_m": err,
-                            "err_mm": err * 1000.0,
-                            "raw_id": block.raw_id,
-                            "block_yaw_deg": block.yaw_deg,
+                            "err_mm": err * 1000,
+                            "raw_id": b.raw_id,
+                            "block_yaw_deg": b.yaw_deg
                         })
 
                     if not valid:
@@ -196,18 +189,12 @@ def compute_best_pickup(cups, blocks, team_color="blue"):
                         - W_BLOCK_PARALLEL * yaw_spread
                     )
 
-                    candidate = PickupCandidate(
-                        score=score,
-                        picked_count=n,
-                        avg_error=avg_err,
-                        yaw=yaw,
-                        dx=dx,
-                        dy=dy,
-                        assignments=assignments
+                    cand = PickupCandidate(
+                        score, n, avg_err, yaw, dx, dy, assigns
                     )
 
-                    if best is None or candidate.score > best.score:
-                        best = candidate
+                    if best is None or cand.score > best.score:
+                        best = cand
 
     return best
 
@@ -218,126 +205,160 @@ def compute_best_pickup(cups, blocks, team_color="blue"):
 class MergedLocalPickupNode(Node):
 
     def __init__(self):
-        super().__init__("merged_local_pickup_node")
+        super().__init__('merged_local_pickup_node')
 
-        self.declare_parameter("udp_port", 5005)
-        self.declare_parameter("team_color", "blue")
-        self.declare_parameter("block_timeout_sec", 1.0)
-        self.declare_parameter("match_distance_m", 0.035)
+        self.declare_parameter('udp_port', 5005)
+        self.declare_parameter('team_color', 'blue')
+        self.declare_parameter('block_timeout_sec', 1.0)
+        self.declare_parameter('match_distance_m', 0.035)
 
-        self.udp_port = int(self.get_parameter("udp_port").value)
-        self.team_color = str(self.get_parameter("team_color").value)
-        self.block_timeout_sec = float(self.get_parameter("block_timeout_sec").value)
-        self.match_distance_m = float(self.get_parameter("match_distance_m").value)
+        self.udp_port = int(self.get_parameter('udp_port').value)
+        self.team_color = str(self.get_parameter('team_color').value)
+        self.block_timeout_sec = float(self.get_parameter('block_timeout_sec').value)
+        self.match_distance_m = float(self.get_parameter('match_distance_m').value)
 
-        self.id_to_color = {
-            36: "blue",
-            47: "yellow",
-        }
+        # ID → color
+        self.id_to_color = {36: "blue", 47: "yellow"}
 
+        # TF
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self)
 
         self.cup_frames = ["cup_0", "cup_1", "cup_2", "cup_3"]
 
+        # tracking
         self.tracked_blocks = {}
-        self.next_index_by_color = {
-            "blue": 0,
-            "yellow": 0,
-            "unknown": 0,
-        }
+        self.next_index_by_color = {"blue": 0, "yellow": 0, "unknown": 0}
 
+        # publishers
         self.pickup_pose_pub = self.create_publisher(Pose2D, "/pickup_pose", 10)
         self.best_pickup_pub = self.create_publisher(String, "/best_pickup", 10)
         self.manip_info_pub = self.create_publisher(String, "/manip_info", 10)
 
+        # subscriber for unlock
+        self.pickup_status_sub = self.create_subscription(
+            String,
+            "/pickup_status",
+            self.pickup_status_callback,
+            10
+        )
+
+        # confidence lock
+        self.lock_required_frames = 5
+        self.candidate_signature = None
+        self.candidate_count = 0
+        self.locked_signature = None
+        self.locked_best = None
+        self.solution_locked = False
+
+        # UDP
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 8192)
         self.sock.bind(("0.0.0.0", self.udp_port))
         self.sock.setblocking(False)
 
         self.timer = self.create_timer(0.05, self.loop)
 
-        self.get_logger().info("[SOLVER] READY")
-        self.get_logger().info(f"[SOLVER] team_color={self.team_color}")
+        self.get_logger().info("[SOLVER READY]")
+
+    # =========================
+    # LOCK CALLBACK
+    # =========================
+    def pickup_status_callback(self, msg):
+        status = msg.data.lower().strip()
+
+        if status in ["done", "unlock", "success", "failed"]:
+            self.get_logger().info(f"[LOCK] released by robot: {status}")
+
+            self.solution_locked = False
+            self.locked_signature = None
+            self.locked_best = None
+            self.candidate_signature = None
+            self.candidate_count = 0
+
+    # =========================
+    # LOCK LOGIC
+    # =========================
+    def get_signature(self, best):
+        return "|".join(
+            sorted([f"{a['cup']}->{a['block']}" for a in best.assignments])
+        )
+
+    def update_lock(self, best):
+
+        if self.solution_locked:
+            return self.locked_best
+
+        if best is None:
+            self.candidate_signature = None
+            self.candidate_count = 0
+            return None
+
+        sig = self.get_signature(best)
+
+        if sig == self.candidate_signature:
+            self.candidate_count += 1
+        else:
+            self.candidate_signature = sig
+            self.candidate_count = 1
+
+        if self.candidate_count >= self.lock_required_frames:
+            self.solution_locked = True
+            self.locked_signature = sig
+            self.locked_best = best
+
+            self.get_logger().info(f"[LOCKED] {sig}")
+            return best
+
+        self.get_logger().info(f"[CANDIDATE] {sig} ({self.candidate_count}/5)")
+        return None
 
     # =========================
     # TRACKING
     # =========================
-    def normalize_color(self, color):
-        color = str(color).lower().strip()
-
-        if color in ["blue", "b", "bleu"]:
-            return "blue"
-        if color in ["yellow", "y", "jaune"]:
-            return "yellow"
-
-        return "unknown"
-
-    def make_block_name(self, color):
-        if color not in self.next_index_by_color:
-            self.next_index_by_color[color] = 0
-
+    def make_name(self, color):
         idx = self.next_index_by_color[color]
         self.next_index_by_color[color] += 1
-
         return f"{color}_{idx}"
 
-    def update_tracked_blocks(self, detections):
-        now = self.get_clock().now().nanoseconds * 1e-9
-        updated_names = set()
+    def update_tracking(self, detections):
 
-        for det in detections:
+        now = self.get_clock().now().nanoseconds * 1e-9
+        updated = set()
+
+        for d in detections:
             best_name = None
             best_dist = None
 
-            for name, tracked in self.tracked_blocks.items():
-                if tracked.color != det.color:
+            for name, t in self.tracked_blocks.items():
+                if t.color != d.color or name in updated:
                     continue
 
-                if name in updated_names:
-                    continue
-
-                dist = math.hypot(det.x - tracked.x, det.y - tracked.y)
+                dist = math.hypot(d.x - t.x, d.y - t.y)
 
                 if best_dist is None or dist < best_dist:
                     best_dist = dist
                     best_name = name
 
-            if best_name is not None and best_dist <= self.match_distance_m:
-                tracked = self.tracked_blocks[best_name]
-                tracked.x = det.x
-                tracked.y = det.y
-                tracked.yaw_deg = det.yaw_deg
-                tracked.last_seen = now
-                tracked.raw_id = det.raw_id
-                updated_names.add(best_name)
-
+            if best_name and best_dist < self.match_distance_m:
+                t = self.tracked_blocks[best_name]
+                t.x = d.x
+                t.y = d.y
+                t.yaw_deg = d.yaw_deg
+                t.last_seen = now
+                updated.add(best_name)
             else:
-                new_name = self.make_block_name(det.color)
+                name = self.make_name(d.color)
+                self.tracked_blocks[name] = d
+                updated.add(name)
 
-                self.tracked_blocks[new_name] = Block(
-                    name=new_name,
-                    x=det.x,
-                    y=det.y,
-                    color=det.color,
-                    yaw_deg=det.yaw_deg,
-                    last_seen=now,
-                    raw_id=det.raw_id
-                )
+        # cleanup
+        to_del = []
+        for name, b in self.tracked_blocks.items():
+            if now - b.last_seen > self.block_timeout_sec:
+                to_del.append(name)
 
-                updated_names.add(new_name)
-
-        names_to_delete = []
-
-        for name, block in self.tracked_blocks.items():
-            age = now - block.last_seen
-
-            if age > self.block_timeout_sec:
-                names_to_delete.append(name)
-
-        for name in names_to_delete:
-            del self.tracked_blocks[name]
+        for n in to_del:
+            del self.tracked_blocks[n]
 
         return self.tracked_blocks
 
@@ -346,25 +367,22 @@ class MergedLocalPickupNode(Node):
     # =========================
     def loop(self):
 
+        # cups
         cups = {}
-
         for name in self.cup_frames:
             try:
                 tf = self.tf_buffer.lookup_transform(
-                    "base_link",
-                    name,
+                    "base_link", name,
                     rclpy.time.Time(),
                     timeout=rclpy.duration.Duration(seconds=0.005)
                 )
-
                 t = tf.transform.translation
-                cups[name] = XY(float(t.x), float(t.y))
-
-            except Exception:
+                cups[name] = XY(t.x, t.y)
+            except:
                 return
 
+        # UDP
         latest = None
-
         while True:
             try:
                 data, _ = self.sock.recvfrom(4096)
@@ -372,168 +390,102 @@ class MergedLocalPickupNode(Node):
             except BlockingIOError:
                 break
 
-        raw_blocks = []
+        raw = []
+        if latest:
+            raw = json.loads(latest.decode())
 
-        if latest is not None:
-            try:
-                raw_blocks = json.loads(latest.decode())
-
-                if isinstance(raw_blocks, dict):
-                    raw_blocks = [raw_blocks]
-
-            except Exception as e:
-                self.get_logger().warn(f"Bad UDP JSON: {e}")
-                raw_blocks = []
-
+        # TF cam
         try:
             tf = self.tf_buffer.lookup_transform(
-                "base_link",
-                "arducam_optical_frame",
+                "base_link", "arducam_optical_frame",
                 rclpy.time.Time(),
                 timeout=rclpy.duration.Duration(seconds=0.005)
             )
-
-        except Exception as e:
-            self.get_logger().warn(f"Missing camera TF: {e}")
+        except:
             return
 
         t = tf.transform.translation
         q = tf.transform.rotation
-
-        quat = [q.x, q.y, q.z, q.w]
-        T = tf_transformations.quaternion_matrix(quat)
+        T = tf_transformations.quaternion_matrix([q.x, q.y, q.z, q.w])
         T[0:3, 3] = [t.x, t.y, t.z]
 
         detections = []
 
-        for b in raw_blocks:
-            if "x_cam" not in b or "y_cam" not in b or "z_cam" not in b:
-                continue
-
+        for b in raw:
             try:
                 raw_id = int(b.get("id", -1))
+                color = self.id_to_color.get(raw_id, "unknown")
+                yaw = float(b.get("yaw_deg", 0.0))
 
-                if "color" in b:
-                    color = self.normalize_color(b.get("color", "unknown"))
-                else:
-                    color = self.id_to_color.get(raw_id, "unknown")
-
-                yaw_deg = float(b.get("yaw_deg", 0.0))
-
-                p_cam = np.array([
+                p = np.array([
                     float(b["x_cam"]),
                     float(b["y_cam"]),
                     float(b["z_cam"]),
                     1.0
                 ])
 
-                p_base = T @ p_cam
+                pb = T @ p
 
                 detections.append(Block(
-                    name="detection",
-                    x=float(p_base[0]),
-                    y=float(p_base[1]),
+                    name="d",
+                    x=pb[0],
+                    y=pb[1],
                     color=color,
-                    yaw_deg=yaw_deg,
+                    yaw_deg=yaw,
+                    last_seen=0.0,
                     raw_id=raw_id
                 ))
 
-            except Exception as e:
-                self.get_logger().warn(f"Bad block data skipped: {e}")
+            except:
                 continue
 
-        blocks = self.update_tracked_blocks(detections)
+        blocks = self.update_tracking(detections)
 
         if not blocks:
             return
 
-        self.get_logger().info(f"[SOLVER] tracked blocks: {blocks}")
+        best = compute_best_pickup(cups, blocks, self.team_color)
 
-        best = compute_best_pickup(
-            cups=cups,
-            blocks=blocks,
-            team_color=self.team_color
-        )
+        locked = self.update_lock(best)
 
-        if best is None:
+        if not locked:
             return
 
-        self.publish_best_pickup(best)
-
-        assignment_text = ", ".join(
-            [
-                f"{a['cup']}->{a['block']}({a['color']}, yaw={a['block_yaw_deg']:.1f})"
-                for a in best.assignments
-            ]
-        )
-
-        self.get_logger().info(
-            f"BEST | pick={best.picked_count} "
-            f"| score={best.score:.1f} "
-            f"| err={best.avg_error * 1000:.1f}mm "
-            f"| pickup_yaw={math.degrees(best.yaw):.1f}deg "
-            f"| dx={best.dx:.3f} "
-            f"| dy={best.dy:.3f} "
-            f"| cups=[{assignment_text}]"
-        )
+        self.publish_best_pickup(locked)
 
     # =========================
-    # PUBLISHERS
+    # PUBLISH
     # =========================
     def publish_best_pickup(self, best):
 
         pose = Pose2D()
-        pose.x = float(best.dx)
-        pose.y = float(best.dy)
-        pose.theta = float(best.yaw)
+        pose.x = best.dx
+        pose.y = best.dy
+        pose.theta = best.yaw
         self.pickup_pose_pub.publish(pose)
 
-        msg_data = {
-            "pickup_pose": {
-                "x": best.dx,
-                "y": best.dy,
-                "yaw_rad": best.yaw,
-                "yaw_deg": math.degrees(best.yaw),
-            },
-            "score": best.score,
-            "picked_count": best.picked_count,
-            "avg_error_m": best.avg_error,
-            "avg_error_mm": best.avg_error * 1000.0,
-            "team_color": self.team_color,
-            "assignments": best.assignments
-        }
-
         msg = String()
-        msg.data = json.dumps(msg_data)
+        msg.data = json.dumps({
+            "dx": best.dx,
+            "dy": best.dy,
+            "yaw_deg": math.degrees(best.yaw),
+            "assignments": best.assignments
+        })
         self.best_pickup_pub.publish(msg)
 
-        pump_colors = {
-            "cup_0": "",
-            "cup_1": "",
-            "cup_2": "",
-            "cup_3": "",
-        }
+        pump = {"cup_0": "", "cup_1": "", "cup_2": "", "cup_3": ""}
 
         for a in best.assignments:
-            color = a.get("color", "unknown")
+            if a["color"] == "blue":
+                pump[a["cup"]] = "B"
+            elif a["color"] == "yellow":
+                pump[a["cup"]] = "Y"
 
-            if color == "blue":
-                pump_colors[a["cup"]] = "B"
-            elif color == "yellow":
-                pump_colors[a["cup"]] = "Y"
-            else:
-                pump_colors[a["cup"]] = "U"
+        s = f"P1={pump['cup_0']} ,P2={pump['cup_1']} ,P3={pump['cup_2']} ,P4={pump['cup_3']}"
 
-        manip_text = (
-            f"P1={pump_colors['cup_0']} ,"
-            f"P2={pump_colors['cup_1']} ,"
-            f"P3={pump_colors['cup_2']} ,"
-            f"P4={pump_colors['cup_3']}"
-        )
-
-        manip_msg = String()
-        manip_msg.data = manip_text
-        self.manip_info_pub.publish(manip_msg)
+        m = String()
+        m.data = s
+        self.manip_info_pub.publish(m)
 
 
 # =========================
