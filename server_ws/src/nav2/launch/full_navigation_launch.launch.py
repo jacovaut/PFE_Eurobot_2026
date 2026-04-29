@@ -293,7 +293,6 @@ def generate_launch_description():
                             {'autostart': autostart, 'node_names': lifecycle_nodes}
                         ],
                     ),
-<<<<<<< HEAD:server_ws/src/nav2/launch/full_navigation_launch.launch.py
                     ComposableNode(
                         package='nav2_map_server',
                         plugin='nav2_map_server::MapServer',
@@ -303,17 +302,6 @@ def generate_launch_description():
                             {'yaml_filename': LaunchConfiguration('map')},
                         ],
                     ),
-=======
-                    # ComposableNode(
-                    #     package='nav2_map_server',
-                    #     plugin='nav2_map_server::MapServer',
-                    #     name='map_server',
-                    #     parameters=[
-                    #         {'yaml_filename': LaunchConfiguration('map')},
-                    #         configured_params
-                    #     ],
-                    # ),
->>>>>>> 1ef7ff8e8c0f1d9dda3ba258a9735151d7c186f9:server_ws/src/nav2_all_bringups/launch/full_navigation_launch.launch.py
                 ],
             ),
         ],
