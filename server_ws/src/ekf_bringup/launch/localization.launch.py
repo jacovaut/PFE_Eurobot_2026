@@ -68,7 +68,7 @@ def generate_launch_description():
             output='screen',
             parameters=[{
                 'input_topic': '/initialpose',
-                'set_pose_service': '/ekf_global_node/set_pose',
+                'set_pose_service': '/set_pose',
                 'map_frame': 'map',
             }],
         )
