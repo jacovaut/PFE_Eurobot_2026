@@ -1,5 +1,7 @@
 
+
 # --- SYSTEM PYTHON/OPENCV: No venv required ---
+set -e
 echo "[INFO] Using system Python: $(which python3)"
 echo "[INFO] Python version: $(python3 --version)"
 # --- END SYSTEM PYTHON/OPENCV ---
@@ -56,4 +58,4 @@ sleep 2
 # No venv activation needed; using system Python
 
 # Start block detection (main script)
-python3 block_publisher.py
+python3 block_publisher.py || { echo "[ERROR] block_publisher.py failed, cleaning up pipeline..."; cleanup; exit 1; }
