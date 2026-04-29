@@ -123,7 +123,7 @@ def generate_launch_description():
 
     declare_map_file_cmd = DeclareLaunchArgument(
         'map',
-        # default_value=os.path.join(bringup_dir, 'params', 'map_config.yaml'),
+        default_value=os.path.join(bringup_dir, 'params', 'map_config.yaml'),
         # description='Full path to the map yaml file to use for the map_server node',
     )
 
@@ -293,15 +293,15 @@ def generate_launch_description():
                             {'autostart': autostart, 'node_names': lifecycle_nodes}
                         ],
                     ),
-                    ComposableNode(
-                        package='nav2_map_server',
-                        plugin='nav2_map_server::MapServer',
-                        name='map_server',
-                        parameters=[
-                            {'yaml_filename': LaunchConfiguration('map')},
-                            configured_params
-                        ],
-                    ),
+                    # ComposableNode(
+                    #     package='nav2_map_server',
+                    #     plugin='nav2_map_server::MapServer',
+                    #     name='map_server',
+                    #     parameters=[
+                    #         {'yaml_filename': LaunchConfiguration('map')},
+                    #         configured_params
+                    #     ],
+                    # ),
                 ],
             ),
         ],
