@@ -1,6 +1,10 @@
 #!/bin/bash
 
+source ./install/setup.bash
+
 SESSION="ros2_echo"
+
+tmux kill-session -t $SESSION 2>/dev/null
 
 tmux new-session -d -s $SESSION
 
@@ -23,4 +27,4 @@ tmux send-keys -t $SESSION "ros2 topic echo /camera/global_pose" C-m
 tmux select-layout -t $SESSION tiled
 
 # Attach to session
-tmux attach -t $SESSION
+exec tmux attach -t $SESSION
