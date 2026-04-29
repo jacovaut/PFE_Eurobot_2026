@@ -18,7 +18,7 @@ setup(
 
         # Install config files
         (os.path.join('share', package_name, 'config'),
-            glob('config/*.yaml')),
+            glob('config/*')), # add *.yaml if you only want yaml files
     ],
     install_requires=['setuptools'],
     zip_safe=True,
