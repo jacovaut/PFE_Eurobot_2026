@@ -1,152 +1,517 @@
 #!/usr/bin/env python3
-import os
-import cv2
 import rclpy
 from rclpy.node import Node
-from sensor_msgs.msg import Image
-from cv_bridge import CvBridge
-from std_msgs.msg import String
-from geometry_msgs.msg import TransformStamped
-from visualization_msgs.msg import Marker, MarkerArray
-import numpy as np
-import json
-import time
-import tf_transformations
 import rclpy.duration
-from tf2_ros import TransformBroadcaster, Buffer, TransformListener
-from tf2_msgs.msg import TFMessage
-from collections import defaultdict
-import math
-from dataclasses import dataclass
-from typing import Dict, List, Tuple, Optional
 
+from geometry_msgs.msg import Pose2D
+from std_msgs.msg import String
+from tf2_ros import Buffer, TransformListener
+
+import socket
+import json
+import math
+import numpy as np
+import tf_transformations
+
+from dataclasses import dataclass
+from itertools import combinations, permutations
+
+
+# =========================
+# DATA STRUCTURES
+# =========================
 @dataclass
 class XY:
     x: float
     y: float
 
+
+@dataclass
+class Block:
+    name: str
+    x: float
+    y: float
+    color: str = "unknown"
+    yaw_deg: float = 0.0
+    last_seen: float = 0.0
+    raw_id: int = -1
+
+
+@dataclass
+class PickupCandidate:
+    score: float
+    picked_count: int
+    avg_error: float
+    yaw: float
+    dx: float
+    dy: float
+    assignments: list
+
+
+# =========================
+# MATH
+# =========================
+def rotate_xy(p, yaw):
+    c = math.cos(yaw)
+    s = math.sin(yaw)
+    return XY(c*p.x - s*p.y, s*p.x + c*p.y)
+
+
+def angle_between(a, b):
+    return math.atan2(b.y - a.y, b.x - a.x)
+
+
+def wrap_angle(a):
+    while a > math.pi:
+        a -= 2*math.pi
+    while a < -math.pi:
+        a += 2*math.pi
+    return a
+
+
+def rectangular_yaw_diff_deg(a, b):
+    return abs((a - b + 90.0) % 180.0 - 90.0)
+
+
+# =========================
+# SOLVER
+# =========================
+def compute_best_pickup(cups, blocks, team_color="blue"):
+
+    MAX_ERROR = 0.040
+    MAX_YAW = math.radians(105)
+    MAX_BLOCK_YAW_DIFF_DEG = 20.0
+
+    W_BLOCKS = 3000.0
+    W_ERROR = 4000.0
+    W_YAW = 10.0
+    W_COLOR = 100.0
+    W_BLOCK_PARALLEL = 25.0
+
+    cup_items = list(cups.items())
+    block_items = list(blocks.items())
+
+    best = None
+
+    for n in range(1, min(len(cup_items), len(block_items)) + 1):
+
+        for cup_subset in combinations(cup_items, n):
+            for block_subset in combinations(block_items, n):
+
+                # --- YAW CONSISTENCY ---
+                if n > 1:
+                    ref = block_subset[0][1].yaw_deg
+                    yaw_spread = 0.0
+                    valid_parallel = True
+
+                    for _, b in block_subset[1:]:
+                        diff = rectangular_yaw_diff_deg(ref, b.yaw_deg)
+                        yaw_spread = max(yaw_spread, diff)
+
+                        if diff > MAX_BLOCK_YAW_DIFF_DEG:
+                            valid_parallel = False
+                            break
+
+                    if not valid_parallel:
+                        continue
+                else:
+                    yaw_spread = 0.0
+
+                for perm in permutations(block_subset):
+
+                    if n == 1:
+                        yaw = 0.0
+                    else:
+                        (_, c1), (_, c2) = cup_subset[0], cup_subset[-1]
+                        (_, b1), (_, b2) = perm[0], perm[-1]
+
+                        yaw = wrap_angle(
+                            angle_between(b1, b2) - angle_between(c1, c2)
+                        )
+
+                    if abs(yaw) > MAX_YAW:
+                        continue
+
+                    dx = dy = 0.0
+
+                    for (cn, cxy), (bn, b) in zip(cup_subset, perm):
+                        rc = rotate_xy(cxy, yaw)
+                        dx += b.x - rc.x
+                        dy += b.y - rc.y
+
+                    dx /= n
+                    dy /= n
+
+                    total_err = 0.0
+                    color_score = 0.0
+                    valid = True
+                    assigns = []
+
+                    for (cn, cxy), (bn, b) in zip(cup_subset, perm):
+                        rc = rotate_xy(cxy, yaw)
+
+                        px = rc.x + dx
+                        py = rc.y + dy
+
+                        err = math.hypot(px - b.x, py - b.y)
+
+                        if err > MAX_ERROR:
+                            valid = False
+                            break
+
+                        if b.color == team_color:
+                            color_score += 1
+                        elif b.color != "unknown":
+                            color_score -= 0.5
+
+                        total_err += err
+
+                        assigns.append({
+                            "cup": cn,
+                            "block": b.name,
+                            "color": b.color,
+                            "err_m": err,
+                            "err_mm": err * 1000,
+                            "raw_id": b.raw_id,
+                            "block_yaw_deg": b.yaw_deg
+                        })
+
+                    if not valid:
+                        continue
+
+                    avg_err = total_err / n
+
+                    score = (
+                        W_BLOCKS * n
+                        - W_ERROR * avg_err
+                        - W_YAW * abs(math.degrees(yaw))
+                        + W_COLOR * color_score
+                        - W_BLOCK_PARALLEL * yaw_spread
+                    )
+
+                    cand = PickupCandidate(
+                        score, n, avg_err, yaw, dx, dy, assigns
+                    )
+
+                    if best is None or cand.score > best.score:
+                        best = cand
+
+    return best
+
+
+# =========================
+# NODE
+# =========================
 class MergedLocalPickupNode(Node):
+
     def __init__(self):
         super().__init__('merged_local_pickup_node')
-        # Parameters
+
         self.declare_parameter('udp_port', 5005)
+        self.declare_parameter('team_color', 'blue')
+        self.declare_parameter('block_timeout_sec', 1.0)
+        self.declare_parameter('match_distance_m', 0.035)
+
         self.udp_port = int(self.get_parameter('udp_port').value)
-        self.state_timer = self.create_timer(0.05, self.state_machine)  # 20Hz for lower latency
-        # Perception
-        self.bridge = CvBridge()
-        self.image_pub = self.create_publisher(Image, 'topic_camera_image', 10)
-        self.marker_pub = self.create_publisher(MarkerArray, 'aruco_markers', 10)
-        self.tf_broadcaster = TransformBroadcaster(self)
+        self.team_color = str(self.get_parameter('team_color').value)
+        self.block_timeout_sec = float(self.get_parameter('block_timeout_sec').value)
+        self.match_distance_m = float(self.get_parameter('match_distance_m').value)
+
+        # ID → color
+        self.id_to_color = {36: "blue", 47: "yellow"}
+
+        # TF
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self)
-        # Pickup
+
         self.cup_frames = ["cup_0", "cup_1", "cup_2", "cup_3"]
-        self.required_cups = len(self.cup_frames)
-        self.memory = {}
-        self.memory_timeout = 1.0
-        self.next_track_index = {}
-        self.match_dist = 0.12
-        self.block_size = 0.05
-        self.block_center_z = self.block_size / 2.0
-        self.pickup_frame_parent = "base_link"
-        self.pickup_frame_name = "pickup_frame"
-        self.pickup_tx = 0.0
-        self.pickup_ty = 0.0
-        self.pickup_tz = 0.0
-        self.pickup_roll = 0.0
-        self.pickup_pitch = 0.0
-        self.pickup_yaw = 0.0
-        self.id_color_map = {47: "jaune", 36: "bleu"}
-        self.cups_detected = 0
-        self.blocks_detected = 0
-        self.cups_ready = False
-        self.blocks_ready = False
-        self.solver_ready = False
 
-        """
-        MergedLocalPickupNode: Receives block info via UDP and runs pickup logic.
-        """
-        self.get_logger().info("[MERGED] Node initialized. Starting state machine.")
+        # tracking
+        self.tracked_blocks = {}
+        self.next_index_by_color = {"blue": 0, "yellow": 0, "unknown": 0}
 
-    def publish_cup_tf(self, cup_index, tvec, q_cam, stamp=None):
-        # Publish TF for cup_N in base_link or arducam_optical_frame
-        t = TransformStamped()
-        t.header.stamp = self.get_clock().now().to_msg() if stamp is None else stamp
-        t.header.frame_id = "arducam_optical_frame"  # or "base_link" if you prefer
-        t.child_frame_id = f"cup_{cup_index}"
-        t.transform.translation.x = float(tvec[0])
-        t.transform.translation.y = float(tvec[1])
-        t.transform.translation.z = float(tvec[2])
-        t.transform.rotation.x = float(q_cam[0])
-        t.transform.rotation.y = float(q_cam[1])
-        t.transform.rotation.z = float(q_cam[2])
-        t.transform.rotation.w = float(q_cam[3])
-        self.tf_broadcaster.sendTransform(t)
+        # publishers
+        self.pickup_pose_pub = self.create_publisher(Pose2D, "/pickup_pose", 10)
+        self.best_pickup_pub = self.create_publisher(String, "/best_pickup", 10)
+        self.manip_info_pub = self.create_publisher(String, "/manip_info", 10)
 
-    def state_machine(self):
+        # subscriber for unlock
+        self.pickup_status_sub = self.create_subscription(
+            String,
+            "/pickup_status",
+            self.pickup_status_callback,
+            10
+        )
 
-        # 1. (Camera logic removed, not used)
+        # confidence lock
+        self.lock_required_frames = 5
+        self.candidate_signature = None
+        self.candidate_count = 0
+        self.locked_signature = None
+        self.locked_best = None
+        self.solution_locked = False
 
-        # 2. Try to lookup all cup frames in TF
+        # UDP
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.sock.bind(("0.0.0.0", self.udp_port))
+        self.sock.setblocking(False)
+
+        self.timer = self.create_timer(0.05, self.loop)
+
+        self.get_logger().info("[SOLVER READY]")
+
+    # =========================
+    # LOCK CALLBACK
+    # =========================
+    def pickup_status_callback(self, msg):
+        status = msg.data.lower().strip()
+
+        if status in ["done", "unlock", "success", "failed"]:
+            self.get_logger().info(f"[LOCK] released by robot: {status}")
+
+            self.solution_locked = False
+            self.locked_signature = None
+            self.locked_best = None
+            self.candidate_signature = None
+            self.candidate_count = 0
+
+    # =========================
+    # LOCK LOGIC
+    # =========================
+    def get_signature(self, best):
+        return "|".join(
+            sorted([f"{a['cup']}->{a['block']}" for a in best.assignments])
+        )
+
+    def update_lock(self, best):
+
+        if self.solution_locked:
+            return self.locked_best
+
+        if best is None:
+            self.candidate_signature = None
+            self.candidate_count = 0
+            return None
+
+        sig = self.get_signature(best)
+
+        if sig == self.candidate_signature:
+            self.candidate_count += 1
+        else:
+            self.candidate_signature = sig
+            self.candidate_count = 1
+
+        if self.candidate_count >= self.lock_required_frames:
+            self.solution_locked = True
+            self.locked_signature = sig
+            self.locked_best = best
+
+            self.get_logger().info(f"[LOCKED] {sig}")
+            return best
+
+        self.get_logger().info(f"[CANDIDATE] {sig} ({self.candidate_count}/5)")
+        return None
+
+    # =========================
+    # TRACKING
+    # =========================
+    def make_name(self, color):
+        idx = self.next_index_by_color[color]
+        self.next_index_by_color[color] += 1
+        return f"{color}_{idx}"
+
+    def update_tracking(self, detections):
+
+        now = self.get_clock().now().nanoseconds * 1e-9
+
+        updated = set()
+
+        for d in detections:
+            best_name = None
+            best_dist = None
+
+            for name, t in self.tracked_blocks.items():
+                if t.color != d.color or name in updated:
+                    continue
+
+                dist = math.hypot(d.x - t.x, d.y - t.y)
+
+                if best_dist is None or dist < best_dist:
+                    best_dist = dist
+                    best_name = name
+
+            if best_name is not None and best_dist < self.match_distance_m:
+                t = self.tracked_blocks[best_name]
+                t.x = d.x
+                t.y = d.y
+                t.yaw_deg = d.yaw_deg
+                t.raw_id = d.raw_id
+                t.last_seen = now
+                updated.add(best_name)
+
+            else:
+                name = self.make_name(d.color)
+
+                self.tracked_blocks[name] = Block(
+                    name=name,
+                    x=d.x,
+                    y=d.y,
+                    color=d.color,
+                    yaw_deg=d.yaw_deg,
+                    last_seen=now,
+                    raw_id=d.raw_id
+                )
+
+                updated.add(name)
+
+        to_del = []
+
+        for name, b in self.tracked_blocks.items():
+            if now - b.last_seen > self.block_timeout_sec:
+                to_del.append(name)
+
+        for name in to_del:
+            del self.tracked_blocks[name]
+
+        return self.tracked_blocks
+    
+   
+    # =========================
+    # LOOP
+    # =========================
+    def loop(self):
+
+        # cups
         cups = {}
-        for cup_name in self.cup_frames:
+        for name in self.cup_frames:
             try:
-                tf = self.tf_buffer.lookup_transform('base_link', cup_name, rclpy.time.Time(), timeout=rclpy.duration.Duration(seconds=0.1))
+                tf = self.tf_buffer.lookup_transform(
+                    "base_link", name,
+                    rclpy.time.Time(),
+                    timeout=rclpy.duration.Duration(seconds=0.005)
+                )
                 t = tf.transform.translation
-                cups[cup_name] = XY(t.x, t.y)
-            except Exception:
-                self.get_logger().info(f'[SEQ] Waiting for TF: {cup_name}')
+                cups[name] = XY(t.x, t.y)
+            except:
                 return
-        self.get_logger().info(f'[SEQ] All cup frames found in TF.')
 
+        # UDP
+        latest = None
+        while True:
+            try:
+                data, _ = self.sock.recvfrom(4096)
+                latest = data
+            except BlockingIOError:
+                break
 
+        raw = []
+        if latest:
+            raw = json.loads(latest.decode())
 
-        # 3. Receive blocks via UDP
-        import socket
-        import json
-        UDP_IP = "0.0.0.0"
-        UDP_PORT = self.udp_port
-        if not hasattr(self, 'udp_sock'):
-            self.udp_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            self.udp_sock.bind((UDP_IP, UDP_PORT))
-            self.udp_sock.setblocking(False)
-
-        blocks = {}
+        # TF cam
         try:
-            data, addr = self.udp_sock.recvfrom(4096)
-            block_list = json.loads(data.decode())
-            for block in block_list:
-                blocks[f"block_{block['id']}"] = XY(block['cx'], block['cy'])
-            self.get_logger().info(f'[SEQ][UDP] Blocks received: {len(blocks)}')
-        except BlockingIOError:
-            self.get_logger().info('[SEQ][UDP] No block info received yet...')
-            return
-        except Exception as e:
-            self.get_logger().warn(f'[SEQ][UDP] Error receiving block info: {e}')
-            return
-        if len(blocks) == 0:
-            self.get_logger().info('[SEQ][UDP] Waiting for blocks...')
+            tf = self.tf_buffer.lookup_transform(
+                "base_link", "arducam_optical_frame",
+                rclpy.time.Time(),
+                timeout=rclpy.duration.Duration(seconds=0.005)
+            )
+        except:
             return
 
-        # 4. Run pickup calculation (placeholder)
-        self.get_logger().info('[SEQ] Running pickup calculation!')
-        # Here you would call your compute_best_alignment() logic
-        self.solver_ready = True
-        self.get_logger().info('[SEQ] Pickup calculation complete. (Placeholder)')
+        t = tf.transform.translation
+        q = tf.transform.rotation
+        T = tf_transformations.quaternion_matrix([q.x, q.y, q.z, q.w])
+        T[0:3, 3] = [t.x, t.y, t.z]
 
-def main(args=None):
-    rclpy.init(args=args)
+        detections = []
+
+        for b in raw:
+            try:
+                raw_id = int(b.get("id", -1))
+                color = self.id_to_color.get(raw_id, "unknown")
+                yaw = float(b.get("yaw_deg", 0.0))
+
+                p = np.array([
+                    float(b["x_cam"]),
+                    float(b["y_cam"]),
+                    float(b["z_cam"]),
+                    1.0
+                ])
+
+                pb = T @ p
+
+                detections.append(Block(
+                    name="d",
+                    x=pb[0],
+                    y=pb[1],
+                    color=color,
+                    yaw_deg=yaw,
+                    last_seen=0.0,
+                    raw_id=raw_id
+                ))
+
+            except:
+                continue
+
+        blocks = self.update_tracking(detections)
+
+        if not blocks:
+            return
+
+        best = compute_best_pickup(cups, blocks, self.team_color)
+
+        locked = self.update_lock(best)
+
+        if not locked:
+            return
+
+        self.publish_best_pickup(locked)
+
+    # =========================
+    # PUBLISH
+    # =========================
+    def publish_best_pickup(self, best):
+
+        pose = Pose2D()
+        pose.x = best.dx
+        pose.y = best.dy
+        pose.theta = best.yaw
+        self.pickup_pose_pub.publish(pose)
+
+        msg = String()
+        msg.data = json.dumps({
+            "dx": best.dx,
+            "dy": best.dy,
+            "yaw_deg": math.degrees(best.yaw),
+            "assignments": best.assignments
+        })
+        self.best_pickup_pub.publish(msg)
+
+        pump = {"cup_0": "", "cup_1": "", "cup_2": "", "cup_3": ""}
+
+        for a in best.assignments:
+            if a["color"] == "blue":
+                pump[a["cup"]] = "B"
+            elif a["color"] == "yellow":
+                pump[a["cup"]] = "Y"
+
+        s = f"P1={pump['cup_0']} ,P2={pump['cup_1']} ,P3={pump['cup_2']} ,P4={pump['cup_3']}"
+
+        m = String()
+        m.data = s
+        self.manip_info_pub.publish(m)
+
+
+# =========================
+# MAIN
+# =========================
+def main():
+    rclpy.init()
     node = MergedLocalPickupNode()
-    try:
-        rclpy.spin(node)
-    finally:
-        try:
-            if node.camera is not None:
-                node.camera.release()
-        except Exception:
-            pass
-        node.destroy_node()
-        rclpy.shutdown()
+    rclpy.spin(node)
+    node.destroy_node()
+    rclpy.shutdown()
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()
