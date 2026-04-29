@@ -23,13 +23,25 @@ pkill -9 -f libcamera || true
 sleep 1
 
 echo "[INFO] Reloading v4l2loopback..."
-sudo modprobe -r v4l2loopback || true
-sudo modprobe v4l2loopback video_nr=10 card_label=VirtualCam exclusive_caps=1
+sudo modprobe -r v4l2loopback
+sudo modprobe v4l2loopback video_nr=10 card_label="LoopbackCam" exclusive_caps=1
 
 # Start the camera pipeline in the background
 (
-  rpicam-vid -t 0 -n --codec mjpeg --width 1280 --height 720 --framerate 30 -o - | \
-  ffmpeg -loglevel error -i - -f v4l2 -pix_fmt yuyv422 /dev/video10
+rpicam-vid -t 0 -n \
+  --codec mjpeg \
+  --width 1280 \
+  --height 720 \
+  --framerate 30 \
+  -o - \
+| ffmpeg -loglevel error \
+  -fflags nobuffer \
+  -flags low_delay \
+  -i - \
+  -f v4l2 \
+  -vcodec rawvideo \
+  -pix_fmt yuyv422 \
+  /dev/video10
 ) &
 PIPELINE_PID=$!
 
