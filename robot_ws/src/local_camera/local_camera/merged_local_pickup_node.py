@@ -71,13 +71,13 @@ def wrap_angle(a):
 # SOLVER
 # =========================
 def compute_best_pickup(cups, blocks, team_color="blue"):
-    MAX_ERROR = 0.020
+    MAX_ERROR = 0.03
     MAX_YAW = math.radians(90)
 
     W_BLOCKS = 1000.0
     W_ERROR = 8000.0
-    W_YAW = 20.0
-    W_COLOR = 100.0
+    W_YAW = 200.0
+    W_COLOR = 1000.0
 
     cup_items = list(cups.items())
     block_items = list(blocks.items())
@@ -212,6 +212,7 @@ class MergedLocalPickupNode(Node):
 
         self.pickup_pose_pub = self.create_publisher(Pose2D, "/pickup_pose", 10)
         self.best_pickup_pub = self.create_publisher(String, "/best_pickup", 10)
+        self.manip_info_pub = self.create_publisher(String, "/manip_info", 10)
 
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 8192)
@@ -478,6 +479,33 @@ class MergedLocalPickupNode(Node):
 
         self.best_pickup_pub.publish(msg)
 
+        pump_colors = {
+            "cup_0": "",
+            "cup_1": "",
+            "cup_2": "",
+            "cup_3": "",
+        }
+
+        for a in best.assignments:
+            color = a.get("color", "unknown")
+
+            if color == "blue":
+                pump_colors[a["cup"]] = "B"
+            elif color == "yellow":
+                pump_colors[a["cup"]] = "Y"
+            else:
+                pump_colors[a["cup"]] = "U"
+
+        manip_text = (
+            f"P1={pump_colors['cup_0']} ,"
+            f"P2={pump_colors['cup_1']} ,"
+            f"P3={pump_colors['cup_2']} ,"
+            f"P4={pump_colors['cup_3']}"
+        )
+
+        manip_msg = String()
+        manip_msg.data = manip_text
+        self.manip_info_pub.publish(manip_msg)
 
 # =========================
 # MAIN
