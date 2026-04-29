@@ -16,6 +16,9 @@ Servo servo2;
 // Track motor speeds
 int motorSpeeds[4] = {0, 0, 0, 0};
 
+// Encoder reading control
+bool encoderReadingEnabled = false;
+
 void setup() {
   Serial.begin(115200);
 
@@ -55,6 +58,11 @@ void setup() {
   // Servos
   servo1.attach(SERVO_LEFT_PIN);
   servo2.attach(SERVO_RIGHT_PIN);
+  
+  // Initialize servos to UP position to avoid blocking robot movement
+  servo1.write(ARM_UP_ANGLE);
+  servo2.write(ARM_UP_ANGLE);
+  delay(500);  // Wait for servos to reach position
 
   Serial.println("Robot initialized");
 }
@@ -79,21 +87,17 @@ void setMotor(int motor, int speed) {
   int pwm = abs(speed);
 
   if (speed > 0) {
-    // Forward
-    ledcDetachPin(in2);
-    ledcAttachPin(in1, channel);
+    // Forward: PWM on IN1, LOW on IN2
     digitalWrite(in2, LOW);
     ledcWrite(channel, pwm);
 
   } else if (speed < 0) {
-    // Reverse
-    ledcDetachPin(in1);
-    ledcAttachPin(in2, channel);
+    // Reverse: PWM on IN2, LOW on IN1
     digitalWrite(in1, LOW);
     ledcWrite(channel, pwm);
 
   } else {
-    // Stop
+    // Stop: PWM to 0, both pins LOW
     ledcWrite(channel, 0);
     digitalWrite(in1, LOW);
     digitalWrite(in2, LOW);
@@ -116,12 +120,12 @@ void setMecanumSpeeds(float vx, float vy, float omega) {
   float L = WHEELBASE_LENGTH / 2.0;
   float W = WHEELBASE_WIDTH / 2.0;
   float R = WHEEL_RADIUS;
-
+  Serial.printf("Calculating speeds for vx=%.2f, vy=%.2f, omega=%.2f\n", vx, vy, omega);
   float w1 = (vx - vy - (L + W) * omega) / R;
   float w2 = (vx + vy + (L + W) * omega) / R;
   float w3 = (vx + vy - (L + W) * omega) / R;
   float w4 = (vx - vy + (L + W) * omega) / R;
-
+  Serial.printf("Raw wheel speeds: w1=%.2f, w2=%.2f, w3=%.2f, w4=%.2f\n", w1, w2, w3, w4);
   float scale = MAX_SPEED / 1.0;
 
   int pwm1 = constrain((int)(w1 * scale), -MAX_SPEED, MAX_SPEED);
@@ -133,19 +137,22 @@ void setMecanumSpeeds(float vx, float vy, float omega) {
   setMotor(2, pwm2);
   setMotor(3, pwm3);
   setMotor(4, pwm4);
+  Serial.printf("Set speeds: FL=%d, FR=%d, RL=%d, RR=%d\n", pwm1, pwm2, pwm3, pwm4);
 }
 
 
 void loop() {
-  // Print encoder values
-  Serial.print("Encoders: ");
-  Serial.print(encoder1.getCount());
-  Serial.print(", ");
-  Serial.print(encoder2.getCount());
-  Serial.print(", ");
-  Serial.print(encoder3.getCount());
-  Serial.print(", ");
-  Serial.println(encoder4.getCount());
+  // Print encoder values (if enabled)
+  if (encoderReadingEnabled) {
+    Serial.print("Encoders: ");
+    Serial.print(encoder1.getCount());
+    Serial.print(", ");
+    Serial.print(encoder2.getCount());
+    Serial.print(", ");
+    Serial.print(encoder3.getCount());
+    Serial.print(", ");
+    Serial.println(encoder4.getCount());
+  }
 
   // Check for serial commands
   if (Serial.available()) {
@@ -222,6 +229,21 @@ void loop() {
           Serial.println("Pump: use 'p on' or 'p off'");
         }
       }
+    } else if (command.startsWith("enc ")) {
+      // Encoder control: enc on or enc off
+      int spaceIndex = command.indexOf(' ');
+      if (spaceIndex > 0) {
+        String state = command.substring(spaceIndex + 1);
+        if (state == "on") {
+          encoderReadingEnabled = true;
+          Serial.println("Encoder reading enabled");
+        } else if (state == "off") {
+          encoderReadingEnabled = false;
+          Serial.println("Encoder reading disabled");
+        } else {
+          Serial.println("Encoder: use 'enc on' or 'enc off'");
+        }
+      }
     } else if (command == "pick") {
       // Pick up block: lower servo, activate pump, wait, then lift
       Serial.println("Picking up block...");
@@ -249,7 +271,7 @@ void loop() {
       setServo(2, ARM_UP_ANGLE);
       Serial.println("Block released");
     } else {
-      Serial.println("Unknown command. Use: f/b/l/r/cw/ccw <speed>, stop, s <angle>, p on/off, pickup, release");
+      Serial.println("Unknown command. Use: f/b/l/r/cw/ccw <speed>, stop, s <angle>, p on/off, enc on/off, pick, release");
     }
   }
 
