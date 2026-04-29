@@ -9,7 +9,7 @@ tmux kill-session -t $SESSION 2>/dev/null
 tmux new-session -d -s $SESSION
 
 # First pane (default)
-tmux send-keys -t $SESSION "ros2 topic echo /deadwheeel_ticks" C-m
+tmux send-keys -t $SESSION "ros2 topic echo /deadwheel_ticks" C-m
 
 # Split horizontally
 tmux split-window -h -t $SESSION
