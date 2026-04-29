@@ -2,6 +2,7 @@
 import rclpy
 from rclpy.node import Node
 import rclpy.duration
+
 from geometry_msgs.msg import Pose2D
 from std_msgs.msg import String
 from tf2_ros import Buffer, TransformListener
@@ -12,7 +13,7 @@ import math
 import numpy as np
 import tf_transformations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from itertools import combinations, permutations
 
 
@@ -31,6 +32,7 @@ class Block:
     x: float
     y: float
     color: str = "unknown"
+    yaw_deg: float = 0.0
     last_seen: float = 0.0
     raw_id: int = -1
 
@@ -67,17 +69,28 @@ def wrap_angle(a):
     return a
 
 
+def rectangular_yaw_diff_deg(a, b):
+    """
+    For rectangular blocks:
+    0 deg and 180 deg are equivalent.
+    0 deg and 90 deg are perpendicular.
+    """
+    return abs((a - b + 90.0) % 180.0 - 90.0)
+
+
 # =========================
 # SOLVER
 # =========================
 def compute_best_pickup(cups, blocks, team_color="blue"):
-    MAX_ERROR = 0.03
-    MAX_YAW = math.radians(90)
+    MAX_ERROR = 0.040
+    MAX_YAW = math.radians(105)
+    MAX_BLOCK_YAW_DIFF_DEG = 20.0
 
-    W_BLOCKS = 1000.0
-    W_ERROR = 8000.0
-    W_YAW = 200.0
-    W_COLOR = 1000.0
+    W_BLOCKS = 3000.0
+    W_ERROR = 4000.0
+    W_YAW = 10.0
+    W_COLOR = 100.0
+    W_BLOCK_PARALLEL = 25.0
 
     cup_items = list(cups.items())
     block_items = list(blocks.items())
@@ -87,6 +100,27 @@ def compute_best_pickup(cups, blocks, team_color="blue"):
     for n in range(1, min(len(cup_items), len(block_items)) + 1):
         for cup_subset in combinations(cup_items, n):
             for block_subset in combinations(block_items, n):
+
+                # Reject groups where blocks are not parallel
+                if n > 1:
+                    reference_yaw = block_subset[0][1].yaw_deg
+
+                    yaw_spread = 0.0
+                    parallel_ok = True
+
+                    for _, block in block_subset[1:]:
+                        diff = rectangular_yaw_diff_deg(reference_yaw, block.yaw_deg)
+                        yaw_spread = max(yaw_spread, diff)
+
+                        if diff > MAX_BLOCK_YAW_DIFF_DEG:
+                            parallel_ok = False
+                            break
+
+                    if not parallel_ok:
+                        continue
+                else:
+                    yaw_spread = 0.0
+
                 for perm in permutations(block_subset):
 
                     if n == 1:
@@ -144,7 +178,9 @@ def compute_best_pickup(cups, blocks, team_color="blue"):
                             "block": block.name,
                             "color": block.color,
                             "err_m": err,
+                            "err_mm": err * 1000.0,
                             "raw_id": block.raw_id,
+                            "block_yaw_deg": block.yaw_deg,
                         })
 
                     if not valid:
@@ -157,6 +193,7 @@ def compute_best_pickup(cups, blocks, team_color="blue"):
                         - W_ERROR * avg_err
                         - W_YAW * abs(math.degrees(yaw))
                         + W_COLOR * color_score
+                        - W_BLOCK_PARALLEL * yaw_spread
                     )
 
                     candidate = PickupCandidate(
@@ -193,15 +230,15 @@ class MergedLocalPickupNode(Node):
         self.block_timeout_sec = float(self.get_parameter("block_timeout_sec").value)
         self.match_distance_m = float(self.get_parameter("match_distance_m").value)
 
-        self.tf_buffer = Buffer()
-        self.tf_listener = TransformListener(self.tf_buffer, self)
-
-        self.cup_frames = ["cup_0", "cup_1", "cup_2", "cup_3"]
-        
         self.id_to_color = {
             36: "blue",
             47: "yellow",
         }
+
+        self.tf_buffer = Buffer()
+        self.tf_listener = TransformListener(self.tf_buffer, self)
+
+        self.cup_frames = ["cup_0", "cup_1", "cup_2", "cup_3"]
 
         self.tracked_blocks = {}
         self.next_index_by_color = {
@@ -247,13 +284,6 @@ class MergedLocalPickupNode(Node):
         return f"{color}_{idx}"
 
     def update_tracked_blocks(self, detections):
-        """
-        detections = list of temporary Block objects from current camera frame.
-
-        This keeps block names stable.
-        If a block disappears, it stays alive for block_timeout_sec.
-        """
-
         now = self.get_clock().now().nanoseconds * 1e-9
         updated_names = set()
 
@@ -278,6 +308,7 @@ class MergedLocalPickupNode(Node):
                 tracked = self.tracked_blocks[best_name]
                 tracked.x = det.x
                 tracked.y = det.y
+                tracked.yaw_deg = det.yaw_deg
                 tracked.last_seen = now
                 tracked.raw_id = det.raw_id
                 updated_names.add(best_name)
@@ -290,13 +321,13 @@ class MergedLocalPickupNode(Node):
                     x=det.x,
                     y=det.y,
                     color=det.color,
+                    yaw_deg=det.yaw_deg,
                     last_seen=now,
                     raw_id=det.raw_id
                 )
 
                 updated_names.add(new_name)
 
-        # Delete blocks only after timeout
         names_to_delete = []
 
         for name, block in self.tracked_blocks.items():
@@ -315,7 +346,6 @@ class MergedLocalPickupNode(Node):
     # =========================
     def loop(self):
 
-        # ---- Get cup positions from TF ----
         cups = {}
 
         for name in self.cup_frames:
@@ -333,7 +363,6 @@ class MergedLocalPickupNode(Node):
             except Exception:
                 return
 
-        # ---- Drain UDP and keep latest packet ----
         latest = None
 
         while True:
@@ -343,9 +372,6 @@ class MergedLocalPickupNode(Node):
             except BlockingIOError:
                 break
 
-        # Important:
-        # If no latest packet, do NOT delete tracked blocks immediately.
-        # Just let timeout logic handle it.
         raw_blocks = []
 
         if latest is not None:
@@ -359,7 +385,6 @@ class MergedLocalPickupNode(Node):
                 self.get_logger().warn(f"Bad UDP JSON: {e}")
                 raw_blocks = []
 
-        # ---- Camera TF ----
         try:
             tf = self.tf_buffer.lookup_transform(
                 "base_link",
@@ -379,7 +404,6 @@ class MergedLocalPickupNode(Node):
         T = tf_transformations.quaternion_matrix(quat)
         T[0:3, 3] = [t.x, t.y, t.z]
 
-        # ---- Convert detected blocks to base_link ----
         detections = []
 
         for b in raw_blocks:
@@ -388,13 +412,13 @@ class MergedLocalPickupNode(Node):
 
             try:
                 raw_id = int(b.get("id", -1))
-                
-                raw_id = int(b.get("id", -1))
 
                 if "color" in b:
                     color = self.normalize_color(b.get("color", "unknown"))
                 else:
                     color = self.id_to_color.get(raw_id, "unknown")
+
+                yaw_deg = float(b.get("yaw_deg", 0.0))
 
                 p_cam = np.array([
                     float(b["x_cam"]),
@@ -410,6 +434,7 @@ class MergedLocalPickupNode(Node):
                     x=float(p_base[0]),
                     y=float(p_base[1]),
                     color=color,
+                    yaw_deg=yaw_deg,
                     raw_id=raw_id
                 ))
 
@@ -417,7 +442,6 @@ class MergedLocalPickupNode(Node):
                 self.get_logger().warn(f"Bad block data skipped: {e}")
                 continue
 
-        # ---- Update stable tracked blocks ----
         blocks = self.update_tracked_blocks(detections)
 
         if not blocks:
@@ -425,7 +449,6 @@ class MergedLocalPickupNode(Node):
 
         self.get_logger().info(f"[SOLVER] tracked blocks: {blocks}")
 
-        # ---- Solve ----
         best = compute_best_pickup(
             cups=cups,
             blocks=blocks,
@@ -435,16 +458,23 @@ class MergedLocalPickupNode(Node):
         if best is None:
             return
 
-        # ---- Publish actionable command ----
         self.publish_best_pickup(best)
+
+        assignment_text = ", ".join(
+            [
+                f"{a['cup']}->{a['block']}({a['color']}, yaw={a['block_yaw_deg']:.1f})"
+                for a in best.assignments
+            ]
+        )
 
         self.get_logger().info(
             f"BEST | pick={best.picked_count} "
             f"| score={best.score:.1f} "
             f"| err={best.avg_error * 1000:.1f}mm "
-            f"| yaw={math.degrees(best.yaw):.1f}deg "
+            f"| pickup_yaw={math.degrees(best.yaw):.1f}deg "
             f"| dx={best.dx:.3f} "
-            f"| dy={best.dy:.3f}"
+            f"| dy={best.dy:.3f} "
+            f"| cups=[{assignment_text}]"
         )
 
     # =========================
@@ -456,7 +486,6 @@ class MergedLocalPickupNode(Node):
         pose.x = float(best.dx)
         pose.y = float(best.dy)
         pose.theta = float(best.yaw)
-
         self.pickup_pose_pub.publish(pose)
 
         msg_data = {
@@ -476,7 +505,6 @@ class MergedLocalPickupNode(Node):
 
         msg = String()
         msg.data = json.dumps(msg_data)
-
         self.best_pickup_pub.publish(msg)
 
         pump_colors = {
@@ -506,6 +534,7 @@ class MergedLocalPickupNode(Node):
         manip_msg = String()
         manip_msg.data = manip_text
         self.manip_info_pub.publish(manip_msg)
+
 
 # =========================
 # MAIN

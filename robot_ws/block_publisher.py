@@ -4,6 +4,7 @@ import numpy as np
 import socket
 import json
 import time
+import math
 
 STREAM_HOST = "127.0.0.1"
 STREAM_PORT = 8888
@@ -96,7 +97,7 @@ def main():
     except:
         parameters = cv2.aruco.DetectorParameters()
 
-    print("[INFO] Block detection started (PnP mode)")
+    print("[INFO] Block detection started (PnP + yaw)")
 
     try:
         while True:
@@ -142,13 +143,23 @@ def main():
 
                     tvec = tvec.reshape(3)
 
+                    # =========================
+                    # EXTRACT YAW FROM RVEC
+                    # =========================
+                    R, _ = cv2.Rodrigues(rvec)
+
+                    # yaw around Z (camera frame)
+                    yaw_rad = math.atan2(R[1, 0], R[0, 0])
+                    yaw_deg = math.degrees(yaw_rad)
+
                     blocks.append({
                         "id": int(marker_id),
                         "cx": cx,
                         "cy": cy,
                         "x_cam": float(tvec[0]),
                         "y_cam": float(tvec[1]),
-                        "z_cam": float(tvec[2])
+                        "z_cam": float(tvec[2]),
+                        "yaw_deg": float(yaw_deg)
                     })
 
             print("[INFO] Blocks:", blocks)
