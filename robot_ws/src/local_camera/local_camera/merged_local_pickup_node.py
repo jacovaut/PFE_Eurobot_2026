@@ -197,6 +197,11 @@ class MergedLocalPickupNode(Node):
         self.tf_listener = TransformListener(self.tf_buffer, self)
 
         self.cup_frames = ["cup_0", "cup_1", "cup_2", "cup_3"]
+        
+        self.id_to_color = {
+            36: "blue",
+            47: "yellow",
+        }
 
         self.tracked_blocks = {}
         self.next_index_by_color = {
@@ -382,7 +387,13 @@ class MergedLocalPickupNode(Node):
 
             try:
                 raw_id = int(b.get("id", -1))
-                color = self.normalize_color(b.get("color", "unknown"))
+                
+                raw_id = int(b.get("id", -1))
+
+                if "color" in b:
+                    color = self.normalize_color(b.get("color", "unknown"))
+                else:
+                    color = self.id_to_color.get(raw_id, "unknown")
 
                 p_cam = np.array([
                     float(b["x_cam"]),
