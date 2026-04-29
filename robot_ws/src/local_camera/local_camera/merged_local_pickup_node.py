@@ -262,16 +262,48 @@ class MergedLocalPickupNode(Node):
 
         # ---- Convert blocks ----
         blocks = {}
+
+        try:
+            tf = self.tf_buffer.lookup_transform(
+                "base_link",
+                "arducam_optical_frame",
+                rclpy.time.Time(),
+                timeout=rclpy.duration.Duration(seconds=0.005)
+            )
+        except Exception as e:
+            self.get_logger().warn(f"Missing camera TF: {e}")
+            return
+
+        t = tf.transform.translation
+        q = tf.transform.rotation
+
+        quat = [q.x, q.y, q.z, q.w]
+        T = tf_transformations.quaternion_matrix(quat)
+        T[0:3, 3] = [t.x, t.y, t.z]
+
         for b in raw_blocks:
-            xy = self.pixel_to_base(b["cx"], b["cy"])
-            if xy is None:
+            if "x_cam" not in b:
                 continue
 
+            p_cam = np.array([
+                float(b["x_cam"]),
+                float(b["y_cam"]),
+                float(b["z_cam"]),
+                1.0
+            ])
+
+            p_base = T @ p_cam
+
             name = f"block_{b['id']}"
-            blocks[name] = Block(name, xy.x, xy.y)
 
-        self.get_logger().info(f"[SOLVER] Converted blocks: {blocks}")
+            blocks[name] = Block(
+                name=name,
+                x=float(p_base[0]),
+                y=float(p_base[1])
+            )
 
+        self.get_logger().info(f"[SOLVER] PnP blocks: {blocks}")
+        
         if not blocks:
             return
 
