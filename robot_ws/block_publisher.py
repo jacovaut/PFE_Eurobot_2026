@@ -8,23 +8,24 @@ import json
 import time
 import sys
 
-CAMERA_INDEX = 10  # v4l2loopback device
+CAMERA_DEVICE = '/dev/video10'  # v4l2loopback device
 UDP_IP = "127.0.0.1"
 UDP_PORT = 5005
 
-def open_camera(index):
-    print(f"[INFO] Opening camera at index {index} (V4L2 backend)")
-    cap = cv2.VideoCapture(index, cv2.CAP_V4L2)
+
+def open_camera(device):
+    print(f"[INFO] Opening camera at {device} (V4L2 backend)")
+    cap = cv2.VideoCapture(device, cv2.CAP_V4L2)
     for i in range(3):
         ret, frame = cap.read()
         print(f"[DEBUG] Camera open test {i}: ret={ret}, shape={None if frame is None else frame.shape}")
     if not ret or frame is None:
-        print(f"[ERROR] Could not open camera at index {index}.")
+        print(f"[ERROR] Could not open camera at {device}.")
         sys.exit(1)
     return cap
 
 def main():
-    cap = open_camera(CAMERA_INDEX)
+    cap = open_camera(CAMERA_DEVICE)
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     dictionary = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
     parameters = cv2.aruco.DetectorParameters()
