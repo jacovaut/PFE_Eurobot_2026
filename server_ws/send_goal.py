@@ -9,6 +9,7 @@ Examples:
     python3 send_goal.py 1.0 0.5
     python3 send_goal.py 1.0 0.5 90
     python3 send_goal.py -x 1.0 -y 0.5 -a 45
+    python3 send_goal.py 1.0 0.5 90 --frame map
 """
 
 import argparse
@@ -35,7 +36,7 @@ class GoalSender(Node):
         super().__init__("goal_sender")
         self._client = ActionClient(self, NavigateToPose, "navigate_to_pose")
 
-    def send_goal(self, x: float, y: float, yaw_deg: float = 0.0):
+    def send_goal(self, x: float, y: float, yaw_deg: float = 0.0, frame_id: str = "odom"):
         self.get_logger().info(f"Waiting for navigate_to_pose action server...")
         if not self._client.wait_for_server(timeout_sec=5.0):
             self.get_logger().error("Action server not available after 5 s. Is Nav2 running?")
@@ -45,7 +46,7 @@ class GoalSender(Node):
         qx, qy, qz, qw = yaw_to_quaternion(yaw_rad)
 
         pose = PoseStamped()
-        pose.header.frame_id = "map"
+        pose.header.frame_id = frame_id
         pose.header.stamp = self.get_clock().now().to_msg()
         pose.pose.position.x = x
         pose.pose.position.y = y
@@ -59,7 +60,7 @@ class GoalSender(Node):
         goal_msg.pose = pose
 
         self.get_logger().info(
-            f"Sending goal -> x={x:.3f}  y={y:.3f}  yaw={yaw_deg:.1f}°"
+            f"Sending goal -> frame={frame_id}  x={x:.3f}  y={y:.3f}  yaw={yaw_deg:.1f}°"
         )
 
         send_future = self._client.send_goal_async(goal_msg)
@@ -97,6 +98,10 @@ def parse_args():
         "-a", "--angle", type=float, default=0.0,
         help="Heading angle in degrees (default: 0)",
     )
+    parser.add_argument(
+        "--frame", default="odom",
+        help="Goal frame_id (default: odom for odom-only Nav2; use map for full localization)",
+    )
 
     # Also support positional: send_goal.py x y [angle]
     parser.add_argument("pos_x", nargs="?", type=float, default=None)
@@ -115,16 +120,16 @@ def parse_args():
     if x is None or y is None:
         parser.error("You must provide at least x and y values.")
 
-    return x, y, angle
+    return x, y, angle, args.frame
 
 
 def main():
-    x, y, angle = parse_args()
+    x, y, angle, frame_id = parse_args()
 
     rclpy.init()
     node = GoalSender()
     try:
-        success = node.send_goal(x, y, angle)
+        success = node.send_goal(x, y, angle, frame_id)
     finally:
         node.destroy_node()
         rclpy.shutdown()

@@ -93,6 +93,19 @@ class TicksListener : public rclcpp::Node
   public:
     TicksListener() : Node("ticks_listener")
     {
+      const double initial_x = this->declare_parameter<double>("initial_x", 0.0);
+      const double initial_y = this->declare_parameter<double>("initial_y", 0.0);
+      const double initial_yaw_deg = this->declare_parameter<double>("initial_yaw_deg", 0.0);
+
+      x__ = initial_x;
+      y__ = initial_y;
+      theta__ = normalizeAngleSigned(initial_yaw_deg * M_PI / 180.0);
+
+      RCLCPP_INFO(
+        this->get_logger(),
+        "Initial odom pose: x=%.3f y=%.3f yaw=%.1f deg",
+        x__, y__, initial_yaw_deg);
+
       odom_pub_ = this->create_publisher<nav_msgs::msg::Odometry>("odom_deadwheels", 10);
       //tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
 
@@ -109,7 +122,8 @@ class TicksListener : public rclcpp::Node
           prevTicks[2] = msg->t2;
           prev_stamp_ = stamp;
           initialized_ = true;
-         return;
+          publishOdom(stamp);
+          return;
         }
 
         double dt = (stamp - prev_stamp_).seconds();
