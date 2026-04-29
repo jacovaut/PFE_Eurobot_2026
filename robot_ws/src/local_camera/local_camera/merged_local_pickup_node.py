@@ -323,6 +323,7 @@ class MergedLocalPickupNode(Node):
     def update_tracking(self, detections):
 
         now = self.get_clock().now().nanoseconds * 1e-9
+
         updated = set()
 
         for d in detections:
@@ -339,29 +340,42 @@ class MergedLocalPickupNode(Node):
                     best_dist = dist
                     best_name = name
 
-            if best_name and best_dist < self.match_distance_m:
+            if best_name is not None and best_dist < self.match_distance_m:
                 t = self.tracked_blocks[best_name]
                 t.x = d.x
                 t.y = d.y
                 t.yaw_deg = d.yaw_deg
+                t.raw_id = d.raw_id
                 t.last_seen = now
                 updated.add(best_name)
+
             else:
                 name = self.make_name(d.color)
-                self.tracked_blocks[name] = d
+
+                self.tracked_blocks[name] = Block(
+                    name=name,
+                    x=d.x,
+                    y=d.y,
+                    color=d.color,
+                    yaw_deg=d.yaw_deg,
+                    last_seen=now,
+                    raw_id=d.raw_id
+                )
+
                 updated.add(name)
 
-        # cleanup
         to_del = []
+
         for name, b in self.tracked_blocks.items():
             if now - b.last_seen > self.block_timeout_sec:
                 to_del.append(name)
 
-        for n in to_del:
-            del self.tracked_blocks[n]
+        for name in to_del:
+            del self.tracked_blocks[name]
 
         return self.tracked_blocks
-
+    
+   
     # =========================
     # LOOP
     # =========================
