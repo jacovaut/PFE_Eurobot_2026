@@ -1,61 +1,47 @@
-
-
-# --- SYSTEM PYTHON/OPENCV: No venv required ---
-set -e
-echo "[INFO] Using system Python: $(which python3)"
-echo "[INFO] Python version: $(python3 --version)"
-# --- END SYSTEM PYTHON/OPENCV ---
-
 #!/bin/bash
+set -e
 
-# Trap SIGINT/SIGTERM and clean up pipeline
+# --- Minimal, robust camera pipeline and block detection launcher ---
+
+# Cleanup function to kill background processes
 cleanup() {
-    echo "[INFO] Caught exit signal, killing pipeline..."
-    pkill -9 -f rpicam-vid
-    pkill -9 -f ffmpeg
-    pkill -9 -f libcamera
+    echo "[INFO] Cleaning up camera pipeline..."
+    pkill -9 -f rpicam-vid || true
+    pkill -9 -f ffmpeg || true
+    pkill -9 -f libcamera || true
     if [ -n "$PIPELINE_PID" ]; then
-        kill $PIPELINE_PID 2>/dev/null
+        kill $PIPELINE_PID 2>/dev/null || true
     fi
     exit 0
 }
-trap cleanup SIGINT SIGTERM
+trap cleanup SIGINT SIGTERM EXIT
 
-# Kill any old camera pipeline processes
-echo "[INFO] Killing old rpicam-vid, ffmpeg, and libcamera processes..."
-pkill -9 -f rpicam-vid
-pkill -9 -f ffmpeg
-pkill -9 -f libcamera
+echo "[INFO] Killing old camera pipeline processes..."
+pkill -9 -f rpicam-vid || true
+pkill -9 -f ffmpeg || true
+pkill -9 -f libcamera || true
 sleep 1
 
-# Always reload v4l2loopback with exclusive_caps=1 (previous working state)
-sudo modprobe -r v4l2loopback
+echo "[INFO] Reloading v4l2loopback..."
+sudo modprobe -r v4l2loopback || true
 sudo modprobe v4l2loopback video_nr=10 card_label=VirtualCam exclusive_caps=1
 
-
-
-# Start the camera pipeline in the background (entire pipeline as a group)
-( rpicam-vid -t 0 -n --codec mjpeg --width 1280 --height 720 --framerate 30 -o - | \
-    ffmpeg -i - -f v4l2 -pix_fmt yuv420p /dev/video10 ) &
-# Debug: Print first few frames' shape in block_publisher.py
+# Start the camera pipeline in the background
+(
+  rpicam-vid -t 0 -n --codec mjpeg --width 1280 --height 720 --framerate 30 -o - | \
+  ffmpeg -loglevel error -i - -f v4l2 -pix_fmt yuv420p /dev/video10
+) &
 PIPELINE_PID=$!
 
-
-
-# Wait for /dev/video10 to be ready (max 10 seconds)
+echo "[INFO] Waiting for /dev/video10 to be ready..."
 for i in {1..10}; do
     if [ -e /dev/video10 ]; then
         break
     fi
     sleep 1
 done
-
-# Extra delay to ensure device is ready
 sleep 2
 
+echo "[INFO] Starting block detection..."
+python3 block_publisher.py
 
-
-# No venv activation needed; using system Python
-
-# Start block detection (main script)
-python3 block_publisher.py || { echo "[ERROR] block_publisher.py failed, cleaning up pipeline..."; cleanup; exit 1; }
