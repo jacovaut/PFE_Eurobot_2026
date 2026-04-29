@@ -11,6 +11,8 @@ def generate_launch_description():
 
     params_file = LaunchConfiguration('params_file')
     use_sim_time = LaunchConfiguration('use_sim_time')
+    map_yaml = LaunchConfiguration('map')
+
 
     return LaunchDescription([
         DeclareLaunchArgument(
@@ -20,6 +22,10 @@ def generate_launch_description():
         DeclareLaunchArgument(
             'use_sim_time',
             default_value='false',
+        ),
+        DeclareLaunchArgument(
+            'map',
+            default_value=os.path.join(pkg_share, 'config', 'map_config.yaml'),
         ),
 
         IncludeLaunchDescription(
@@ -31,7 +37,7 @@ def generate_launch_description():
                 'use_sim_time': use_sim_time,
                 # No map / no AMCL:
                 'slam': 'False',
-                'map': '',
+                'map': map_yaml,
             }.items(),
         ),
     ])
