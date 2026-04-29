@@ -25,9 +25,6 @@ setup(
         (os.path.join('share', package_name, 'meshes'),
             glob('meshes/*.stl')),
 
-        # Install camera calibration files
-        (os.path.join('share', package_name, 'camera_calibration'),
-            glob('camera_calibration/*')),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
