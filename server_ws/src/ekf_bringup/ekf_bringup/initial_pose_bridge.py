@@ -21,7 +21,7 @@ class InitialPoseBridge(Node):
         self.input_topic = self.declare_parameter("input_topic", "/initialpose").value
         self.set_pose_topic = self.declare_parameter(
             "set_pose_topic",
-            "/ekf_global_node/set_pose",
+            "/set_pose",
         ).value
         self.set_pose_service = self.declare_parameter(
             "set_pose_service",
