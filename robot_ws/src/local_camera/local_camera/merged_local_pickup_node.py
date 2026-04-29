@@ -6,13 +6,15 @@ from tf2_ros import Buffer, TransformListener
 import socket
 import json
 import math
+import numpy as np
+import tf_transformations
 from dataclasses import dataclass
 from itertools import combinations, permutations
 
 
-# ==========================================================
-# DATA CLASSES
-# ==========================================================
+# =========================
+# DATA STRUCTURES
+# =========================
 @dataclass
 class XY:
     x: float
@@ -35,278 +37,257 @@ class PickupCandidate:
     yaw: float
     dx: float
     dy: float
-    assignments: list  # [(cup_name, block_name, error), ...]
+    assignments: list
 
 
-# ==========================================================
-# SOLVER HELPERS
-# ==========================================================
-def rotate_xy(p: XY, yaw: float) -> XY:
+# =========================
+# SOLVER MATH
+# =========================
+def rotate_xy(p, yaw):
     c = math.cos(yaw)
     s = math.sin(yaw)
-    return XY(
-        c * p.x - s * p.y,
-        s * p.x + c * p.y
-    )
+    return XY(c*p.x - s*p.y, s*p.x + c*p.y)
 
 
-def angle_between(a: XY, b: XY) -> float:
+def angle_between(a, b):
     return math.atan2(b.y - a.y, b.x - a.x)
 
 
-def wrap_angle(a: float) -> float:
+def wrap_angle(a):
     while a > math.pi:
-        a -= 2.0 * math.pi
+        a -= 2*math.pi
     while a < -math.pi:
-        a += 2.0 * math.pi
+        a += 2*math.pi
     return a
 
 
-def compute_best_pickup(cups: dict, blocks: dict):
-    """
-    cups: dict[str, XY]
-    blocks: dict[str, Block]
+def compute_best_pickup(cups, blocks):
+    MAX_ERROR = 0.03
+    MAX_YAW = math.radians(90)
 
-    NOTE:
-    This assumes cups and blocks are in the SAME coordinate system.
-    Ideally: meters in base_link.
-    """
-
-    MAX_ERROR = 0.025          # 25 mm
-    MAX_ARM_YAW = math.radians(90)
-
-    W_BLOCK_COUNT = 100.0
-    W_ALIGNMENT_ERROR = 80.0
+    W_BLOCKS = 100.0
+    W_ERROR = 80.0
     W_YAW = 5.0
 
     cup_items = list(cups.items())
     block_items = list(blocks.items())
 
     best = None
-    max_pick = min(len(cup_items), len(block_items))
 
-    for n in range(1, max_pick + 1):
+    for n in range(1, min(len(cup_items), len(block_items)) + 1):
         for cup_subset in combinations(cup_items, n):
             for block_subset in combinations(block_items, n):
-                for block_perm in permutations(block_subset):
-
-                    assignments_raw = list(zip(cup_subset, block_perm))
+                for perm in permutations(block_subset):
 
                     if n == 1:
                         yaw = 0.0
                     else:
-                        (_, cup_a), (_, cup_b) = cup_subset[0], cup_subset[-1]
-                        (_, block_a), (_, block_b) = block_perm[0], block_perm[-1]
+                        (_, c1), (_, c2) = cup_subset[0], cup_subset[-1]
+                        (_, b1), (_, b2) = perm[0], perm[-1]
 
-                        cup_angle = angle_between(cup_a, cup_b)
-                        block_angle = angle_between(
-                            XY(block_a.x, block_a.y),
-                            XY(block_b.x, block_b.y)
+                        yaw = wrap_angle(
+                            angle_between(b1, b2) - angle_between(c1, c2)
                         )
 
-                        yaw = wrap_angle(block_angle - cup_angle)
-
-                    if abs(yaw) > MAX_ARM_YAW:
+                    if abs(yaw) > MAX_YAW:
                         continue
 
-                    dx_sum = 0.0
-                    dy_sum = 0.0
+                    dx = dy = 0.0
 
-                    for (cup_name, cup_xy), (block_name, block) in assignments_raw:
-                        rc = rotate_xy(cup_xy, yaw)
-                        dx_sum += block.x - rc.x
-                        dy_sum += block.y - rc.y
+                    for (cn, cxy), (bn, b) in zip(cup_subset, perm):
+                        rc = rotate_xy(cxy, yaw)
+                        dx += b.x - rc.x
+                        dy += b.y - rc.y
 
-                    dx = dx_sum / n
-                    dy = dy_sum / n
+                    dx /= n
+                    dy /= n
 
-                    total_error = 0.0
-                    assignments = []
+                    total_err = 0.0
                     valid = True
+                    assigns = []
 
-                    for (cup_name, cup_xy), (block_name, block) in assignments_raw:
-                        rc = rotate_xy(cup_xy, yaw)
+                    for (cn, cxy), (bn, b) in zip(cup_subset, perm):
+                        rc = rotate_xy(cxy, yaw)
+                        px = rc.x + dx
+                        py = rc.y + dy
 
-                        predicted_x = rc.x + dx
-                        predicted_y = rc.y + dy
+                        err = math.hypot(px - b.x, py - b.y)
 
-                        error = math.hypot(
-                            predicted_x - block.x,
-                            predicted_y - block.y
-                        )
-
-                        if error > MAX_ERROR:
+                        if err > MAX_ERROR:
                             valid = False
                             break
 
-                        total_error += error
-                        assignments.append((cup_name, block.name, error))
+                        total_err += err
+                        assigns.append((cn, bn, err))
 
                     if not valid:
                         continue
 
-                    avg_error = total_error / n
+                    avg_err = total_err / n
 
                     score = (
-                        W_BLOCK_COUNT * n
-                        - W_ALIGNMENT_ERROR * avg_error
+                        W_BLOCKS * n
+                        - W_ERROR * avg_err
                         - W_YAW * abs(yaw)
                     )
 
-                    candidate = PickupCandidate(
-                        score=score,
-                        picked_count=n,
-                        avg_error=avg_error,
-                        yaw=yaw,
-                        dx=dx,
-                        dy=dy,
-                        assignments=assignments
+                    cand = PickupCandidate(
+                        score, n, avg_err, yaw, dx, dy, assigns
                     )
 
-                    if best is None or candidate.score > best.score:
-                        best = candidate
+                    if best is None or cand.score > best.score:
+                        best = cand
 
     return best
 
 
-# ==========================================================
+# =========================
 # NODE
-# ==========================================================
+# =========================
 class MergedLocalPickupNode(Node):
+
     def __init__(self):
         super().__init__('merged_local_pickup_node')
 
-        # Parameters
         self.declare_parameter('udp_port', 5005)
         self.udp_port = int(self.get_parameter('udp_port').value)
 
-        # TF
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self)
 
-        # Cups from URDF / robot_state_publisher
         self.cup_frames = ["cup_0", "cup_1", "cup_2", "cup_3"]
 
-        # UDP socket
-        self.udp_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.udp_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.udp_sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 8192)
-        self.udp_sock.bind(("0.0.0.0", self.udp_port))
-        self.udp_sock.setblocking(False)
+        # UDP
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 8192)
+        self.sock.bind(("0.0.0.0", self.udp_port))
+        self.sock.setblocking(False)
 
-        # 20 Hz loop
-        self.timer = self.create_timer(0.05, self.state_machine)
+        self.timer = self.create_timer(0.05, self.loop)
 
-        self.get_logger().info("[MERGED] Local pickup solver started.")
+        self.get_logger().info("[SOLVER] READY")
 
-    # ------------------------------------------------------
-    # Get cups in base_link
-    # ------------------------------------------------------
-    def get_cups(self):
+    # =========================
+    # PIXEL → BASE_LINK
+    # =========================
+    def pixel_to_base(self, cx, cy):
+
+        fx = 457.33917579
+        fy = 453.81772548
+        cx0 = 637.592287
+        cy0 = 374.90978642
+
+        x = (cx - cx0) / fx
+        y = (cy - cy0) / fy
+
+        ray_cam = np.array([x, y, 1.0, 0.0])
+        origin_cam = np.array([0, 0, 0, 1])
+
+        try:
+            tf = self.tf_buffer.lookup_transform(
+                "base_link",
+                "arducam_optical_frame",
+                rclpy.time.Time(),
+                timeout=rclpy.duration.Duration(seconds=0.005)
+            )
+        except:
+            return None
+
+        t = tf.transform.translation
+        q = tf.transform.rotation
+
+        quat = [q.x, q.y, q.z, q.w]
+        T = tf_transformations.quaternion_matrix(quat)
+        T[0:3, 3] = [t.x, t.y, t.z]
+
+        origin = T @ origin_cam
+        ray = T @ ray_cam
+
+        d = ray[:3]
+
+        if abs(d[2]) < 1e-6:
+            return None
+
+        s = (0 - origin[2]) / d[2]
+        if s < 0:
+            return None
+
+        p = origin[:3] + s * d
+
+        return XY(float(p[0]), float(p[1]))
+
+    # =========================
+    # LOOP
+    # =========================
+    def loop(self):
+
+        # ---- Cups ----
         cups = {}
-
-        for cup_name in self.cup_frames:
+        for name in self.cup_frames:
             try:
                 tf = self.tf_buffer.lookup_transform(
-                    "base_link",
-                    cup_name,
+                    "base_link", name,
                     rclpy.time.Time(),
                     timeout=rclpy.duration.Duration(seconds=0.005)
                 )
-
                 t = tf.transform.translation
-                cups[cup_name] = XY(t.x, t.y)
+                cups[name] = XY(t.x, t.y)
+            except:
+                return
 
-            except Exception:
-                return None
-
-        return cups
-
-    # ------------------------------------------------------
-    # Receive latest UDP block packet only
-    # ------------------------------------------------------
-    def get_latest_blocks_udp(self):
-        latest_data = None
-
+        # ---- UDP drain ----
+        latest = None
         while True:
             try:
-                data, _ = self.udp_sock.recvfrom(4096)
-                latest_data = data
+                data, _ = self.sock.recvfrom(4096)
+                latest = data
             except BlockingIOError:
                 break
-            except Exception as e:
-                self.get_logger().warn(f"[UDP] Error: {e}")
-                return None
 
-        if latest_data is None:
-            return None
-
-        try:
-            block_list = json.loads(latest_data.decode())
-        except Exception as e:
-            self.get_logger().warn(f"[UDP] JSON error: {e}")
-            return None
-
-        blocks = {}
-
-        for block in block_list:
-            marker_id = int(block["id"])
-
-            # WARNING:
-            # Right now cx/cy are pixels, not meters.
-            # This lets the code run, but the real solver needs x/y in base_link.
-            name = f"block_{marker_id}"
-
-            blocks[name] = Block(
-                name=name,
-                x=float(block["cx"]),
-                y=float(block["cy"]),
-                color="unknown"
-            )
-
-        return blocks
-
-    # ------------------------------------------------------
-    # Main state machine
-    # ------------------------------------------------------
-    def state_machine(self):
-        cups = self.get_cups()
-        if cups is None:
+        if latest is None:
             return
 
-        blocks = self.get_latest_blocks_udp()
+        try:
+            raw_blocks = json.loads(latest.decode())
+        except:
+            return
+
+        # ---- Convert blocks ----
+        blocks = {}
+        for b in raw_blocks:
+            xy = self.pixel_to_base(b["cx"], b["cy"])
+            if xy is None:
+                continue
+
+            name = f"block_{b['id']}"
+            blocks[name] = Block(name, xy.x, xy.y)
+
         if not blocks:
             return
 
+        # ---- Solve ----
         best = compute_best_pickup(cups, blocks)
 
         if best is None:
-            self.get_logger().info("[SOLVER] No valid pickup found")
             return
 
         self.get_logger().info(
-            f"[SOLVER] BEST | "
-            f"pick={best.picked_count} | "
-            f"score={best.score:.2f} | "
-            f"error={best.avg_error:.3f} | "
-            f"yaw={math.degrees(best.yaw):.1f} deg | "
-            f"dx={best.dx:.3f}, dy={best.dy:.3f} | "
-            f"assignments={best.assignments}"
+            f"BEST | pick={best.picked_count} "
+            f"| score={best.score:.1f} "
+            f"| err={best.avg_error*1000:.1f}mm "
+            f"| yaw={math.degrees(best.yaw):.1f}deg"
         )
 
 
-# ==========================================================
+# =========================
 # MAIN
-# ==========================================================
-def main(args=None):
-    rclpy.init(args=args)
+# =========================
+def main():
+    rclpy.init()
     node = MergedLocalPickupNode()
-
-    try:
-        rclpy.spin(node)
-    finally:
-        node.destroy_node()
-        rclpy.shutdown()
+    rclpy.spin(node)
+    node.destroy_node()
+    rclpy.shutdown()
 
 
 if __name__ == "__main__":
