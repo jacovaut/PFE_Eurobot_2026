@@ -208,7 +208,15 @@ class MergedLocalPickupNode(Node):
         if abs(d[2]) < 1e-6:
             return None
 
-        s = (0 - origin[2]) / d[2]
+        TABLE_Z = 0.0
+
+        s = (TABLE_Z - origin[2]) / d[2]
+
+        # If projection is behind camera, flip ray direction
+        if s < 0:
+            d = -d
+            s = (TABLE_Z - origin[2]) / d[2]
+
         if s < 0:
             return None
 
@@ -261,6 +269,8 @@ class MergedLocalPickupNode(Node):
 
             name = f"block_{b['id']}"
             blocks[name] = Block(name, xy.x, xy.y)
+
+        self.get_logger().info(f"[SOLVER] Converted blocks: {blocks}")
 
         if not blocks:
             return
