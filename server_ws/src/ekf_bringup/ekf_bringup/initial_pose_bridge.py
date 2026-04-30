@@ -19,13 +19,22 @@ class InitialPoseBridge(Node):
         super().__init__("initial_pose_bridge")
 
         self.input_topic = self.declare_parameter("input_topic", "/initialpose").value
+        self.set_pose_topic = self.declare_parameter(
+            "set_pose_topic",
+            "/set_pose",
+        ).value
         self.set_pose_service = self.declare_parameter(
             "set_pose_service",
-            "/ekf_global_node/set_pose",
+            "/set_pose",
         ).value
         self.map_frame = self.declare_parameter("map_frame", "map").value
 
         self.client = self.create_client(SetPose, self.set_pose_service)
+        self.pub = self.create_publisher(
+            PoseWithCovarianceStamped,
+            self.set_pose_topic,
+            10,
+        )
         self.sub = self.create_subscription(
             PoseWithCovarianceStamped,
             self.input_topic,
@@ -34,7 +43,8 @@ class InitialPoseBridge(Node):
         )
 
         self.get_logger().info(
-            f"Forwarding {self.input_topic} to {self.set_pose_service}"
+            f"Forwarding {self.input_topic} to topic {self.set_pose_topic} "
+            f"and service {self.set_pose_service}"
         )
 
     def initial_pose_cb(self, msg):
@@ -46,28 +56,33 @@ class InitialPoseBridge(Node):
             )
             return
 
-        if not self.client.wait_for_service(timeout_sec=0.2):
-            self.get_logger().warn(
-                f"SetPose service {self.set_pose_service} is not available yet."
-            )
-            return
+        pose = PoseWithCovarianceStamped()
+        pose.header = msg.header
+        pose.pose = msg.pose
+        pose.header.frame_id = self.map_frame
+        if pose.header.stamp.sec == 0 and pose.header.stamp.nanosec == 0:
+            pose.header.stamp = self.get_clock().now().to_msg()
 
-        request = SetPose.Request()
-        request.pose = msg
-        request.pose.header.frame_id = self.map_frame
-        if request.pose.header.stamp.sec == 0 and request.pose.header.stamp.nanosec == 0:
-            request.pose.header.stamp = self.get_clock().now().to_msg()
-
-        yaw_deg = math.degrees(yaw_from_quaternion(request.pose.pose.pose.orientation))
+        yaw_deg = math.degrees(yaw_from_quaternion(pose.pose.pose.orientation))
         self.get_logger().info(
             "Setting global EKF pose from RViz: "
-            f"x={request.pose.pose.pose.position.x:.3f} "
-            f"y={request.pose.pose.pose.position.y:.3f} "
+            f"x={pose.pose.pose.position.x:.3f} "
+            f"y={pose.pose.pose.position.y:.3f} "
             f"yaw={yaw_deg:.1f} deg"
         )
 
-        future = self.client.call_async(request)
-        future.add_done_callback(self.set_pose_done)
+        self.pub.publish(pose)
+
+        if self.client.service_is_ready() or self.client.wait_for_service(timeout_sec=0.2):
+            request = SetPose.Request()
+            request.pose = pose
+            future = self.client.call_async(request)
+            future.add_done_callback(self.set_pose_done)
+        else:
+            self.get_logger().warn(
+                f"SetPose service {self.set_pose_service} is not available; "
+                f"published to topic {self.set_pose_topic} only."
+            )
 
     def set_pose_done(self, future):
         try:

@@ -13,10 +13,16 @@ ESP32Encoder encoder4;
 Servo servo1;
 Servo servo2;
 
+// Track motor speeds
+int motorSpeeds[4] = {0, 0, 0, 0};
+
+// Encoder reading control
+bool encoderReadingEnabled = false;
+
 void setup() {
   Serial.begin(115200);
 
-  // Initialize motor pins
+  // Motor pins
   pinMode(MOTOR_FL_IN1, OUTPUT);
   pinMode(MOTOR_FL_IN2, OUTPUT);
   pinMode(MOTOR_FR_IN1, OUTPUT);
@@ -26,73 +32,75 @@ void setup() {
   pinMode(MOTOR_RR_IN1, OUTPUT);
   pinMode(MOTOR_RR_IN2, OUTPUT);
 
-  // Initialize pump pin
+  // Pump
   pinMode(PUMP_PIN, OUTPUT);
+  digitalWrite(PUMP_PIN, LOW);
 
-  // Initialize PWM
+  // PWM setup
+
   ledcSetup(PWM_CH1, PWM_FREQ, PWM_RES);
-  ledcAttachPin(MOTOR1_PWM, PWM_CH1);
   ledcSetup(PWM_CH2, PWM_FREQ, PWM_RES);
-  ledcAttachPin(MOTOR2_PWM, PWM_CH2);
   ledcSetup(PWM_CH3, PWM_FREQ, PWM_RES);
-  ledcAttachPin(MOTOR3_PWM, PWM_CH3);
   ledcSetup(PWM_CH4, PWM_FREQ, PWM_RES);
-  ledcAttachPin(MOTOR4_PWM, PWM_CH4);
-  ledcSetup(PWM_CH_PUMP, PWM_FREQ, PWM_RES);
-  ledcAttachPin(PUMP_PIN, PWM_CH_PUMP);
 
-  // Initialize encoders
+  // Attach default PWM pins (IN1 side)
+  ledcAttachPin(MOTOR_FL_IN1, PWM_CH1);
+  ledcAttachPin(MOTOR_FR_IN1, PWM_CH2);
+  ledcAttachPin(MOTOR_RL_IN1, PWM_CH3);
+  ledcAttachPin(MOTOR_RR_IN1, PWM_CH4);
+
+  // Encoders
   encoder1.attachHalfQuad(ENC_FL_A, ENC_FL_B);
   encoder2.attachHalfQuad(ENC_FR_A, ENC_FR_B);
   encoder3.attachHalfQuad(ENC_RL_A, ENC_RL_B);
   encoder4.attachHalfQuad(ENC_RR_A, ENC_RR_B);
 
-  // Initialize servos
+  // Servos
   servo1.attach(SERVO_LEFT_PIN);
-  servo2.attach(SERVO_Right_PIN);
+  servo2.attach(SERVO_RIGHT_PIN);
+  
+  // Initialize servos to UP position to avoid blocking robot movement
+  servo1.write(ARM_UP_ANGLE);
+  servo2.write(ARM_UP_ANGLE);
+  delay(500);  // Wait for servos to reach position
 
   Serial.println("Robot initialized");
 }
 
 void setMotor(int motor, int speed) {
-  int in1, in2, pwm_ch;
+  int in1, in2, channel;
+
   switch (motor) {
     case 1:
-      in1 = MOTOR_FL_IN1;
-      in2 = MOTOR_FL_IN2;
-      pwm_ch = PWM_CH1;
-      break;
+      in1 = MOTOR_FL_IN1; in2 = MOTOR_FL_IN2; channel = PWM_CH1; break;
     case 2:
-      in1 = MOTOR_FR_IN1;
-      in2 = MOTOR_FR_IN2;
-      pwm_ch = PWM_CH2;
-      break;
+      in1 = MOTOR_FR_IN1; in2 = MOTOR_FR_IN2; channel = PWM_CH2; break;
     case 3:
-      in1 = MOTOR_RL_IN1;
-      in2 = MOTOR_RL_IN2;
-      pwm_ch = PWM_CH3;
-      break;
+      in1 = MOTOR_RL_IN1; in2 = MOTOR_RL_IN2; channel = PWM_CH3; break;
     case 4:
-      in1 = MOTOR_RR_IN1;
-      in2 = MOTOR_RR_IN2;
-      pwm_ch = PWM_CH4;
-      break;
+      in1 = MOTOR_RR_IN1; in2 = MOTOR_RR_IN2; channel = PWM_CH4; break;
     default:
       return;
   }
 
+  motorSpeeds[motor - 1] = speed;
+  int pwm = abs(speed);
+
   if (speed > 0) {
-    digitalWrite(in1, HIGH);
+    // Forward: PWM on IN1, LOW on IN2
     digitalWrite(in2, LOW);
-    ledcWrite(pwm_ch, speed);
+    ledcWrite(channel, pwm);
+
   } else if (speed < 0) {
+    // Reverse: PWM on IN2, LOW on IN1
     digitalWrite(in1, LOW);
-    digitalWrite(in2, HIGH);
-    ledcWrite(pwm_ch, -speed);
+    ledcWrite(channel, pwm);
+
   } else {
+    // Stop: PWM to 0, both pins LOW
+    ledcWrite(channel, 0);
     digitalWrite(in1, LOW);
     digitalWrite(in2, LOW);
-    ledcWrite(pwm_ch, 0);
   }
 }
 
@@ -104,76 +112,98 @@ void setServo(int servo, int angle) {
   }
 }
 
-void setPump(int speed) {
-  if (speed < 0) speed = 0;
-  if (speed > 255) speed = 255;
-  ledcWrite(PWM_CH_PUMP, speed);
+void setPump(bool state) {
+  digitalWrite(PUMP_PIN, state ? HIGH : LOW);
 }
 
 void setMecanumSpeeds(float vx, float vy, float omega) {
-  // Mecanum wheel kinematics
-  // Assuming wheel 1: front left, 2: front right, 3: rear right, 4: rear left
   float L = WHEELBASE_LENGTH / 2.0;
   float W = WHEELBASE_WIDTH / 2.0;
   float R = WHEEL_RADIUS;
+  Serial.printf("Calculating speeds for vx=%.2f, vy=%.2f, omega=%.2f\n", vx, vy, omega);
+  float w1 = (vx - vy - (L + W) * omega) / R;
+  float w2 = (vx + vy + (L + W) * omega) / R;
+  float w3 = (vx + vy - (L + W) * omega) / R;
+  float w4 = (vx - vy + (L + W) * omega) / R;
+  Serial.printf("Raw wheel speeds: w1=%.2f, w2=%.2f, w3=%.2f, w4=%.2f\n", w1, w2, w3, w4);
+  float scale = MAX_SPEED / 1.0;
 
-  // Calculate wheel speeds (m/s)
-  float wheel1_speed = (vx - vy - (L + W) * omega) / R;
-  float wheel2_speed = (vx + vy + (L + W) * omega) / R;
-  float wheel3_speed = (vx + vy - (L + W) * omega) / R;
-  float wheel4_speed = (vx - vy + (L + W) * omega) / R;
+  int pwm1 = constrain((int)(w1 * scale), -MAX_SPEED, MAX_SPEED);
+  int pwm2 = constrain((int)(w2 * scale), -MAX_SPEED, MAX_SPEED);
+  int pwm3 = constrain((int)(w3 * scale), -MAX_SPEED, MAX_SPEED);
+  int pwm4 = constrain((int)(w4 * scale), -MAX_SPEED, MAX_SPEED);
 
-  // Convert to PWM (assuming max speed corresponds to MAX_SPEED)
-  // You may need to tune the scaling factor based on your motors
-  float scale = MAX_SPEED / 1.0;  // Adjust 1.0 to your max wheel speed in m/s
-  int pwm1 = (int)(wheel1_speed * scale);
-  int pwm2 = (int)(wheel2_speed * scale);
-  int pwm3 = (int)(wheel3_speed * scale);
-  int pwm4 = (int)(wheel4_speed * scale);
-
-  // Clamp to -255 to 255
-  pwm1 = constrain(pwm1, -MAX_SPEED, MAX_SPEED);
-  pwm2 = constrain(pwm2, -MAX_SPEED, MAX_SPEED);
-  pwm3 = constrain(pwm3, -MAX_SPEED, MAX_SPEED);
-  pwm4 = constrain(pwm4, -MAX_SPEED, MAX_SPEED);
-
-  // Set motor speeds
   setMotor(1, pwm1);
   setMotor(2, pwm2);
   setMotor(3, pwm3);
   setMotor(4, pwm4);
+  Serial.printf("Set speeds: FL=%d, FR=%d, RL=%d, RR=%d\n", pwm1, pwm2, pwm3, pwm4);
 }
 
+
 void loop() {
-  // Print encoder values
-  Serial.print("Encoders: ");
-  Serial.print(encoder1.getCount());
-  Serial.print(", ");
-  Serial.print(encoder2.getCount());
-  Serial.print(", ");
-  Serial.print(encoder3.getCount());
-  Serial.print(", ");
-  Serial.println(encoder4.getCount());
+  // Print encoder values (if enabled)
+  if (encoderReadingEnabled) {
+    Serial.print("Encoders: ");
+    Serial.print(encoder1.getCount());
+    Serial.print(", ");
+    Serial.print(encoder2.getCount());
+    Serial.print(", ");
+    Serial.print(encoder3.getCount());
+    Serial.print(", ");
+    Serial.println(encoder4.getCount());
+  }
 
   // Check for serial commands
   if (Serial.available()) {
     String command = Serial.readStringUntil('\n');
     command.trim();
 
-    if (command.startsWith("m")) {
-      // Motor command: m<motor> <speed>
-      int spaceIndex = command.indexOf(' ');
-      if (spaceIndex > 0) {
-        int motor = command.substring(1, spaceIndex).toInt();
-        int speed = command.substring(spaceIndex + 1).toInt();
-        setMotor(motor, speed);
-        Serial.print("Set motor ");
-        Serial.print(motor);
-        Serial.print(" to speed ");
-        Serial.println(speed);
-      }
-    } else if (command.startsWith("s")) {
-      // Servo command: s<servo> <angle>
+    if (command.startsWith("f ")) {
+      // Forward: f <speed>
+      int speed = command.substring(2).toInt();
+      setMecanumSpeeds(speed / 255.0, 0, 0);
+      Serial.print("Moving forward at speed ");
+      Serial.println(speed);
+    } else if (command.startsWith("b ")) {
+      // Backward: b <speed>
+      int speed = command.substring(2).toInt();
+      setMecanumSpeeds(-speed / 255.0, 0, 0);
+      Serial.print("Moving backward at speed ");
+      Serial.println(speed);
+    } else if (command.startsWith("l ")) {
+      // Left strafe: l <speed>
+      int speed = command.substring(2).toInt();
+      setMecanumSpeeds(0, speed / 255.0, 0);
+      Serial.print("Strafing left at speed ");
+      Serial.println(speed);
+    } else if (command.startsWith("r ")) {
+      // Right strafe: r <speed>
+      int speed = command.substring(2).toInt();
+      setMecanumSpeeds(0, -speed / 255.0, 0);
+      Serial.print("Strafing right at speed ");
+      Serial.println(speed);
+    } else if (command.startsWith("cw ")) {
+      // Clockwise rotation: cw <speed>
+      int speed = command.substring(3).toInt();
+      setMecanumSpeeds(0, 0, speed / 255.0);
+      Serial.print("Rotating clockwise at speed ");
+      Serial.println(speed);
+
+    } else if (command.startsWith("ccw ")) {
+      // Counter-clockwise rotation: ccw <speed>
+      int speed = command.substring(4).toInt();
+      setMecanumSpeeds(0, 0, -speed / 255.0);
+      Serial.print("Rotating counter-clockwise at speed ");
+      Serial.println(speed);
+
+    } else if (command.startsWith("stop")) {
+      // Stop all motors
+      setMecanumSpeeds(0, 0, 0);
+      Serial.println("Stopped");
+
+    } else if (command.startsWith("s ")) {
+      // Servo command: s <angle>
       int spaceIndex = command.indexOf(' ');
       if (spaceIndex > 0) {
         int servo = command.substring(1, spaceIndex).toInt();
@@ -184,35 +214,67 @@ void loop() {
         Serial.print(" to angle ");
         Serial.println(angle);
       }
-    } else if (command.startsWith("p")) {
-      // Pump command: p <speed>
+    } else if (command.startsWith("p ")) {
+      // Pump command: p on or p off
       int spaceIndex = command.indexOf(' ');
       if (spaceIndex > 0) {
-        int speed = command.substring(spaceIndex + 1).toInt();
-        setPump(speed);
-        Serial.print("Set pump to speed ");
-        Serial.println(speed);
+        String state = command.substring(spaceIndex + 1);
+        if (state == "on") {
+          setPump(true);
+          Serial.println("Pump ON");
+        } else if (state == "off") {
+          setPump(false);
+          Serial.println("Pump OFF");
+        } else {
+          Serial.println("Pump: use 'p on' or 'p off'");
+        }
       }
-    } else if (command.startsWith("move")) {
-      // Mecanum move command: move <vx> <vy> <omega>
-      // Parse three floats
-      int space1 = command.indexOf(' ');
-      int space2 = command.indexOf(' ', space1 + 1);
-      int space3 = command.indexOf(' ', space2 + 1);
-      if (space1 > 0 && space2 > 0 && space3 > 0) {
-        float vx = command.substring(space1 + 1, space2).toFloat();
-        float vy = command.substring(space2 + 1, space3).toFloat();
-        float omega = command.substring(space3 + 1).toFloat();
-        setMecanumSpeeds(vx, vy, omega);
-        Serial.print("Set mecanum speeds: vx=");
-        Serial.print(vx);
-        Serial.print(", vy=");
-        Serial.print(vy);
-        Serial.print(", omega=");
-        Serial.println(omega);
+    } else if (command.startsWith("enc ")) {
+      // Encoder control: enc on or enc off
+      int spaceIndex = command.indexOf(' ');
+      if (spaceIndex > 0) {
+        String state = command.substring(spaceIndex + 1);
+        if (state == "on") {
+          encoderReadingEnabled = true;
+          Serial.println("Encoder reading enabled");
+        } else if (state == "off") {
+          encoderReadingEnabled = false;
+          Serial.println("Encoder reading disabled");
+        } else {
+          Serial.println("Encoder: use 'enc on' or 'enc off'");
+        }
       }
+    } else if (command == "pick") {
+      // Pick up block: lower servo, activate pump, wait, then lift
+      Serial.println("Picking up block...");
+      setServo(1, ARM_DOWN_ANGLE);
+      setServo(2, ARM_DOWN_ANGLE);
+      delay(ARM_MOVE_DELAY);  // Wait for servo to reach position
+      setPump(true);
+      Serial.println("Pump activated");
+      delay(500);  // Wait 1 second for pump to compress
+      setServo(1, ARM_UP_ANGLE);
+      setServo(2, ARM_UP_ANGLE);
+      Serial.println("Block picked up");
+    }
+    
+    else if (command == "release") {
+      // Release block: lower servo, deactivate pump, wait, then lift
+      Serial.println("Releasing block...");
+      setServo(1, ARM_DOWN_ANGLE);
+      setServo(2, ARM_DOWN_ANGLE);
+      delay(ARM_MOVE_DELAY);  // Wait for servo to reach position
+      setPump(false);
+      Serial.println("Pump deactivated");
+      delay(500);  // Wait 1 second for block to release
+      setServo(1, ARM_UP_ANGLE);
+      setServo(2, ARM_UP_ANGLE);
+      Serial.println("Block released");
+    } else {
+      Serial.println("Unknown command. Use: f/b/l/r/cw/ccw <speed>, stop, s <angle>, p on/off, enc on/off, pick, release");
     }
   }
 
   delay(100);
 }
+
