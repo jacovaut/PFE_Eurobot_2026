@@ -258,18 +258,18 @@ void setup() {
     motor3.Enabledriver(true);
     motor4.Enabledriver(true);
 
-    for (int i = 0; i < 4; i++) {        
-        motors[i]->setSpeedRPM(60); // set speed in RPM
-        motors[i]->runForward();
+    // for (int i = 0; i < 4; i++) {        
+    //     motors[i]->setSpeedRPM(60); // set speed in RPM
+    //     motors[i]->runForward();
 
-        delay(1000);
+    //     delay(1000);
 
-        motors[i]->runBackward();
+    //     motors[i]->runBackward();
 
-        delay(1000);
+    //     delay(1000);
 
-        motors[i]->stop();
-    }
+    //     motors[i]->stop();
+    // }
     
     xTaskCreatePinnedToCore(
         core1,
@@ -321,7 +321,11 @@ void setSpeed(float new_vx, float new_vy, float new_w) {
         
         motors[i]->setSpeedRPM(speed * 60 / (2 * PI)); // set speed in RPM
         
-        if (wheelSpeeds[i] < 0) {
+
+        if (speed == 0) {
+            motors[i]->stop();
+        }
+        else if (wheelSpeeds[i] < 0) {
             motors[i]->runBackward();
         }
         else {
