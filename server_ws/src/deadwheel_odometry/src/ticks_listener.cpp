@@ -21,7 +21,7 @@ class TicksListener : public rclcpp::Node
     double x__{0.0}, y__{0.0}, theta__{0.0};
     double vx{0}, vy{0}, omega{0};
     std::mutex mtx_;
-  
+
     //Constantes, à ajouter les bonnes valeurs
     const double ENCODER_TICKS_PER_REVOLUTION [3] = {4096, 4096, 4096};
     const double DEADWHEEL_DIAMETER  = 0.0384; //0.0373, 0.0366
@@ -30,6 +30,8 @@ class TicksListener : public rclcpp::Node
     const double SDEADWHEEL_CIRCUMFERENCE = (M_PI) * SDEADWHEEL_DIAMETER;
     const double DEADWHEEL_DISTANCE = 0.123; //distance entre les deux deadwheel principaux
     const double OFFSET = 0.063; //distance entre le side deadwheel et le centre de rotation du robot
+    // x-distance from deadwheel midpoint to base_link (positive = base_link is forward of deadwheels)
+    const double DEADWHEEL_X_OFFSET = 0.012935;
 
     int64_t prevTicks[3] = {0, 0, 0};
     bool initialized_{false};
@@ -161,14 +163,16 @@ class TicksListener : public rclcpp::Node
         double dy = dyr*c + dxr*s;
 
         //mise à jour de la position du robot
-        x__ += dx;
-        y__ += dy;
-        theta__ = normalizeAngleSigned(theta__ + dangle);
+        // correct from deadwheel midpoint to base_link: the offset swings with the robot's rotation
+        const double new_theta = normalizeAngleSigned(theta__ + dangle);
+        x__ += dx + DEADWHEEL_X_OFFSET * (std::cos(new_theta) - std::cos(theta__));
+        y__ += dy + DEADWHEEL_X_OFFSET * (std::sin(new_theta) - std::sin(theta__));
+        theta__ = new_theta;
 
         //calculs de vitesse
         vx = dxr/dt;
-        vy = dyr/dt;
         omega = dangle/dt;
+        vy = dyr/dt + omega * DEADWHEEL_X_OFFSET;
 
         RCLCPP_INFO_THROTTLE(
         this->get_logger(),

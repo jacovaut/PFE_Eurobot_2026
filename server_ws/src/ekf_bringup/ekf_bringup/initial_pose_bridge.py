@@ -46,6 +46,11 @@ class InitialPoseBridge(Node):
             f"Forwarding {self.input_topic} to topic {self.set_pose_topic} "
             f"and service {self.set_pose_service}"
         )
+        if not self.client.wait_for_service(timeout_sec=5.0):
+            self.get_logger().warn(
+                f"SetPose service {self.set_pose_service} not available at startup — "
+                "will retry on each pose message."
+            )
 
     def initial_pose_cb(self, msg):
         frame_id = msg.header.frame_id or self.map_frame
@@ -73,7 +78,7 @@ class InitialPoseBridge(Node):
 
         self.pub.publish(pose)
 
-        if self.client.service_is_ready() or self.client.wait_for_service(timeout_sec=0.2):
+        if self.client.service_is_ready():
             request = SetPose.Request()
             request.pose = pose
             future = self.client.call_async(request)
