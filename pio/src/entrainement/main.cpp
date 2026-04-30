@@ -149,10 +149,10 @@ void timercallback(rcl_timer_t *timer, int64_t last_call_time)
 FastAccelStepperEngine engine;
 
 // Motor definitions (StepPin, DirPin, CSPin)
-MotorDriver motor1(17, 16, 4);
+MotorDriver motor1(23, 22, 21);
 MotorDriver motor2(15, 13, 12);
 MotorDriver motor3(26, 25, 33);
-MotorDriver motor4(23, 22, 21);
+MotorDriver motor4(17, 16, 4);
 MotorDriver* motors[] = { &motor1, &motor2, &motor3, &motor4 }; // FL, FR, RR, RL
 
 // Robot motion and dimmention variables
@@ -176,7 +176,7 @@ void setup() {
     
     Serial.begin(2000000);
     // set_microros_serial_transports(Serial);
-    IPAddress agent_ip(192,168,1,185);
+    IPAddress agent_ip(192,168,1,131);
 
     set_microros_wifi_transports(
         "GRUM",
@@ -257,6 +257,19 @@ void setup() {
     motor2.Enabledriver(true);
     motor3.Enabledriver(true);
     motor4.Enabledriver(true);
+
+    for (int i = 0; i < 4; i++) {        
+        motors[i]->setSpeedRPM(60); // set speed in RPM
+        motors[i]->runForward();
+
+        delay(1000);
+
+        motors[i]->runBackward();
+
+        delay(1000);
+
+        motors[i]->stop();
+    }
     
     xTaskCreatePinnedToCore(
         core1,
@@ -296,9 +309,12 @@ void setSpeed(float new_vx, float new_vy, float new_w) {
     }
     
     float wheelSpeeds [4] = {0, 0, 0, 0}; // FL, FR, RR, RL
-    
+
     // get the wheel speeds in rad/s
     calculateWheelSpeeds(vx, vy, w, wheelSpeeds);
+    
+    wheelSpeeds[1] *= -1; // invert FR wheel direction to match FL, RR, RL
+    wheelSpeeds[2] *= -1; // invert RR wheel direction to match FL, FR, RL    
     
     for (int i = 0; i < 4; i++) {
         float speed = abs(wheelSpeeds[i]);
@@ -314,11 +330,11 @@ void setSpeed(float new_vx, float new_vy, float new_w) {
     }
 }
 
-void calculateWheelSpeeds(float vx, float vy, float w, float* wheelSpeeds) { // self explanatory
-    wheelSpeeds[0] =   (1/r) * ( vx + vy - w*lxy ); // FL
-    wheelSpeeds[1] = - (1/r) * ( vx + vy + w*lxy ); // FR
-    wheelSpeeds[2] = - (1/r) * ( vx - vy + w*lxy ); // RR
-    wheelSpeeds[3] =   (1/r) * ( vx - vy - w*lxy ); // RL
+void calculateWheelSpeeds(float vx, float vy, float w, float* ws) {
+    ws[0] = (1/r) * (vx - vy - w*lxy); // FL
+    ws[1] = (1/r) * (vx + vy + w*lxy); // FR
+    ws[2] = (1/r) * (vx - vy + w*lxy); // RR
+    ws[3] = (1/r) * (vx + vy - w*lxy); // RL
 }
 
 
