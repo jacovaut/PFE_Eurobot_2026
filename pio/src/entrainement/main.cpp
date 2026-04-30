@@ -164,6 +164,8 @@ const float lxy = 0.125 + 0.2; // lx (m) + ly (m) = 240mm
 
 const float r = 0.03; //m   (100mm mecanum)
 
+unsigned long long last_zero_time = 0;
+
 void calculateWheelSpeeds(float vx, float vy, float w, float* wheelSpeeds);
 void setSpeed(float new_vx, float new_vy, float new_w);
 void core1 (void* pvParameters);
@@ -258,6 +260,7 @@ void setup() {
     motor3.Enabledriver(true);
     motor4.Enabledriver(true);
 
+    // Test motor position
     // for (int i = 0; i < 4; i++) {        
     //     motors[i]->setSpeedRPM(60); // set speed in RPM
     //     motors[i]->runForward();
@@ -305,7 +308,24 @@ void setSpeed(float new_vx, float new_vy, float new_w) {
         motor2.stop();
         motor3.stop();
         motor4.stop();
+
+        if (last_zero_time == 0)
+        {
+            last_zero_time = millis();
+        }else if (millis() - last_zero_time > 2000) {
+            motor1.Enabledriver(false);
+            motor2.Enabledriver(false);
+            motor3.Enabledriver(false);
+            motor4.Enabledriver(false);
+        }
         return;
+    }
+    else if (last_zero_time != 0) {
+        last_zero_time = 0;
+        motor1.Enabledriver(true);
+        motor2.Enabledriver(true);
+        motor3.Enabledriver(true);
+        motor4.Enabledriver(true);
     }
     
     float wheelSpeeds [4] = {0, 0, 0, 0}; // FL, FR, RR, RL
