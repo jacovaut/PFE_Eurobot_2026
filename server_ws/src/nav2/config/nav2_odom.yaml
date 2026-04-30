@@ -30,7 +30,7 @@ controller_server:
     use_sim_time: false
     controller_frequency: 20.0
     min_x_velocity_threshold: 0.001
-    min_y_velocity_threshold: 0.0
+    min_y_velocity_threshold: 0.001
     min_theta_velocity_threshold: 0.001
     failure_tolerance: 0.3
 
@@ -52,16 +52,16 @@ controller_server:
       xy_goal_tolerance: 0.05
       yaw_goal_tolerance: 3.14
 
-    # Controller option A (testing): DWB differential
+    # Controller option A (recommended-to-start): DWB holonomic
     FollowPath:
       plugin: "dwb_core::DWBLocalPlanner"
       debug_trajectory_details: false
 
-      # Differential drive: no lateral velocity
+      # Holonomic mecanum: allow y velocity
       min_vel_x: -0.4
       max_vel_x:  0.4
-      min_vel_y:  0.0
-      max_vel_y:  0.0
+      min_vel_y: -0.4
+      max_vel_y:  0.4
       max_vel_theta: 0.5
       min_speed_xy: 0.0
       max_speed_xy: 0.6
@@ -75,7 +75,7 @@ controller_server:
       decel_lim_theta: -2.0
 
       vx_samples: 20
-      vy_samples: 1
+      vy_samples: 20
       vtheta_samples: 20
       sim_time: 1.0
       linear_granularity: 0.05
@@ -126,10 +126,10 @@ velocity_smoother:
     smoothing_frequency: 20.0
     scale_velocities: false
     feedback: "OPEN_LOOP"
-    max_velocity: [0.4, 0.0, 1.5]
-    min_velocity: [-0.4, 0.0, -1.5]
-    max_accel: [1.0, 0.0, 2.0]
-    max_decel: [-1.0, 0.0, -2.0]
+    max_velocity: [0.4, 0.4, 1.5]
+    min_velocity: [-0.4, -0.4, -1.5]
+    max_accel: [1.0, 1.0, 2.0]
+    max_decel: [-1.0, -1.0, -2.0]
     odom_topic: "/odometry/local"
     velocity_timeout: 0.5
 
