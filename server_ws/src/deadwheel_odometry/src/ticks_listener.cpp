@@ -34,6 +34,39 @@ class TicksListener : public rclcpp::Node
     int64_t prevTicks[3] = {0, 0, 0};
     bool initialized_{false};
     rclcpp::Time prev_stamp_;
+    rclcpp::Time prev_receive_stamp_;
+    bool stamp_diagnostics_{false};
+    double max_stamp_offset_sec_{1.0};
+
+    bool getValidMessageStamp(
+      const custom_msgs::msg::DeadwheelTicks::SharedPtr& msg,
+      const rclcpp::Time& receive_stamp,
+      rclcpp::Time& stamp)
+    {
+      if (msg->header.stamp.sec == 0 && msg->header.stamp.nanosec == 0) {
+        RCLCPP_WARN_THROTTLE(
+          this->get_logger(),
+          *this->get_clock(),
+          2000,
+          "deadwheel_ticks header stamp is zero; skipping message");
+        return false;
+      }
+
+      const rclcpp::Time source_stamp(msg->header.stamp);
+      const double offset = (receive_stamp - source_stamp).seconds();
+      if (!std::isfinite(offset) || std::abs(offset) > max_stamp_offset_sec_) {
+        RCLCPP_WARN_THROTTLE(
+          this->get_logger(),
+          *this->get_clock(),
+          2000,
+          "deadwheel_ticks stamp is %.3f s from receive time; skipping message",
+          offset);
+        return false;
+      }
+
+      stamp = source_stamp;
+      return true;
+    }
 
     void publishOdom(const rclcpp::Time& stamp)
     { 
@@ -96,6 +129,8 @@ class TicksListener : public rclcpp::Node
       const double initial_x = this->declare_parameter<double>("initial_x", 0.0);
       const double initial_y = this->declare_parameter<double>("initial_y", 0.0);
       const double initial_yaw_deg = this->declare_parameter<double>("initial_yaw_deg", 0.0);
+      stamp_diagnostics_ = this->declare_parameter<bool>("stamp_diagnostics", false);
+      max_stamp_offset_sec_ = this->declare_parameter<double>("max_stamp_offset_sec", 1.0);
 
       x__ = initial_x;
       y__ = initial_y;
@@ -114,19 +149,25 @@ class TicksListener : public rclcpp::Node
       {
         std::lock_guard<std::mutex> lock(mtx_);
 
-        const rclcpp::Time stamp = this->now();
+        const rclcpp::Time receive_stamp = this->now();
+        rclcpp::Time stamp;
+        if (!getValidMessageStamp(msg, receive_stamp, stamp)) {
+          return;
+        }
 
         if (!initialized_) {
           prevTicks[0] = msg->t0;
           prevTicks[1] = msg->t1;
           prevTicks[2] = msg->t2;
           prev_stamp_ = stamp;
+          prev_receive_stamp_ = receive_stamp;
           initialized_ = true;
           publishOdom(stamp);
           return;
         }
 
         double dt = (stamp - prev_stamp_).seconds();
+        const double receive_dt = (receive_stamp - prev_receive_stamp_).seconds();
 
         if (dt <= 1e-6 || !std::isfinite(dt)) {
           RCLCPP_WARN(this->get_logger(), "Bad dt (%.9f), skipping", dt);
@@ -134,6 +175,7 @@ class TicksListener : public rclcpp::Node
         }
 
         prev_stamp_ = stamp;
+        prev_receive_stamp_ = receive_stamp;
 
         // calculs des delta ticks
         int64_t ticks0 = (msg->t0); 
@@ -169,6 +211,23 @@ class TicksListener : public rclcpp::Node
         vx = dxr/dt;
         omega = dangle/dt;
         vy = dyr/dt;
+
+        if (stamp_diagnostics_) {
+          RCLCPP_INFO_THROTTLE(
+            this->get_logger(),
+            *this->get_clock(),
+            500,
+            "stamp dt=%.4f receive_dt=%.4f jitter=%.4f ticks=[%lld,%lld,%lld] v=[%.3f,%.3f,%.3f]",
+            dt,
+            receive_dt,
+            receive_dt - dt,
+            static_cast<long long>(dRTicks),
+            static_cast<long long>(dLTicks),
+            static_cast<long long>(dSTicks),
+            vx,
+            vy,
+            omega);
+        }
 
         RCLCPP_INFO_THROTTLE(
         this->get_logger(),
