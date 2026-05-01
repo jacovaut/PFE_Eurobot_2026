@@ -50,7 +50,7 @@ controller_server:
       plugin: "nav2_controller::SimpleGoalChecker"
       stateful: true
       xy_goal_tolerance: 0.05
-      yaw_goal_tolerance: 0.35
+      yaw_goal_tolerance: 0.20
 
     # Controller option A (recommended-to-start): DWB holonomic
     FollowPath:
@@ -62,17 +62,17 @@ controller_server:
       max_vel_x:  0.4
       min_vel_y: -0.4
       max_vel_y:  0.4
-      max_vel_theta: 0.2
+      max_vel_theta: 0.3
       min_speed_xy: 0.0
       max_speed_xy: 0.6
       min_speed_theta: 0.0
 
       acc_lim_x: 1.0
       acc_lim_y: 1.0
-      acc_lim_theta: 0.4
+      acc_lim_theta: 0.8
       decel_lim_x: -1.0
       decel_lim_y: -1.0
-      decel_lim_theta: -0.4
+      decel_lim_theta: -0.8
 
       vx_samples: 20
       vy_samples: 20
@@ -83,10 +83,14 @@ controller_server:
 
       transform_tolerance: 0.2
 
-      critics: ["PathDist", "GoalDist", "Twirling", "Oscillation"]
+      critics: ["PathAlign", "GoalAlign", "PathDist", "GoalDist", "RotateToGoal", "Oscillation"]
+      PathAlign.scale: 12.0
+      GoalAlign.scale: 8.0
       PathDist.scale: 32.0
       GoalDist.scale: 32.0
-      Twirling.scale: 20.0
+      RotateToGoal.scale: 8.0
+      RotateToGoal.slowing_factor: 8.0
+      RotateToGoal.lookahead_time: 0.5
       Oscillation.scale: 1.0
 
 bt_navigator:
@@ -116,10 +120,10 @@ velocity_smoother:
     smoothing_frequency: 20.0
     scale_velocities: false
     feedback: "OPEN_LOOP"
-    max_velocity: [0.4, 0.4, 0.2]
-    min_velocity: [-0.4, -0.4, -0.2]
-    max_accel: [1.0, 1.0, 0.4]
-    max_decel: [-1.0, -1.0, -0.4]
+    max_velocity: [0.4, 0.4, 0.3]
+    min_velocity: [-0.4, -0.4, -0.3]
+    max_accel: [1.0, 1.0, 0.8]
+    max_decel: [-1.0, -1.0, -0.8]
     odom_topic: "/odometry/local"
     velocity_timeout: 0.5
 
@@ -142,7 +146,7 @@ global_costmap:
         subscribe_to_updates: true
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
-        inflation_radius: 0.5
+        inflation_radius: 0.25
         cost_scaling_factor: 3.0
       voxel_layer:
         plugin: "nav2_costmap_2d::VoxelLayer"
