@@ -13,6 +13,7 @@ ekf_local_node:
     # Output
     publish_tf: true
     publish_acceleration: false
+    print_diagnostics: true
 
     # Input: deadwheel odom
     odom0: /odom_deadwheels
@@ -37,5 +38,5 @@ ekf_local_node:
 
     # If your deadwheel odom already has reasonable covariances, keep false
     # If covariances are missing/zero/garbage, set true and define defaults (next section)
-    odom0_pose_rejection_threshold: 5.0
-    odom0_twist_rejection_threshold: 1.0
+    odom0_pose_rejection_threshold: 100.0
+    odom0_twist_rejection_threshold: 100.0
