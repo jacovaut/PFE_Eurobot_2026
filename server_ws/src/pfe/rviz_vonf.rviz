@@ -111,6 +111,13 @@ Visualization Manager:
         Reliability Policy: Reliable
         Value: /plan
       Value: true
+    - Class: rviz_default_plugins/Axes
+      Enabled: true
+      Length: 0.10000000149011612
+      Name: Axes
+      Radius: 0.009999999776482582
+      Reference Frame: odom
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
