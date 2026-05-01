@@ -28,8 +28,8 @@ class TicksListener : public rclcpp::Node
     const double SDEADWHEEL_DIAMETER  = 0.0384;
     const double DEADWHEEL_CIRCUMFERENCE = (M_PI) * DEADWHEEL_DIAMETER;
     const double SDEADWHEEL_CIRCUMFERENCE = (M_PI) * SDEADWHEEL_DIAMETER;
-    const double DEADWHEEL_DISTANCE = 0.1496; //distance entre les deux deadwheel principaux, anciennement 0.1446
-    const double OFFSET = -0.063; //distance entre le side deadwheel et le centre de rotation du robot
+    const double DEADWHEEL_DISTANCE = 0.14994; //distance entre les deux deadwheel principaux, anciennement 0.1446
+    const double OFFSET = -0.05903; //distance entre le side deadwheel et le centre de rotation du robot
 
     int64_t prevTicks[3] = {0, 0, 0};
     bool initialized_{false};
