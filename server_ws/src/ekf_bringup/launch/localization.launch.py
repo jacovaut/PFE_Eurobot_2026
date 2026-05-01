@@ -50,7 +50,10 @@ def generate_launch_description():
             name='ekf_local_node',
             output='screen',
             parameters=[ekf1_config],
-            remappings=[('/odometry/filtered', '/odometry/local')],
+            remappings=[
+                ('/odometry/filtered', '/odometry/local'),
+                ('set_pose', '/ekf_local_node/set_pose'),
+            ],
         ),
         # EKF2: global filter (map -> odom)
         Node(
@@ -59,7 +62,10 @@ def generate_launch_description():
             name='ekf_global_node',
             output='screen',
             parameters=[ekf2_config],
-            remappings=[('/odometry/filtered', '/odometry/global')],
+            remappings=[
+                ('/odometry/filtered', '/odometry/global'),
+                ('set_pose', '/ekf_global_node/set_pose'),
+            ],
         ),
         Node(
             package='ekf_bringup',

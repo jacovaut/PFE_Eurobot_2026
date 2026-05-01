@@ -21,15 +21,15 @@ class TicksListener : public rclcpp::Node
     double x__{0.0}, y__{0.0}, theta__{0.0};
     double vx{0}, vy{0}, omega{0};
     std::mutex mtx_;
-  
+
     //Constantes, à ajouter les bonnes valeurs
     const double ENCODER_TICKS_PER_REVOLUTION [3] = {4096, 4096, 4096};
     const double DEADWHEEL_DIAMETER  = 0.0384; //0.0373, 0.0366
     const double SDEADWHEEL_DIAMETER  = 0.0384;
     const double DEADWHEEL_CIRCUMFERENCE = (M_PI) * DEADWHEEL_DIAMETER;
     const double SDEADWHEEL_CIRCUMFERENCE = (M_PI) * SDEADWHEEL_DIAMETER;
-    const double DEADWHEEL_DISTANCE = 0.123; //distance entre les deux deadwheel principaux
-    const double OFFSET = 0.063; //distance entre le side deadwheel et le centre de rotation du robot
+    const double DEADWHEEL_DISTANCE = 0.1496; //distance entre les deux deadwheel principaux, anciennement 0.1446
+    const double OFFSET = -0.063; //distance entre le side deadwheel et le centre de rotation du robot
 
     int64_t prevTicks[3] = {0, 0, 0};
     bool initialized_{false};
@@ -167,8 +167,8 @@ class TicksListener : public rclcpp::Node
 
         //calculs de vitesse
         vx = dxr/dt;
-        vy = dyr/dt;
         omega = dangle/dt;
+        vy = dyr/dt;
 
         RCLCPP_INFO_THROTTLE(
         this->get_logger(),
