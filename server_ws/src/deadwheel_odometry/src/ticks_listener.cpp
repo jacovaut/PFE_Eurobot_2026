@@ -93,9 +93,9 @@ class TicksListener : public rclcpp::Node
   public:
     TicksListener() : Node("ticks_listener")
     {
-      const double initial_x = this->declare_parameter<double>("initial_x", 0.0);
-      const double initial_y = this->declare_parameter<double>("initial_y", 0.0);
-      const double initial_yaw_deg = this->declare_parameter<double>("initial_yaw_deg", 0.0);
+      const double initial_x = this->declare_parameter<double>("initial_x", 0.265);
+      const double initial_y = this->declare_parameter<double>("initial_y", 1.78);
+      const double initial_yaw_deg = this->declare_parameter<double>("initial_yaw_deg", 90.0);
 
       x__ = initial_x;
       y__ = initial_y;
