@@ -86,6 +86,29 @@ void error_loop(){
         delay(100);
     }
 }
+
+bool sync_time_with_agent(size_t attempts = 10, int timeout_ms = 1000)
+{
+    for (size_t attempt = 1; attempt <= attempts; ++attempt) {
+        rcl_ret_t rc = rmw_uros_sync_session(timeout_ms);
+        if (rc == RMW_RET_OK && rmw_uros_epoch_synchronized()) {
+            Serial.printf(
+                "micro-ROS time synchronized: epoch_ms=%lld\n",
+                static_cast<long long>(rmw_uros_epoch_millis()));
+            return true;
+        }
+
+        Serial.printf(
+            "micro-ROS time sync failed (%u/%u), rc=%d, synced=%d\n",
+            static_cast<unsigned>(attempt),
+            static_cast<unsigned>(attempts),
+            static_cast<int>(rc),
+            rmw_uros_epoch_synchronized() ? 1 : 0);
+        delay(500);
+    }
+
+    return false;
+}
 /* ------------------------------------------------------------- */
 
 deadwheels Deadwheel(35, 32, 2, 19, 36, 34); // A0, B0, A1, B1, A2, B2
@@ -191,10 +214,12 @@ void setup() {
     while (rmw_uros_ping_agent(1000, 1) != RMW_RET_OK) {
         delay(1000);
     }
-
-    rmw_uros_sync_session(1000);  // try to sync with agent for up to 1s
     
     RCCHECK(rclc_support_init(&support, 0, NULL, &allocator));
+
+    if (!sync_time_with_agent()) {
+        error_loop();
+    }
     
     // create node
     RCCHECK(rclc_node_init_default(

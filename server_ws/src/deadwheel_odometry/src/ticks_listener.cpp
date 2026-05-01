@@ -38,10 +38,11 @@ class TicksListener : public rclcpp::Node
     bool stamp_diagnostics_{false};
     double max_stamp_offset_sec_{1.0};
 
-    bool getValidMessageStamp(
+    bool getMessageStamp(
       const custom_msgs::msg::DeadwheelTicks::SharedPtr& msg,
       const rclcpp::Time& receive_stamp,
-      rclcpp::Time& stamp)
+      rclcpp::Time& source_stamp,
+      bool& source_stamp_is_ros_synced)
     {
       if (msg->header.stamp.sec == 0 && msg->header.stamp.nanosec == 0) {
         RCLCPP_WARN_THROTTLE(
@@ -52,19 +53,18 @@ class TicksListener : public rclcpp::Node
         return false;
       }
 
-      const rclcpp::Time source_stamp(msg->header.stamp);
+      source_stamp = rclcpp::Time(msg->header.stamp);
       const double offset = (receive_stamp - source_stamp).seconds();
-      if (!std::isfinite(offset) || std::abs(offset) > max_stamp_offset_sec_) {
+      source_stamp_is_ros_synced = std::isfinite(offset) && std::abs(offset) <= max_stamp_offset_sec_;
+      if (!source_stamp_is_ros_synced) {
         RCLCPP_WARN_THROTTLE(
           this->get_logger(),
           *this->get_clock(),
           2000,
-          "deadwheel_ticks stamp is %.3f s from receive time; skipping message",
+          "deadwheel_ticks stamp is %.3f s from receive time; using it for dt only",
           offset);
-        return false;
       }
 
-      stamp = source_stamp;
       return true;
     }
 
@@ -145,28 +145,30 @@ class TicksListener : public rclcpp::Node
       //tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
 
       subscription_ = this->create_subscription<custom_msgs::msg::DeadwheelTicks>(
-      "deadwheel_ticks", 50,[this](custom_msgs::msg::DeadwheelTicks::SharedPtr msg)
+      "deadwheel_ticks", rclcpp::SensorDataQoS().keep_last(1), [this](custom_msgs::msg::DeadwheelTicks::SharedPtr msg)
       {
         std::lock_guard<std::mutex> lock(mtx_);
 
         const rclcpp::Time receive_stamp = this->now();
-        rclcpp::Time stamp;
-        if (!getValidMessageStamp(msg, receive_stamp, stamp)) {
+        rclcpp::Time source_stamp;
+        bool source_stamp_is_ros_synced{false};
+        if (!getMessageStamp(msg, receive_stamp, source_stamp, source_stamp_is_ros_synced)) {
           return;
         }
+        const rclcpp::Time odom_stamp = source_stamp_is_ros_synced ? source_stamp : receive_stamp;
 
         if (!initialized_) {
           prevTicks[0] = msg->t0;
           prevTicks[1] = msg->t1;
           prevTicks[2] = msg->t2;
-          prev_stamp_ = stamp;
+          prev_stamp_ = source_stamp;
           prev_receive_stamp_ = receive_stamp;
           initialized_ = true;
-          publishOdom(stamp);
+          publishOdom(odom_stamp);
           return;
         }
 
-        double dt = (stamp - prev_stamp_).seconds();
+        double dt = (source_stamp - prev_stamp_).seconds();
         const double receive_dt = (receive_stamp - prev_receive_stamp_).seconds();
 
         if (dt <= 1e-6 || !std::isfinite(dt)) {
@@ -174,7 +176,7 @@ class TicksListener : public rclcpp::Node
           return;
         }
 
-        prev_stamp_ = stamp;
+        prev_stamp_ = source_stamp;
         prev_receive_stamp_ = receive_stamp;
 
         // calculs des delta ticks
@@ -213,14 +215,17 @@ class TicksListener : public rclcpp::Node
         vy = dyr/dt;
 
         if (stamp_diagnostics_) {
+          const double stamp_offset = (receive_stamp - source_stamp).seconds();
           RCLCPP_INFO_THROTTLE(
             this->get_logger(),
             *this->get_clock(),
             500,
-            "stamp dt=%.4f receive_dt=%.4f jitter=%.4f ticks=[%lld,%lld,%lld] v=[%.3f,%.3f,%.3f]",
+            "stamp dt=%.4f receive_dt=%.4f jitter=%.4f offset=%.4f synced=%d ticks=[%lld,%lld,%lld] v=[%.3f,%.3f,%.3f]",
             dt,
             receive_dt,
             receive_dt - dt,
+            stamp_offset,
+            source_stamp_is_ros_synced ? 1 : 0,
             static_cast<long long>(dRTicks),
             static_cast<long long>(dLTicks),
             static_cast<long long>(dSTicks),
@@ -236,7 +241,7 @@ class TicksListener : public rclcpp::Node
         x__, y__
         );
 
-        publishOdom(stamp);
+        publishOdom(odom_stamp);
       }
     ); 
   }
