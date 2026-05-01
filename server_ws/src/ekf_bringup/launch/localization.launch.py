@@ -2,6 +2,7 @@ from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
+from launch_ros.parameter_descriptions import ParameterValue
 from ament_index_python.packages import get_package_share_directory
 import os
 
@@ -13,6 +14,8 @@ def generate_launch_description():
     start_x = LaunchConfiguration('start_x')
     start_y = LaunchConfiguration('start_y')
     start_yaw_deg = LaunchConfiguration('start_yaw_deg')
+    stamp_diagnostics = LaunchConfiguration('stamp_diagnostics')
+    max_stamp_offset_sec = LaunchConfiguration('max_stamp_offset_sec')
 
     return LaunchDescription([
         DeclareLaunchArgument(
@@ -30,6 +33,16 @@ def generate_launch_description():
             default_value='0.0',
             description='Initial robot heading in table/odom coordinates, in degrees'
         ),
+        DeclareLaunchArgument(
+            'stamp_diagnostics',
+            default_value='false',
+            description='Print deadwheel source timestamp vs receive timestamp diagnostics'
+        ),
+        DeclareLaunchArgument(
+            'max_stamp_offset_sec',
+            default_value='1.0',
+            description='Maximum allowed deadwheel source stamp offset before falling back to receive time'
+        ),
         # Deadwheel odometry node
         Node(
             package='deadwheel_odometry',
@@ -40,6 +53,8 @@ def generate_launch_description():
                 'initial_x': start_x,
                 'initial_y': start_y,
                 'initial_yaw_deg': start_yaw_deg,
+                'stamp_diagnostics': ParameterValue(stamp_diagnostics, value_type=bool),
+                'max_stamp_offset_sec': ParameterValue(max_stamp_offset_sec, value_type=float),
             }]
         ),
 
