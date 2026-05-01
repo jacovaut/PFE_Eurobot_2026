@@ -17,17 +17,17 @@ def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument(
             'start_x',
-            default_value='0.0',
+            default_value='0.265',
             description='Initial robot X position in table/odom coordinates, in metres'
         ),
         DeclareLaunchArgument(
             'start_y',
-            default_value='0.0',
+            default_value='1.78',
             description='Initial robot Y position in table/odom coordinates, in metres'
         ),
         DeclareLaunchArgument(
             'start_yaw_deg',
-            default_value='0.0',
+            default_value='90.0',
             description='Initial robot heading in table/odom coordinates, in degrees'
         ),
         # Deadwheel odometry node
