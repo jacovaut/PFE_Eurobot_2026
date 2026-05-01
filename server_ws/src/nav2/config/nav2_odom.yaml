@@ -21,7 +21,7 @@ planner_server:
     # Planner option A (simple): NavFn
     GridBased:
       plugin: "nav2_navfn_planner::NavfnPlanner"
-      tolerance: 0.5
+      tolerance: 0.05
       use_astar: false
       allow_unknown: true
 
@@ -48,9 +48,9 @@ controller_server:
 
     goal_checker:
       plugin: "nav2_controller::SimpleGoalChecker"
-      stateful: false
+      stateful: true
       xy_goal_tolerance: 0.05
-      yaw_goal_tolerance: 3.14
+      yaw_goal_tolerance: 0.10
 
     # Controller option A (recommended-to-start): DWB holonomic
     FollowPath:
@@ -83,10 +83,12 @@ controller_server:
 
       transform_tolerance: 0.3
 
-      # Translation-first tuning for odom-only tests.
-      critics: ["PathDist", "GoalDist", "Oscillation"]
-      PathDist.scale: 48.0
-      GoalDist.scale: 32.0
+      critics: ["PathAlign", "GoalAlign", "PathDist", "GoalDist", "RotateToGoal", "Oscillation"]
+      PathAlign.scale: 24.0
+      GoalAlign.scale: 16.0
+      PathDist.scale: 40.0
+      GoalDist.scale: 24.0
+      RotateToGoal.scale: 12.0
       Oscillation.scale: 1.0
 
 bt_navigator:
