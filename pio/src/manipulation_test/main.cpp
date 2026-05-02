@@ -1,45 +1,24 @@
 /*
- * Manipulation Test Serial Commands - SIMPLIFIED
+ * Manipulation Test Serial Commands
  * -----------------------------------------------
  * Pumps:
  *   P1 1, P2 1, P3 1, P4 1       -> turn an individual pump ON
  *   P1 0, P13 0, P1234 1         -> turn listed pumps OFF/ON
  *
- * Lift Motor (direct ticks, auto-stops):
- *   L <ticks>                    -> lift forward/backward (positive=up, negative=down, PWM 255)
- *                                   ex: L 450, L -900
- *   s                            -> lift brake
- *
- * Turn Motor (direct ticks, auto-stops):
- *   T <ticks>                    -> turn CW/CCW (positive=CW, negative=CCW, PWM 255)
- *                                   ex: T 450, T -450
- *   x                            -> turn brake
- *
-
- *
- * Encoders (grouped):
- *   c                            -> read both encoder counts
- *   r                            -> reset both encoders to 0
- *
  * Test / Homing:
- *   m                            -> coordinated move: lift to 880 ticks (PWM 255),
- *                                   turn starts at 150 ticks (target 450 ticks, PWM 255)
- *   n                            -> return both motors to 0 (homing)
+ *   T                            -> coordinated move: set target to move,
+ *   H                            -> return both motors to 0 (homing)
+ *   w                            -> stop all motor movement (free-wheel)
+ *   E                            -> print encoder count for debugging
  *
- * Other:
- *   STATUS                       -> show all current states
- *   HELP                         -> show help in serial monitor
- */
-
-/*
-Jacob notes:
-
-when loop in serial, motors aren't stopped
-FF should be higher 
-
+ * Servo Control:
+ *  S 0, S 1                      -> Close or Open stopper
+ *  S <angle>                     -> Set stopper to specific angle (0-180)
+ *  F CW, F CCW, F C              -> Set flipper to clockwise, counter-clockwise, or center positions
+ *  F <angle>                     -> Set flipper to specific angle (0-180)
+ *  C YELLOW, C BLUE              -> Flip based on detected color
+ * 
 */
-
-
 
 #include <Arduino.h>
 #include <stdint.h>
@@ -59,7 +38,7 @@ constexpr int Pump3 = 27; // Pump for suction cup 3
 constexpr int Pump4 = 14; // Pump for suction cup 4
 constexpr int Thermo = 33; // Control Thermo?
 constexpr int STOP = 13; // Servo stopper for the block chute
-constexpr int FLIP = 18; // Servo flipper for sorting blocks
+constexpr int FLIP = 12; // Servo flipper for sorting blocks
 
 // MOTORS SWAPPED: Turn motor now uses pins 15,2  Lift motor now uses pins 4,5
 constexpr int MOTOR_TURN1 = 15;
@@ -69,8 +48,10 @@ constexpr int MOTOR_LIFT2 = 5;
 
 constexpr int ENCODER_LIFT_A = 21;
 constexpr int ENCODER_LIFT_B = 19;
-constexpr int ENCODER_TURN_A = 22;  // Swapped from 23
-constexpr int ENCODER_TURN_B = 23;  // Swapped from 22
+constexpr int ENCODER_LIFT_X = 18; // Home index pulse for lift
+constexpr int ENCODER_TURN_A = 22; 
+constexpr int ENCODER_TURN_B = 23; 
+constexpr int ENCODER_TURN_X = 32; // Home index pulse for turn
 
 constexpr int PWM_CHANNEL_LIFT1 = 0;
 constexpr int PWM_CHANNEL_LIFT2 = 1;
@@ -82,9 +63,16 @@ constexpr int PWM_RESOLUTION = 8;
 
 const int PUMP_PINS[4] = {Pump1, Pump2, Pump3, Pump4};
 
-// ArmMotor armMotor(1.0f, 0.01f, 0.0f, MOTOR_LIFT1, MOTOR_LIFT2, ENCODER_LIFT_A, ENCODER_LIFT_B, 18);
-ArmMotor armMotor(1.0f, 0.01f, 0.0f, 5, 4, 21, 19, 18);
+// ArmMotor armMotor(1.0f, 0.01f, 0.0f, MOTOR_LIFT1, MOTOR_LIFT2, ENCODER_LIFT_A, ENCODER_LIFT_B, Home);
+ArmMotor armMotor(
+    /*kp*/ 1.5f,  /*ki*/ 0.0f,  /*kd*/ 0.0f,
+    /*in1*/ 4,    /*in2*/ 5,
+    /*enc_a*/ 21, /*enc_b*/ 19,  /*enc_x*/ 18,
+    /*pwm_ch_fwd*/ 4, /*pwm_ch_rev*/ 5
+);
 
+bool     h_sequence_pending = false;
+uint32_t h_sequence_timer   = 0;
 
 Servo stopper_servo;
 Servo flipper_servo;
@@ -98,41 +86,18 @@ bool pump_states[4] = {false, false, false, false};
 bool stopper_open = false;
 int stopper_angle = 15;
 int flipper_angle = 90;
-bool lift_test_active = false;
-int64_t lift_test_start_count = 0;
-int64_t lift_test_target_ticks = 0;
-String lift_test_direction = "IDLE";
-bool turn_test_active = false;
-int64_t turn_test_start_count = 0;
-int64_t turn_test_target_ticks = 0;
-String turn_test_direction = "IDLE";
-String lift_state = "BRAKE";
-String turn_state = "BRAKE";
 String flipper_state = "CENTER";
 String last_block_color = "UNKNOWN";
-
-// Debug timers
-unsigned long lift_debug_timer = 0;
-unsigned long turn_debug_timer = 0;
-
-// Homing timeout support
-bool return_to_zero_active = false;
-unsigned long return_to_zero_start_time = 0;
-const unsigned long RETURN_TO_ZERO_TIMEOUT_MS = 2000;
-
-// Test mode flags
-bool m_command_active = false;
-bool m_command_turn_triggered = false;
-bool m_turn_retract_pending = false;
-bool lift_reset_encoders_on_complete = false;
-bool pump_encoder_reset_pending = false;
-unsigned long pump_encoder_reset_timer = 0;
 
 constexpr int STOP_CLOSED_ANGLE = 15;
 constexpr int STOP_OPEN_ANGLE = 95;
 constexpr int FLIP_CENTER_ANGLE = 90;
 constexpr int FLIP_CW_ANGLE = 35;
 constexpr int FLIP_CCW_ANGLE = 145;
+
+// ----------------------------------------
+// SECTION: Servo serial control
+// ----------------------------------------
 
 bool isNumeric(const String& value) {
     if (value.length() == 0) {
@@ -183,22 +148,8 @@ bool applyPumpCommand(String pump_nums, bool state) {
         }
     }
 
-    // When any pump is turned ON, retract lift by 5 ticks then reset encoders
-    if (state) {
-        bool any_on = false;
-        for (int i = 0; i < 4; i++) { if (requested[i]) { any_on = true; break; } }
-        if (any_on) {
-            Serial.println("Pump ON: retracting lift -5 ticks then resetting encoders");
-            lift_reset_encoders_on_complete = true;
-            // armMotor.setTarget(-5); // Need relative target?
-        }
-    }
-
     return true;
 }
-
-
-// ========================================
 
 // ----------------------------------------
 // SECTION: Servo Control
@@ -245,73 +196,11 @@ void centerFlipper() {
 void flipForColor(const String& color) {
     last_block_color = color;
 
-    // Swap these two mappings if the hardware orientation is reversed.
     if (color == "YELLOW") {
         setFlipperClockwise();
     } else if (color == "BLUE") {
         setFlipperCounterClockwise();
     }
-}
-
-void printStatus() {
-    Serial.print("\n=== Current Status ===\n");
-    for (int i = 0; i < 4; i++) {
-        Serial.print("Pump");
-        Serial.print(i + 1);
-        Serial.print(": ");
-        Serial.println(pump_states[i] ? "ON" : "OFF");
-    }
-    Serial.print("Lift motor: ");
-    Serial.println(lift_state);
-    Serial.print("Turn motor: ");
-    Serial.println(turn_state);
-    Serial.print("Turn test: ");
-    if (turn_test_active) {
-        Serial.print(turn_test_direction);
-        Serial.print(" RUNNING (");
-        Serial.print(turn_test_target_ticks);
-        Serial.println(" ticks)");
-    } else {
-        Serial.println("IDLE");
-    }
-    
-    /* SERVO STATUS - COMMENTED OUT */
-    Serial.print("Stopper: ");
-    Serial.print(stopper_open ? "OPEN" : "CLOSED");
-    Serial.print(" (");
-    Serial.print(stopper_angle);
-    Serial.println(" deg)");
-    Serial.print("Flipper: ");
-    Serial.print(flipper_state);
-    Serial.print(" (");
-    Serial.print(flipper_angle);
-    Serial.println(" deg)");
-    Serial.print("Last color: ");
-    Serial.println(last_block_color);
-    Serial.print("=====================\n\n");
-}
-
-void printHelp() {
-    Serial.print("\n=== Commands (SIMPLIFIED) ===\n");
-    Serial.print("Pumps:\n");
-    Serial.print("  P<nums> <0|1>   - Control pumps (Examples: P1 1, P2 1, P13 0, P1234 1)\n");
-    Serial.print("\nLift Motor (direct ticks, auto-stops at target):\n");
-    Serial.print("  L <ticks>       - Move lift N ticks (positive = up, negative = down, PWM 255)\n");
-    Serial.print("  s               - Lift brake\n");
-    Serial.print("\nTurn Motor (direct ticks, auto-stops at target):\n");
-    Serial.print("  T <ticks>       - Move turn N ticks (positive = CW, negative = CCW, PWM 255)\n");
-    Serial.print("  x               - Turn brake\n");
-    Serial.print("\nEncoders (grouped):\n");
-    Serial.print("  c               - Read both encoder counts\n");
-    Serial.print("  r               - Reset both encoders to 0\n");
-    Serial.print("\nTest:\n");
-    Serial.print("  m               - Lift to 880 ticks at 255; turn starts at 150 ticks (target 450 ticks) at 255\n");
-    Serial.print("  n               - Return both motors to zero position\n");
-    Serial.print("\nOther:\n");
-    Serial.print("  STATUS          - Show current status\n");
-    Serial.print("  HELP            - Show this help message\n");
-    Serial.print("[SERVOS ACTIVE]\n");
-    Serial.print("=============================\n\n");
 }
 
 void setup(){
@@ -340,20 +229,10 @@ void setup(){
     centerFlipper();
     
     armMotor.setup();
-    
-    printHelp();
-    // printStatus();
-    
-    // while (true)
-    // {
-    //     delay(1000);
-    //     Serial.print(".");
-    // }
-    
 }
 
 // ----------------------------------------
-// SECTION: Arduino main loop
+// SECTION: Main loop
 // ----------------------------------------
 
 void loop(){
@@ -361,6 +240,12 @@ void loop(){
     static uint32_t last = micros();
     uint32_t now = micros();
     const uint32_t interval = 2000;  // 2 ms for 500 Hz (1/500 * 1e6 microseconds)
+
+    if (h_sequence_pending && (millis() - h_sequence_timer >= 1000)) {
+        h_sequence_pending = false;
+        armMotor.setTarget(0);
+        Serial.println("Motor → home (0 ticks)");
+    }
 
     if (now - last >= interval) {
         last += interval;
@@ -380,31 +265,33 @@ void loop(){
         bool is_compact_motor_cmd = false;
 
         if (command.length() == 1) {
-            is_compact_motor_cmd = (operation == 'x' || operation == 's' || operation == 'c' || operation == 'r' || operation == 'm' || operation == 'n' || operation == 'w');
+            is_compact_motor_cmd = (operation == 't' || operation == 'h' || operation == 'w' || operation == 'e');
         }
 
         if (is_compact_motor_cmd) {
             switch (operation) {
-                case 'c':
-                    // Serial.printf("Encoders - Lift: %lld, Turn: %lld\n", lift_encoder.getCount(), turn_encoder.getCount());
+                case 't':                           // T → go to target
+                    armMotor.setTarget(400);        // change 150 to whatever tick count you want
+                    Serial.println("Motor → target (400 ticks)");
                     break;
-                case 'm':
-                    armMotor.setTarget(150.0);
-                    break;
-                case 'n':
-                    Serial.println("Home not available - encoder-based homing in progress");
+                case 'h':
+                    armMotor.setTarget(50);
+                    h_sequence_pending = true;
+                    h_sequence_timer   = millis();
+                    Serial.println("Motor → 50 ticks, returning to 0 in 1 second");
                     break;
                 case 'w':
-                    lift_test_active = false;
-                    turn_test_active = false;
-                    lift_state = "FREE";
-                    turn_state = "FREE";
                     ledcWrite(PWM_CHANNEL_LIFT1, 0);
                     ledcWrite(PWM_CHANNEL_LIFT2, 0);
                     ledcWrite(PWM_CHANNEL_TURN1, 0);
                     ledcWrite(PWM_CHANNEL_TURN2, 0);
                     Serial.println("Both motors RELEASED (free-wheel)");
                     break;
+                case 'e': 
+                    Serial.print("Encoder count: ");
+                    Serial.println(armMotor.getEncoderCount());
+                    ledcWrite(PWM_CHANNEL_LIFT1, 1);
+                    ledcWrite(PWM_CHANNEL_LIFT2, 1);
             }
             return;
         }
@@ -440,27 +327,12 @@ void loop(){
                 Serial.println("Error: Use P<nums> 0 or P<nums> 1");
             }
         }
-        // New unified commands: L <ticks> for lift, T <ticks> for turn (signed, positive or negative)
-        else if ((cmd_type_upper == "L" || cmd_type_upper == "T") && cmd_value.length() > 0) {
-            int64_t ticks = cmd_value.toInt();
-            if (cmd_type_upper == "L") {
-                armMotor.setTarget(ticks);
-            } else {
-                armMotor.setTarget(ticks);
-            }
-        }
-        else if (cmd_type_upper == "STATUS") {
-            printStatus();
-        }
-        else if (cmd_type_upper == "HELP") {
-            printHelp();
-        }
-        else if (cmd_type_upper == "S" || cmd_type_upper == "STOP") {
-            if (cmd_value_upper == "0" || cmd_value_upper == "CLOSE" || cmd_value_upper == "CLOSED") {
+        else if (cmd_type_upper == "S" ) {
+            if (cmd_value_upper == "0" ) {
                 setStopperPosition(false);
                 Serial.println("Stopper CLOSED");
             }
-            else if (cmd_value_upper == "1" || cmd_value_upper == "OPEN") {
+            else if (cmd_value_upper == "1" ) {
                 setStopperPosition(true);
                 Serial.println("Stopper OPEN");
             }
@@ -475,20 +347,18 @@ void loop(){
                     Serial.println("Error: Stopper angle must be between 0 and 180");
                 }
             }
-            else {
-                Serial.println("Error: Use S 0, S 1, or S <angle>");
-            }
+
         }
-        else if (cmd_type_upper == "F" || cmd_type_upper == "FLIP") {
-            if (cmd_value_upper == "CW" || cmd_value_upper == "RIGHT" || cmd_value_upper == "R") {
+        else if (cmd_type_upper == "F") {
+            if (cmd_value_upper == "CW") {
                 setFlipperClockwise();
                 Serial.println("Flipper set to CLOCKWISE side");
             }
-            else if (cmd_value_upper == "CCW" || cmd_value_upper == "LEFT" || cmd_value_upper == "L") {
+            else if (cmd_value_upper == "CCW") {
                 setFlipperCounterClockwise();
                 Serial.println("Flipper set to COUNTER-CLOCKWISE side");
             }
-            else if (cmd_value_upper == "CENTER" || cmd_value_upper == "C") {
+            else if (cmd_value_upper == "C") {
                 centerFlipper();
                 Serial.println("Flipper CENTERED");
             }
@@ -507,7 +377,7 @@ void loop(){
                 Serial.println("Error: Use F CW, F CCW, F CENTER, or F <angle>");
             }
         }
-        else if (cmd_type_upper == "COLOR") {
+        else if (cmd_type_upper == "C") {
             if (cmd_value_upper == "YELLOW" || cmd_value_upper == "BLUE") {
                 flipForColor(cmd_value_upper);
                 Serial.print("Flipper moved for color: ");
@@ -519,7 +389,6 @@ void loop(){
         else {
             Serial.print("Unknown command: ");
             Serial.println(cmd_type);
-            Serial.print("Type HELP for available commands\n");
         }
     }
 }

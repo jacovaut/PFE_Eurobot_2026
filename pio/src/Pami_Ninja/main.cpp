@@ -58,12 +58,6 @@ void setup() {
   // Servos
   servo1.attach(SERVO_LEFT_PIN);
   servo2.attach(SERVO_RIGHT_PIN);
-  
-  // Initialize servos to UP position to avoid blocking robot movement
-  servo1.write(ARM_UP_ANGLE);
-  servo2.write(ARM_UP_ANGLE);
-  delay(500);  // Wait for servos to reach position
-
   Serial.println("Robot initialized");
 }
 
@@ -120,12 +114,12 @@ void setMecanumSpeeds(float vx, float vy, float omega) {
   float L = WHEELBASE_LENGTH / 2.0;
   float W = WHEELBASE_WIDTH / 2.0;
   float R = WHEEL_RADIUS;
-  Serial.printf("Calculating speeds for vx=%.2f, vy=%.2f, omega=%.2f\n", vx, vy, omega);
+  //Serial.printf("Calculating speeds for vx=%.2f, vy=%.2f, omega=%.2f\n", vx, vy, omega);
   float w1 = (vx - vy - (L + W) * omega) / R;
   float w2 = (vx + vy + (L + W) * omega) / R;
   float w3 = (vx + vy - (L + W) * omega) / R;
   float w4 = (vx - vy + (L + W) * omega) / R;
-  Serial.printf("Raw wheel speeds: w1=%.2f, w2=%.2f, w3=%.2f, w4=%.2f\n", w1, w2, w3, w4);
+  //Serial.printf("Raw wheel speeds: w1=%.2f, w2=%.2f, w3=%.2f, w4=%.2f\n", w1, w2, w3, w4);
   float scale = MAX_SPEED / 1.0;
 
   int pwm1 = constrain((int)(w1 * scale), -MAX_SPEED, MAX_SPEED);
@@ -137,7 +131,7 @@ void setMecanumSpeeds(float vx, float vy, float omega) {
   setMotor(2, pwm2);
   setMotor(3, pwm3);
   setMotor(4, pwm4);
-  Serial.printf("Set speeds: FL=%d, FR=%d, RL=%d, RR=%d\n", pwm1, pwm2, pwm3, pwm4);
+  //Serial.printf("Set speeds: FL=%d, FR=%d, RL=%d, RR=%d\n", pwm1, pwm2, pwm3, pwm4);
 }
 
 
