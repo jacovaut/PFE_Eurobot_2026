@@ -25,9 +25,8 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'local_perception_node = local_camera.local_perception_node:main',
-            'local_pickup_solver_node = local_camera.local_pickup_solver_node:main',
             'merged_local_pickup_node = local_camera.merged_local_pickup_node:main',
+            'alignment_controller = local_camera.alignment_controller:main',
         ],
     },
 )

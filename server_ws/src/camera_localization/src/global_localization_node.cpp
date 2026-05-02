@@ -62,7 +62,7 @@ public:
 
     // Calibration file: default resolves automatically from the installed camera_calibration share dir.
     const auto calib_default = ament_index_cpp::get_package_share_directory("camera_calibration")
-      + "/calibration_files/3840_2160_ELM12MP.yml";
+      + "/calibration_files/calibration_mec.yml";
     calibration_file_ = declare_parameter<std::string>("calibration_file", calib_default);
 
     map_frame_ = declare_parameter<std::string>("map_frame", "map");
@@ -102,12 +102,12 @@ public:
       block_color_by_id_[id] = block_marker_colors[i];
     }
 
-    // Fixed transform from robot marker frame to base_link frame.
-    // Expressed in the MARKER frame.
-    marker_to_base_x_ = declare_parameter<double>("marker_to_base_x", 0.0);
-    marker_to_base_y_ = declare_parameter<double>("marker_to_base_y", 0.0);
-    marker_to_base_z_ = declare_parameter<double>("marker_to_base_z", 0.0);
-    marker_to_base_yaw_ = declare_parameter<double>("marker_to_base_yaw", 0.0);
+    // Fixed transform from base_link to the robot ArUco marker.
+    // These are the values you measure on the robot: marker pose expressed in base_link.
+    base_link_to_aruco_x_ = declare_parameter<double>("base_link_to_aruco_x", 0.0);
+    base_link_to_aruco_y_ = declare_parameter<double>("base_link_to_aruco_y", 0.0);
+    base_link_to_aruco_z_ = declare_parameter<double>("base_link_to_aruco_z", 0.0);
+    base_link_to_aruco_yaw_ = declare_parameter<double>("base_link_to_aruco_yaw", 0.0);
 
     // Measurement covariance
     position_variance_x_ = declare_parameter<double>("position_variance_x", 0.01);
@@ -798,14 +798,21 @@ if (ids.empty()) {
     const cv::Vec3d t_map_marker = R_map_camera * tvec_camera_marker + t_map_camera;
 
     // -------------------------------------------------------
-    // Step 5: Apply fixed marker -> base_link transform
-    // T_map_base = T_map_marker * T_marker_base
+    // Step 5: Convert detected marker pose into base_link pose.
+    // The measured robot mounting transform is T_base_aruco, so:
+    // T_map_base = T_map_aruco * inverse(T_base_aruco)
     // -------------------------------------------------------
-    const cv::Matx33d R_marker_base = rotationZ(marker_to_base_yaw_);
-    const cv::Vec3d t_marker_base(marker_to_base_x_, marker_to_base_y_, marker_to_base_z_);
+    const cv::Matx33d R_base_aruco = rotationZ(base_link_to_aruco_yaw_);
+    const cv::Vec3d t_base_aruco(
+      base_link_to_aruco_x_,
+      base_link_to_aruco_y_,
+      base_link_to_aruco_z_);
 
-    const cv::Matx33d R_map_base = R_map_marker * R_marker_base;
-    const cv::Vec3d t_map_base = R_map_marker * t_marker_base + t_map_marker;
+    const cv::Matx33d R_aruco_base = R_base_aruco.t();
+    const cv::Vec3d t_aruco_base = -(R_aruco_base * t_base_aruco);
+
+    const cv::Matx33d R_map_base = R_map_marker * R_aruco_base;
+    const cv::Vec3d t_map_base = R_map_marker * t_aruco_base + t_map_marker;
 
     // Extract planar yaw in ROS ENU map frame
     const double yaw_map_base = std::atan2(R_map_base(1, 0), R_map_base(0, 0));
@@ -1544,10 +1551,10 @@ if (ids.empty()) {
   double block_size_y_m_{0.05};
   double block_center_z_m_{0.03};
 
-  double marker_to_base_x_{0.0};
-  double marker_to_base_y_{0.0};
-  double marker_to_base_z_{0.0};
-  double marker_to_base_yaw_{0.0};
+  double base_link_to_aruco_x_{0.0};
+  double base_link_to_aruco_y_{0.0};
+  double base_link_to_aruco_z_{0.0};
+  double base_link_to_aruco_yaw_{0.0};
 
   double position_variance_x_{0.01};
   double position_variance_y_{0.01};
@@ -1589,7 +1596,59 @@ if (ids.empty()) {
 
 int main(int argc, char **argv)
 {
-  rclcpp::init(argc, argv);
+  // Inject the installed camera_global_map.yaml as default params so the node
+  // works with plain `ros2 run` without requiring --params-file every time.
+  // Any user-provided --ros-args (including --params-file) are appended after
+  // the default and will therefore override it (ROS2 last-write-wins).
+  std::vector<std::string> args_storage;
+  args_storage.reserve(argc + 4);
+  args_storage.push_back(argv[0]);
+
+  // Find where --ros-args begins in the original argv, if at all.
+  int ros_args_start = -1;
+  for (int i = 1; i < argc; ++i) {
+    if (std::string(argv[i]) == "--ros-args") {
+      ros_args_start = i;
+      break;
+    }
+  }
+
+  bool injected = false;
+  try {
+    const auto pkg_share =
+      ament_index_cpp::get_package_share_directory("camera_localization");
+    const auto default_yaml = pkg_share + "/config/camera_global_map.yaml";
+    args_storage.push_back("--ros-args");
+    args_storage.push_back("--params-file");
+    args_storage.push_back(default_yaml);
+    // Append the original ROS args (everything after --ros-args) so they
+    // override individual parameters from the default file.
+    if (ros_args_start >= 0) {
+      for (int i = ros_args_start + 1; i < argc; ++i) {
+        args_storage.push_back(argv[i]);
+      }
+    }
+    injected = true;
+  } catch (const std::exception &) {
+    // Package share not found (e.g. not installed); fall back to original args.
+    for (int i = 1; i < argc; ++i) {
+      args_storage.push_back(argv[i]);
+    }
+  }
+
+  std::vector<char *> new_argv;
+  new_argv.reserve(args_storage.size());
+  for (auto & s : args_storage) {
+    new_argv.push_back(const_cast<char *>(s.c_str()));
+  }
+  int new_argc = static_cast<int>(new_argv.size());
+
+  rclcpp::init(new_argc, new_argv.data());
+  if (injected) {
+    RCLCPP_INFO(
+      rclcpp::get_logger("global_localization_node"),
+      "Loaded default params from camera_global_map.yaml");
+  }
   rclcpp::spin(std::make_shared<CameraLocalizationNode>());
   rclcpp::shutdown();
   return 0;

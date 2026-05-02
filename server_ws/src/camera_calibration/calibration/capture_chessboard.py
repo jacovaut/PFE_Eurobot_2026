@@ -1,13 +1,18 @@
 import cv2
 import os
 
-output_dir = "calibration_images"
+script_dir = os.path.dirname(os.path.abspath(__file__))
+output_dir = os.path.join(script_dir, "calibration_images_blue")
 os.makedirs(output_dir, exist_ok=True)
 
-camera = cv2.VideoCapture(0)
+CAMERA_DEVICE = "/dev/v4l/by-id/usb-HD_USB_Camera_HD_USB_Camera_01.00.00-video-index0"
+camera = cv2.VideoCapture(CAMERA_DEVICE, cv2.CAP_V4L2)
 
+camera.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*"MJPG"))
 camera.set(cv2.CAP_PROP_FRAME_WIDTH, 3840)
 camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 2160)
+camera.set(cv2.CAP_PROP_FPS, 15)
+camera.set(cv2.CAP_PROP_BUFFERSIZE, 1)
 
 img_id = 0
 

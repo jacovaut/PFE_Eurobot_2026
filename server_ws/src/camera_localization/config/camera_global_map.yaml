@@ -10,9 +10,9 @@ global_localization_node:
     height: 2160
     fps: 15
     fourcc: "MJPG"
-    camera_gain: 210
-    camera_gamma: 230
-    camera_backlight_compensation: 50
+    camera_gain: 255
+    camera_gamma: 64
+    camera_backlight_compensation: 27
     camera_autofocus: 0
     camera_focus_absolute: 0
     camera_exposure_time_absolute: 200
@@ -87,10 +87,13 @@ global_localization_node:
     # Snapshot-based pose stabilization
     pose_update_interval_s: 5.0
 
-    # Marker -> base_link transform (in marker frame)
-    marker_to_base_x: 0.0
-    marker_to_base_y: 0.0
-    marker_to_base_z: 0.0
+    # base_link -> robot ArUco transform, measured on the robot.
+    # X is forward from base_link, Y is left, Z is up, yaw is radians.
+    # Example: if the marker center is 12 cm forward and 4 cm left of base_link, use x=0.12, y=0.04.
+    base_link_to_aruco_x: 0.0
+    base_link_to_aruco_y: 0.0
+    base_link_to_aruco_z: 0.0
+    base_link_to_aruco_yaw: 0.0
 
 external_perception_node:
   ros__parameters:
@@ -101,8 +104,6 @@ external_perception_node:
     fps: 15
     fourcc: "MJPG"
     debug_view: true
-    marker_to_base_yaw: 0.0
-
     # Measurement covariance
     position_variance_x: 0.01
     position_variance_y: 0.01

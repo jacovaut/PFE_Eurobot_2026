@@ -15,7 +15,7 @@ collision_monitor:
 planner_server:
   ros__parameters:
     use_sim_time: false
-    expected_planner_frequency: 5.0
+    expected_planner_frequency: 3.0
     planner_plugins: ["GridBased"]
 
     # Planner option A (simple): NavFn
@@ -32,7 +32,7 @@ controller_server:
     min_x_velocity_threshold: 0.001
     min_y_velocity_threshold: 0.001
     min_theta_velocity_threshold: 0.001
-    failure_tolerance: 0.3
+    failure_tolerance: 0.8
 
     # Tell Nav2 which odom to use (use EKF output)
     odom_topic: "/odometry/local"
@@ -43,14 +43,14 @@ controller_server:
 
     progress_checker:
       plugin: "nav2_controller::SimpleProgressChecker"
-      required_movement_radius: 0.02
+      required_movement_radius: 0.01
       movement_time_allowance: 30.0
 
     goal_checker:
       plugin: "nav2_controller::SimpleGoalChecker"
       stateful: true
-      xy_goal_tolerance: 0.05
-      yaw_goal_tolerance: 0.20
+      xy_goal_tolerance: 0.07
+      yaw_goal_tolerance: 0.30
 
     # Controller option A (recommended-to-start): DWB holonomic
     FollowPath:
@@ -63,9 +63,9 @@ controller_server:
       min_vel_y: -0.4
       max_vel_y:  0.4
       max_vel_theta: 0.3
-      min_speed_xy: 0.0
+      min_speed_xy: 0.05
       max_speed_xy: 0.6
-      min_speed_theta: 0.0
+      min_speed_theta: 0.05
 
       acc_lim_x: 1.0
       acc_lim_y: 1.0
@@ -74,23 +74,23 @@ controller_server:
       decel_lim_y: -1.0
       decel_lim_theta: -0.8
 
-      vx_samples: 20
-      vy_samples: 20
-      vtheta_samples: 20
-      sim_time: 1.5
-      linear_granularity: 0.05
-      angular_granularity: 0.025
+      vx_samples: 12
+      vy_samples: 12
+      vtheta_samples: 12
+      sim_time: 1.2
+      linear_granularity: 0.08
+      angular_granularity: 0.03
 
       transform_tolerance: 0.2
 
       critics: ["PathAlign", "GoalAlign", "PathDist", "GoalDist", "RotateToGoal", "Oscillation"]
-      PathAlign.scale: 12.0
-      GoalAlign.scale: 8.0
-      PathDist.scale: 32.0
-      GoalDist.scale: 32.0
-      RotateToGoal.scale: 8.0
-      RotateToGoal.slowing_factor: 8.0
-      RotateToGoal.lookahead_time: 0.5
+      PathAlign.scale: 8.0
+      GoalAlign.scale: 4.0
+      PathDist.scale: 24.0
+      GoalDist.scale: 24.0
+      RotateToGoal.scale: 4.0
+      RotateToGoal.slowing_factor: 4.0
+      RotateToGoal.lookahead_time: 0.4
       Oscillation.scale: 1.0
 
 bt_navigator:
@@ -138,7 +138,8 @@ global_costmap:
       publish_frequency: 2.0
       resolution: 0.05
       rolling_window: false
-      robot_radius: 0.22
+      footprint: "[[-0.045, -0.264], [-0.045, 0.044], [0.469, 0.044], [0.469, -0.264]]"
+      footprint_padding: 0.02
       plugins: ["static_layer", "inflation_layer", "voxel_layer"]
       static_layer:
         plugin: "nav2_costmap_2d::StaticLayer"
@@ -146,7 +147,7 @@ global_costmap:
         subscribe_to_updates: true
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
-        inflation_radius: 0.25
+        inflation_radius: 0.40
         cost_scaling_factor: 3.0
       voxel_layer:
         plugin: "nav2_costmap_2d::VoxelLayer"
@@ -160,6 +161,7 @@ global_costmap:
         observation_sources: camera
         camera:
           topic: "/camera/block_obstacles"
+          sensor_frame: map
           max_obstacle_height: 2.0
           clearing: false
           marking: true
@@ -182,7 +184,8 @@ local_costmap:
       rolling_window: true
       width: 80
       height: 80
-      robot_radius: 0.22
+      footprint: "[[-0.045, -0.264], [-0.045, 0.044], [0.469, 0.044], [0.469, -0.264]]"
+      footprint_padding: 0.02
       plugins: ["obstacle_layer", "voxel_layer", "inflation_layer"]
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
@@ -194,6 +197,7 @@ local_costmap:
         observation_sources: lidar
         lidar:
           topic: "/scan"
+          sensor_frame: lidar
           max_obstacle_height: 2.0
           clearing: true
           marking: true
@@ -214,6 +218,7 @@ local_costmap:
         observation_sources: camera
         camera:
           topic: "/camera/block_obstacles"
+          sensor_frame: map
           max_obstacle_height: 2.0
           clearing: false
           marking: true
@@ -230,6 +235,7 @@ lifecycle_manager_navigation:
     node_names:
       - planner_server
       - controller_server
+      - smoother_server
       - bt_navigator
       - behavior_server
       - velocity_smoother
