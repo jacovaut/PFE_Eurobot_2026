@@ -199,7 +199,7 @@ void setup() {
     
     allocator = rcl_get_default_allocator();
     
-    Serial.begin(2000000);
+    Serial.begin(115200);
     // set_microros_serial_transports(Serial);
     IPAddress agent_ip(192,168,1,131);
 
