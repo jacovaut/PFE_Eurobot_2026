@@ -28,11 +28,11 @@
     </collision>
   </link>
 
-  <!-- Fusion: +x backward, +y right -->
+  <!-- Fusion: +x backward, +y right. Origin offset centers base_link on the robot's wheel centre. -->
   <joint name="base_to_cad" type="fixed">
     <parent link="base_link"/>
     <child link="base_cad"/>
-    <origin xyz="0 0 0" rpy="0 0 3.141592653589793"/>
+    <origin xyz="-0.1689 0.1100 0" rpy="0 0 3.141592653589793"/>
   </joint>
 
   <!-- ===================== ARM ===================== -->
@@ -358,23 +358,23 @@
   </link>
 
   <joint name="base_to_deadwheel_right" type="continuous">
-    <parent link="base_link"/>
+    <parent link="base_cad"/>
     <child link="deadwheel_right"/>
-    <origin xyz="0.0345001155 0 0.0071993679" rpy="1.57079632679 0 3.14159265359"/>
+    <origin xyz="-0.1689 0.1848 0.0072" rpy="1.57079632679 0 3.14159265359"/>
     <axis xyz="0 0 -1"/>
   </joint>
 
   <joint name="base_to_deadwheel_left" type="continuous">
-    <parent link="base_link"/>
+    <parent link="base_cad"/>
     <child link="deadwheel_left"/>
-    <origin xyz="0.0345001155 0.035999998 0.0071993679" rpy="1.57079632679 0 3.14159265359"/>
+    <origin xyz="-0.1689 0.0352 0.0072" rpy="1.57079632679 0 3.14159265359"/>
     <axis xyz="0 0 -1"/>
   </joint>
 
   <joint name="base_to_deadwheel_side" type="continuous">
-    <parent link="base_link"/>
+    <parent link="base_cad"/>
     <child link="deadwheel_side"/>
-    <origin xyz="0.0345001180 0.0049999955 0.0071993661" rpy="1.57079632679 0 -1.57079632679"/>
+    <origin xyz="-0.1059 0.1100 0.0072" rpy="1.57079632679 0 -1.57079632679"/>
     <axis xyz="-1 0 0"/>
   </joint>
 

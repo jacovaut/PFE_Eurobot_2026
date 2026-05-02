@@ -4,12 +4,10 @@ source ./install/setup.bash
 
 SESSION="ros2_echo"
 
-# CMD1="ros2 topic echo /deadwheel_ticks"
-CMD1="ros2 topic echo /odom_deadwheels --field pose.pose.position"
-CMD2="ros2 topic echo /odom_deadwheels --field twist.twist"
+CMD1="ros2 topic echo /deadwheel_ticks"
+CMD2="ros2 topic echo /odom_deadwheels --field pose.pose.position"
 CMD3="ros2 topic echo /odometry/local --field pose.pose.position"
-CMD4="ros2 topic echo /odometry/local --field twist.twist"
-# CMD4="ros2 topic echo /camera/global_pose"
+CMD4="ros2 topic echo /camera/global_pose"
 
 tmux kill-session -t $SESSION 2>/dev/null
 
