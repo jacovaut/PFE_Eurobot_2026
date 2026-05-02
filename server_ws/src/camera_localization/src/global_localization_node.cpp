@@ -62,7 +62,7 @@ public:
 
     // Calibration file: default resolves automatically from the installed camera_calibration share dir.
     const auto calib_default = ament_index_cpp::get_package_share_directory("camera_calibration")
-      + "/calibration_files/3840_2160_ELM12MP.yml";
+      + "/calibration_files/calibration_mec.yml";
     calibration_file_ = declare_parameter<std::string>("calibration_file", calib_default);
 
     map_frame_ = declare_parameter<std::string>("map_frame", "map");
@@ -1589,7 +1589,59 @@ if (ids.empty()) {
 
 int main(int argc, char **argv)
 {
-  rclcpp::init(argc, argv);
+  // Inject the installed camera_global_map.yaml as default params so the node
+  // works with plain `ros2 run` without requiring --params-file every time.
+  // Any user-provided --ros-args (including --params-file) are appended after
+  // the default and will therefore override it (ROS2 last-write-wins).
+  std::vector<std::string> args_storage;
+  args_storage.reserve(argc + 4);
+  args_storage.push_back(argv[0]);
+
+  // Find where --ros-args begins in the original argv, if at all.
+  int ros_args_start = -1;
+  for (int i = 1; i < argc; ++i) {
+    if (std::string(argv[i]) == "--ros-args") {
+      ros_args_start = i;
+      break;
+    }
+  }
+
+  bool injected = false;
+  try {
+    const auto pkg_share =
+      ament_index_cpp::get_package_share_directory("camera_localization");
+    const auto default_yaml = pkg_share + "/config/camera_global_map.yaml";
+    args_storage.push_back("--ros-args");
+    args_storage.push_back("--params-file");
+    args_storage.push_back(default_yaml);
+    // Append the original ROS args (everything after --ros-args) so they
+    // override individual parameters from the default file.
+    if (ros_args_start >= 0) {
+      for (int i = ros_args_start + 1; i < argc; ++i) {
+        args_storage.push_back(argv[i]);
+      }
+    }
+    injected = true;
+  } catch (const std::exception &) {
+    // Package share not found (e.g. not installed); fall back to original args.
+    for (int i = 1; i < argc; ++i) {
+      args_storage.push_back(argv[i]);
+    }
+  }
+
+  std::vector<char *> new_argv;
+  new_argv.reserve(args_storage.size());
+  for (auto & s : args_storage) {
+    new_argv.push_back(const_cast<char *>(s.c_str()));
+  }
+  int new_argc = static_cast<int>(new_argv.size());
+
+  rclcpp::init(new_argc, new_argv.data());
+  if (injected) {
+    RCLCPP_INFO(
+      rclcpp::get_logger("global_localization_node"),
+      "Loaded default params from camera_global_map.yaml");
+  }
   rclcpp::spin(std::make_shared<CameraLocalizationNode>());
   rclcpp::shutdown();
   return 0;

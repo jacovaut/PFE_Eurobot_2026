@@ -10,9 +10,9 @@ global_localization_node:
     height: 2160
     fps: 15
     fourcc: "MJPG"
-    camera_gain: 210
-    camera_gamma: 230
-    camera_backlight_compensation: 50
+    camera_gain: 255
+    camera_gamma: 64
+    camera_backlight_compensation: 27
     camera_autofocus: 0
     camera_focus_absolute: 0
     camera_exposure_time_absolute: 200
