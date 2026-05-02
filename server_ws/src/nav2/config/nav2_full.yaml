@@ -32,7 +32,7 @@ controller_server:
     min_x_velocity_threshold: 0.001
     min_y_velocity_threshold: 0.001
     min_theta_velocity_threshold: 0.001
-    failure_tolerance: 0.3
+    failure_tolerance: 0.8
 
     # Tell Nav2 which odom to use (use EKF output)
     odom_topic: "/odometry/local"
@@ -147,7 +147,7 @@ global_costmap:
         subscribe_to_updates: true
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
-        inflation_radius: 0.25
+        inflation_radius: 0.40
         cost_scaling_factor: 3.0
       voxel_layer:
         plugin: "nav2_costmap_2d::VoxelLayer"
@@ -161,6 +161,7 @@ global_costmap:
         observation_sources: camera
         camera:
           topic: "/camera/block_obstacles"
+          sensor_frame: map
           max_obstacle_height: 2.0
           clearing: false
           marking: true
@@ -196,6 +197,7 @@ local_costmap:
         observation_sources: lidar
         lidar:
           topic: "/scan"
+          sensor_frame: lidar
           max_obstacle_height: 2.0
           clearing: true
           marking: true
@@ -216,6 +218,7 @@ local_costmap:
         observation_sources: camera
         camera:
           topic: "/camera/block_obstacles"
+          sensor_frame: map
           max_obstacle_height: 2.0
           clearing: false
           marking: true
@@ -232,6 +235,7 @@ lifecycle_manager_navigation:
     node_names:
       - planner_server
       - controller_server
+      - smoother_server
       - bt_navigator
       - behavior_server
       - velocity_smoother
