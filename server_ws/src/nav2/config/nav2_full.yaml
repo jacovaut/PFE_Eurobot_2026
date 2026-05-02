@@ -138,7 +138,8 @@ global_costmap:
       publish_frequency: 2.0
       resolution: 0.05
       rolling_window: false
-      robot_radius: 0.22
+      footprint: "[[-0.045, -0.264], [-0.045, 0.044], [0.469, 0.044], [0.469, -0.264]]"
+      footprint_padding: 0.02
       plugins: ["static_layer", "inflation_layer", "voxel_layer"]
       static_layer:
         plugin: "nav2_costmap_2d::StaticLayer"
@@ -182,7 +183,8 @@ local_costmap:
       rolling_window: true
       width: 80
       height: 80
-      robot_radius: 0.22
+      footprint: "[[-0.045, -0.264], [-0.045, 0.044], [0.469, 0.044], [0.469, -0.264]]"
+      footprint_padding: 0.02
       plugins: ["obstacle_layer", "voxel_layer", "inflation_layer"]
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
