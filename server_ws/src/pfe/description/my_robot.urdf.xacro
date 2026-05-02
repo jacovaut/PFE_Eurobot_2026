@@ -1,17 +1,8 @@
 <?xml version="1.0"?>
 <robot name="pfe_robot">
 
-  <!-- ===================== WORLD ===================== -->
-  <link name="map"/>
-
   <!-- ===================== ROS BASE ===================== -->
   <link name="base_link"/>
-
-  <joint name="map_to_base" type="fixed">
-    <parent link="map"/>
-    <child link="base_link"/>
-    <origin xyz="0 0 0" rpy="0 0 0"/>
-  </joint>
 
   <!-- ===================== CAD WRAPPER ===================== -->
   <link name="base_cad">
@@ -37,11 +28,11 @@
     </collision>
   </link>
 
-  <!-- Fusion: +x backward, +y right -->
+  <!-- Fusion: +x backward, +y right. Origin offset centers base_link on the robot's wheel centre. -->
   <joint name="base_to_cad" type="fixed">
     <parent link="base_link"/>
     <child link="base_cad"/>
-    <origin xyz="0 0 0" rpy="0 0 3.141592653589793"/>
+    <origin xyz="-0.1689 0.1100 0" rpy="0 0 3.141592653589793"/>
   </joint>
 
   <!-- ===================== ARM ===================== -->
@@ -317,229 +308,74 @@
     <origin xyz="-0.075 0.0105 0.0365" rpy="1.5707963267948966 0 0"/>
   </joint>
 
-  <!-- ===================== DEADWHEEL ODOMETRY ===================== -->
-  <!-- Right deadwheel pod assembly -->
-  <link name="deadpod_mount_right">
-    <inertial>
-      <origin xyz="0.011661859246225639 0.024249999999989433 0.019353392250147962" rpy="0.0 0.0 0.0" />
-      <mass value="0.10317370680697237" />
-      <inertia ixx="4.201686701103813e-05" iyy="1.6265345678463895e-05" izz="3.7942260704193405e-05" ixy="-1.3023397530046908e-17" iyz="-2.0787867489413835e-17" ixz="-7.553262003503873e-07" />
-    </inertial>
-    <visual>
-      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
-      <geometry>
-        <mesh filename="package://pfe/meshes/deedhold_link-v1.stl" scale="0.001 0.001 0.001" />
-      </geometry>
-    </visual>
-    <collision>
-      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
-      <geometry>
-        <mesh filename="package://pfe/meshes/deedhold_link-v1.stl" scale="0.001 0.001 0.001" />
-      </geometry>
-    </collision>
-  </link>
 
-  <link name="deadpod_right">
-    <inertial>
-      <origin xyz="0.012312465144914827 0.018000000000000033 0.012011497951761678" rpy="0.0 0.0 0.0" />
-      <mass value="0.1829129893211952" />
-      <inertia ixx="4.256079054476207e-05" iyy="6.357880137414229e-05" izz="8.217583445954997e-05" ixy="1.2989321955885463e-19" iyz="9.783403168899057e-19" ixz="2.603198064256337e-06" />
-    </inertial>
-    <visual>
-      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
-      <geometry>
-        <mesh filename="package://pfe/meshes/deadpod_link-v1.stl" scale="0.001 0.001 0.001" />
-      </geometry>
-    </visual>
-    <collision>
-      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
-      <geometry>
-        <mesh filename="package://pfe/meshes/deadpod_link-v1.stl" scale="0.001 0.001 0.001" />
-      </geometry>
-    </collision>
-  </link>
+
+  <!-- ===================== DEADWHEEL ODOMETRY ===================== -->
 
   <link name="deadwheel_right">
-    <inertial>
-      <origin xyz="-0.013660754545617913 -1.688365427483518e-06 1.7529772245339359e-06" rpy="0.0 -0.0 0.0" />
-      <mass value="0.24378344343430078" />
-      <inertia ixx="5.8944970484661394e-05" iyy="4.9653095231767114e-05" izz="4.9653212176099804e-05" ixy="2.904282536686509e-09" iyz="-1.6744274842529772e-09" ixz="2.8046330440359424e-09" />
-    </inertial>
     <visual>
-      <origin xyz="-0.01366075454561134 3.6847911744075646e-09 8.079308777553252e-10" rpy="3.1415926535897927 -1.5707963267948957 0" />
+      <origin xyz="-0.01366075454561134 0 0" rpy="3.1415926535897927 -1.5707963267948957 0"/>
       <geometry>
-        <mesh filename="package://pfe/meshes/deadwheel_link-v1.stl" scale="0.001 0.001 0.001" />
+        <mesh filename="package://pfe/meshes/deadwheel_link-v1.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </visual>
     <collision>
-      <origin xyz="-0.01366075454561134 3.6847911744075646e-09 8.079308777553252e-10" rpy="3.1415926535897927 -1.5707963267948957 0" />
+      <origin xyz="-0.01366075454561134 0 0" rpy="3.1415926535897927 -1.5707963267948957 0"/>
       <geometry>
-        <mesh filename="package://pfe/meshes/deadwheel_link-v1.stl" scale="0.001 0.001 0.001" />
-      </geometry>
-    </collision>
-  </link>
-
-  <!-- Left deadwheel pod assembly -->
-  <link name="deadpod_mount_left">
-    <inertial>
-      <origin xyz="0.011661859246225622 0.02424999999998945 0.01935339225014792" rpy="0.0 0.0 0.0" />
-      <mass value="0.10317370680697237" />
-      <inertia ixx="4.201686701103996e-05" iyy="1.6265345678464803e-05" izz="3.794226070419427e-05" ixy="-1.293643731049161e-17" iyz="-2.1463246078178264e-17" ixz="-7.553262003508391e-07" />
-    </inertial>
-    <visual>
-      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
-      <geometry>
-        <mesh filename="package://pfe/meshes/deedhold_link-v1.stl" scale="0.001 0.001 0.001" />
-      </geometry>
-    </visual>
-    <collision>
-      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
-      <geometry>
-        <mesh filename="package://pfe/meshes/deedhold_link-v1.stl" scale="0.001 0.001 0.001" />
-      </geometry>
-    </collision>
-  </link>
-
-  <link name="deadpod_left">
-    <inertial>
-      <origin xyz="0.012312465144914828 0.01800000000000004 0.012011497951761653" rpy="0.0 0.0 0.0" />
-      <mass value="0.1829129893211952" />
-      <inertia ixx="4.2560790544763806e-05" iyy="6.357880137414056e-05" izz="8.217583445955083e-05" ixy="5.618014364006527e-19" iyz="3.151553320676318e-19" ixz="2.6031980642546068e-06" />
-    </inertial>
-    <visual>
-      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
-      <geometry>
-        <mesh filename="package://pfe/meshes/deadpod_link-v1.stl" scale="0.001 0.001 0.001" />
-      </geometry>
-    </visual>
-    <collision>
-      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
-      <geometry>
-        <mesh filename="package://pfe/meshes/deadpod_link-v1.stl" scale="0.001 0.001 0.001" />
+        <mesh filename="package://pfe/meshes/deadwheel_link-v1.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </collision>
   </link>
 
   <link name="deadwheel_left">
-    <inertial>
-      <origin xyz="1.7504406603308099e-06 1.693890528677855e-06 0.017410751436840677" rpy="0.0 -0.0 0.0" />
-      <mass value="0.24378344343430078" />
-      <inertia ixx="4.9653212176096334e-05" iyy="4.9653095231756705e-05" izz="5.89449704846666e-05" ixy="1.6744274803498493e-09" iyz="-2.9042825349517853e-09" ixz="2.804633044903304e-09" />
-    </inertial>
     <visual>
-      <origin xyz="-1.7286333431343338e-09 1.840309984402211e-09 0.01741075143684732" rpy="-1.0339583746219128e-15 6.327191705894364e-31 5.387983141491689e-16" />
+      <origin xyz="0 0 0.01741075143684732" rpy="0 0 0"/>
       <geometry>
-        <mesh filename="package://pfe/meshes/deadwheel_link-v1.stl" scale="0.001 0.001 0.001" />
+        <mesh filename="package://pfe/meshes/deadwheel_link-v1.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </visual>
     <collision>
-      <origin xyz="-1.7286333431343338e-09 1.840309984402211e-09 0.01741075143684732" rpy="-1.0339583746219128e-15 6.327191705894364e-31 5.387983141491689e-16" />
+      <origin xyz="0 0 0.01741075143684732" rpy="0 0 0"/>
       <geometry>
-        <mesh filename="package://pfe/meshes/deadwheel_link-v1.stl" scale="0.001 0.001 0.001" />
-      </geometry>
-    </collision>
-  </link>
-
-  <!-- Side deadwheel pod assembly -->
-  <link name="deadpod_mount_side">
-    <inertial>
-      <origin xyz="0.01166185924622563 0.02424999999998945 0.01935339225014794" rpy="0.0 0.0 0.0" />
-      <mass value="0.10317370680697237" />
-      <inertia ixx="4.201686701103908e-05" iyy="1.6265345678464796e-05" izz="3.794226070419514e-05" ixy="-1.3946953984397162e-17" iyz="-2.1219671001657676e-17" ixz="-7.553262003508247e-07" />
-    </inertial>
-    <visual>
-      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
-      <geometry>
-        <mesh filename="package://pfe/meshes/deedhold_link-v1.stl" scale="0.001 0.001 0.001" />
-      </geometry>
-    </visual>
-    <collision>
-      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
-      <geometry>
-        <mesh filename="package://pfe/meshes/deedhold_link-v1.stl" scale="0.001 0.001 0.001" />
-      </geometry>
-    </collision>
-  </link>
-
-  <link name="deadpod_side">
-    <inertial>
-      <origin xyz="0.01231246514491481 0.01800000000000008 0.012011497951761674" rpy="0.0 0.0 0.0" />
-      <mass value="0.1829129893211952" />
-      <inertia ixx="4.25607905447586e-05" iyy="6.357880137414316e-05" izz="8.217583445954997e-05" ixy="-1.5744881556855568e-18" iyz="9.670276554991931e-19" ixz="2.603198064256804e-06" />
-    </inertial>
-    <visual>
-      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
-      <geometry>
-        <mesh filename="package://pfe/meshes/deadpod_link-v1.stl" scale="0.001 0.001 0.001" />
-      </geometry>
-    </visual>
-    <collision>
-      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
-      <geometry>
-        <mesh filename="package://pfe/meshes/deadpod_link-v1.stl" scale="0.001 0.001 0.001" />
+        <mesh filename="package://pfe/meshes/deadwheel_link-v1.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </collision>
   </link>
 
   <link name="deadwheel_side">
-    <inertial>
-      <origin xyz="1.7504406603308099e-06 1.6938905288554907e-06 -0.018660747990959587" rpy="0.0 -0.0 0.0" />
-      <mass value="0.24378344343430078" />
-      <inertia ixx="4.9653212176096334e-05" iyy="4.9653095231760175e-05" izz="5.89449704846666e-05" ixy="1.6744274838192963e-09" iyz="-2.9042825360359875e-09" ixz="2.8046330429517402e-09" />
-    </inertial>
     <visual>
-      <origin xyz="-1.7286333431343338e-09 1.8403101975650316e-09 -0.018660747990952988" rpy="-3.5300667265892806e-16 -2.6583370270615855e-32 4.2777601168665364e-16" />
+      <origin xyz="0 0 -0.018660747990952988" rpy="0 0 0"/>
       <geometry>
-        <mesh filename="package://pfe/meshes/deadwheel_link-v1.stl" scale="0.001 0.001 0.001" />
+        <mesh filename="package://pfe/meshes/deadwheel_link-v1.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </visual>
     <collision>
-      <origin xyz="-1.7286333431343338e-09 1.8403101975650316e-09 -0.018660747990952988" rpy="-3.5300667265892806e-16 -2.6583370270615855e-32 4.2777601168665364e-16" />
+      <origin xyz="0 0 -0.018660747990952988" rpy="0 0 0"/>
       <geometry>
-        <mesh filename="package://pfe/meshes/deadwheel_link-v1.stl" scale="0.001 0.001 0.001" />
+        <mesh filename="package://pfe/meshes/deadwheel_link-v1.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </collision>
   </link>
 
-  <!-- Joints: pod mounts to base (TODO: replace with CAD-measured transforms) -->
-  <joint name="base_to_deadpod_right" type="fixed">
+  <joint name="base_to_deadwheel_right" type="continuous">
     <parent link="base_cad"/>
-    <child link="deadpod_mount_right"/>
-    <origin xyz="0 0 0" rpy="0 0 0"/>
-  </joint>
-
-  <joint name="base_to_deadpod_left" type="fixed">
-    <parent link="base_cad"/>
-    <child link="deadpod_mount_left"/>
-    <origin xyz="0 0 0" rpy="0 0 0"/>
-  </joint>
-
-  <joint name="base_to_deadpod_side" type="fixed">
-    <parent link="base_cad"/>
-    <child link="deadpod_mount_side"/>
-    <origin xyz="0 0 0" rpy="0 0 0"/>
-  </joint>
-
-  <!-- Joints: pod assemblies to wheels -->
-  <joint name="deadpod_right_to_wheel" type="continuous">
-    <parent link="deadpod_right"/>
     <child link="deadwheel_right"/>
-    <origin xyz="0.03450011550654263 -1.4368473699732932e-09 0.00719936790926397" rpy="1.5707963267948977 4.163336342344341e-16 3.141592653589792" />
-    <axis xyz="-4.1073491673677537e-32 0.0 -1.0" />
+    <origin xyz="-0.1689 0.1848 0.0072" rpy="1.57079632679 0 3.14159265359"/>
+    <axis xyz="0 0 -1"/>
   </joint>
 
-  <joint name="deadpod_left_to_wheel" type="continuous">
-    <parent link="deadpod_left"/>
+  <joint name="base_to_deadwheel_left" type="continuous">
+    <parent link="base_cad"/>
     <child link="deadwheel_left"/>
-    <origin xyz="0.03450011550654249 0.03599999799095296 0.007199367909263827" rpy="1.570796326794897 3.053113317719189e-16 3.141592653589792" />
-    <axis xyz="-7.202424288201062e-32 0.0 -1.0" />
+    <origin xyz="-0.1689 0.0352 0.0072" rpy="1.57079632679 0 3.14159265359"/>
+    <axis xyz="0 0 -1"/>
   </joint>
 
-  <joint name="deadpod_side_to_wheel" type="continuous">
-    <parent link="deadpod_side"/>
+  <joint name="base_to_deadwheel_side" type="continuous">
+    <parent link="base_cad"/>
     <child link="deadwheel_side"/>
-    <origin xyz="0.034500118043106875 0.004999995454388433 0.007199366064782744" rpy="1.5707963267948961 -6.346538906529858e-16 -1.5707963267948972" />
-    <axis xyz="-1.0 1.9721522630525295e-31 1.65972263379191e-32" />
+    <origin xyz="-0.1059 0.1100 0.0072" rpy="1.57079632679 0 -1.57079632679"/>
+    <axis xyz="-1 0 0"/>
   </joint>
 
 </robot>

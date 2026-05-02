@@ -60,9 +60,9 @@ public:
     clahe_tile_size_ =
       declare_parameter<int>("clahe_tile_size", 16);
 
-    // Calibration file: default resolves automatically from the installed pfe share dir.
-    const auto calib_default = ament_index_cpp::get_package_share_directory("pfe")
-      + "/camera_calibration/3840_2160_ELM12MP.yml";
+    // Calibration file: default resolves automatically from the installed camera_calibration share dir.
+    const auto calib_default = ament_index_cpp::get_package_share_directory("camera_calibration")
+      + "/calibration_files/3840_2160_ELM12MP.yml";
     calibration_file_ = declare_parameter<std::string>("calibration_file", calib_default);
 
     map_frame_ = declare_parameter<std::string>("map_frame", "map");
@@ -72,8 +72,13 @@ public:
 
     // Marker IDs / sizes
     robot_marker_id_ = declare_parameter<int>("robot_marker_id", 1);
+    enemy_robot_marker_id_ = declare_parameter<int>("enemy_robot_marker_id", 6);
     table_marker_length_m_ = declare_parameter<double>("table_marker_length_m", 0.10);
     robot_marker_length_m_ = declare_parameter<double>("robot_marker_length_m", 0.07);
+    enemy_robot_marker_length_m_ = declare_parameter<double>("enemy_robot_marker_length_m", 0.07);
+    enemy_robot_size_x_m_ = declare_parameter<double>("enemy_robot_size_x_m", 0.35);
+    enemy_robot_size_y_m_ = declare_parameter<double>("enemy_robot_size_y_m", 0.35);
+    enemy_robot_obstacle_z_m_ = declare_parameter<double>("enemy_robot_obstacle_z_m", 0.05);
     block_marker_length_m_ = declare_parameter<double>("block_marker_length_m", 0.03);
     block_size_x_m_ = declare_parameter<double>("block_size_x_m", 0.15);
     block_size_y_m_ = declare_parameter<double>("block_size_y_m", 0.05);
@@ -332,6 +337,7 @@ private:
   {
     obj_points_table_ = makeSquareObjectPoints(table_marker_length_m_);
     obj_points_robot_ = makeSquareObjectPoints(robot_marker_length_m_);
+    obj_points_enemy_robot_ = makeSquareObjectPoints(enemy_robot_marker_length_m_);
     obj_points_block_ = makeSquareObjectPoints(block_marker_length_m_);
   }
 
@@ -690,6 +696,39 @@ if (ids.empty()) {
       e.size_y_m = block_size_y_m_;
       e.is_dynamic = true;
       detected_entities.push_back(e);
+    }
+
+    for (size_t i = 0; i < ids.size(); ++i) {
+      const int id = ids[i];
+      if (id != enemy_robot_marker_id_) {
+        continue;
+      }
+
+      cv::Matx33d R_map_enemy;
+      cv::Vec3d t_map_enemy;
+      if (!estimateMarkerPoseInMap(
+            obj_points_enemy_robot_,
+            corners[i],
+            R_map_camera,
+            t_map_camera,
+            R_map_enemy,
+            t_map_enemy)) {
+        continue;
+      }
+
+      DetectedEntity enemy_entity;
+      enemy_entity.marker_id = id;
+      enemy_entity.color = "enemy_robot";
+      enemy_entity.position_map = cv::Vec3d(
+        t_map_enemy[0],
+        t_map_enemy[1],
+        enemy_robot_obstacle_z_m_);
+      enemy_entity.yaw_rad = std::atan2(R_map_enemy(1, 0), R_map_enemy(0, 0));
+      enemy_entity.size_x_m = enemy_robot_size_x_m_;
+      enemy_entity.size_y_m = enemy_robot_size_y_m_;
+      enemy_entity.is_dynamic = true;
+      detected_entities.push_back(enemy_entity);
+      break;
     }
 
     // -------------------------------------------------------
@@ -1422,6 +1461,7 @@ if (ids.empty()) {
   // Marker geometry
   cv::Mat obj_points_table_;
   cv::Mat obj_points_robot_;
+  cv::Mat obj_points_enemy_robot_;
   cv::Mat obj_points_block_;
 
   // Known map markers
@@ -1490,10 +1530,15 @@ if (ids.empty()) {
   bool debug_view_{true};
 
   int robot_marker_id_{1};
+  int enemy_robot_marker_id_{6};
   int min_table_markers_{1};
 
   double table_marker_length_m_{0.10};
   double robot_marker_length_m_{0.07};
+  double enemy_robot_marker_length_m_{0.07};
+  double enemy_robot_size_x_m_{0.35};
+  double enemy_robot_size_y_m_{0.35};
+  double enemy_robot_obstacle_z_m_{0.05};
   double block_marker_length_m_{0.03};
   double block_size_x_m_{0.15};
   double block_size_y_m_{0.05};

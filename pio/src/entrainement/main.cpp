@@ -12,7 +12,7 @@
 //                     |   
 //                     | lx
 //                     |
-//  [2] /        \ [3] |
+//  [3] /        \ [2] |
 //        Back         ⊥
 //  ⊢-----------------⊣
 //           ly
@@ -34,6 +34,7 @@
 #include "deadwheels.h"
 #include <stdint.h>
 #include <micro_ros_platformio.h>
+#include <WiFi.h>
 
 /* ---------------------- ROS INCLUDES ---------------------- */
 #include <rcl/rcl.h>
@@ -85,9 +86,32 @@ void error_loop(){
         delay(100);
     }
 }
+
+bool sync_time_with_agent(size_t attempts = 10, int timeout_ms = 1000)
+{
+    for (size_t attempt = 1; attempt <= attempts; ++attempt) {
+        rcl_ret_t rc = rmw_uros_sync_session(timeout_ms);
+        if (rc == RMW_RET_OK && rmw_uros_epoch_synchronized()) {
+            Serial.printf(
+                "micro-ROS time synchronized: epoch_ms=%lld\n",
+                static_cast<long long>(rmw_uros_epoch_millis()));
+            return true;
+        }
+
+        Serial.printf(
+            "micro-ROS time sync failed (%u/%u), rc=%d, synced=%d\n",
+            static_cast<unsigned>(attempt),
+            static_cast<unsigned>(attempts),
+            static_cast<int>(rc),
+            rmw_uros_epoch_synchronized() ? 1 : 0);
+        delay(500);
+    }
+
+    return false;
+}
 /* ------------------------------------------------------------- */
 
-deadwheels Deadwheel(36, 34, 2, 19, 35, 32); // A0, B0, A1, B1, A2, B2
+deadwheels Deadwheel(35, 32, 2, 19, 36, 34); // A0, B0, A1, B1, A2, B2
 
 struct CmdVel {
   float vx;
@@ -140,7 +164,7 @@ void timercallback(rcl_timer_t *timer, int64_t last_call_time)
     RCSOFTCHECK(rcl_publish(&deadwheel_pub, &deadwheel_msg, NULL));
 
     //Update local odometry
-    double time = esp_timer_get_time() * 1e-6; // possible improvement : use rcl time instead of esp_timer
+    // double time = esp_timer_get_time() * 1e-6; // possible improvement : use rcl time instead of esp_timer
     // Deadwheel.deadwheel_odometry(ticks[0], ticks[1], ticks[2], time);
   }
 }
@@ -148,11 +172,11 @@ void timercallback(rcl_timer_t *timer, int64_t last_call_time)
 FastAccelStepperEngine engine;
 
 // Motor definitions (StepPin, DirPin, CSPin)
-MotorDriver motor1(17, 16, 4);
+MotorDriver motor1(23, 22, 21);
 MotorDriver motor2(15, 13, 12);
 MotorDriver motor3(26, 25, 33);
-MotorDriver motor4(23, 22, 21);
-MotorDriver* motors[] = { &motor1, &motor2, &motor3, &motor4 };
+MotorDriver motor4(17, 16, 4);
+MotorDriver* motors[] = { &motor1, &motor2, &motor3, &motor4 }; // FL, FR, RR, RL
 
 // Robot motion and dimmention variables
 float vx = 0; // m/s
@@ -162,6 +186,8 @@ float w  = 0; // rad/s
 const float lxy = 0.125 + 0.2; // lx (m) + ly (m) = 240mm
 
 const float r = 0.03; //m   (100mm mecanum)
+
+unsigned long long last_zero_time = 0;
 
 void calculateWheelSpeeds(float vx, float vy, float w, float* wheelSpeeds);
 void setSpeed(float new_vx, float new_vy, float new_w);
@@ -173,17 +199,27 @@ void setup() {
     
     allocator = rcl_get_default_allocator();
     
-    Serial.begin(115200);
-    set_microros_serial_transports(Serial);
+    Serial.begin(2000000);
+    // set_microros_serial_transports(Serial);
+    IPAddress agent_ip(192,168,1,131);
+
+    set_microros_wifi_transports(
+        "GRUM",
+        "GELE>GMEC",
+        agent_ip,
+        8888
+    );
     
     // Wait for agent
     while (rmw_uros_ping_agent(1000, 1) != RMW_RET_OK) {
         delay(1000);
     }
     
-    rmw_uros_sync_session(1000);  // try to sync with agent for up to 1s
-    
     RCCHECK(rclc_support_init(&support, 0, NULL, &allocator));
+
+    if (!sync_time_with_agent()) {
+        error_loop();
+    }
     
     // create node
     RCCHECK(rclc_node_init_default(
@@ -221,7 +257,7 @@ void setup() {
         &cmdvel_sub,
         &node,
         ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, Twist),
-        "cmd_vel"
+        "cmd_vel_smoothed"
     ));
     
     RCCHECK(rclc_executor_add_subscription(
@@ -248,6 +284,20 @@ void setup() {
     motor2.Enabledriver(true);
     motor3.Enabledriver(true);
     motor4.Enabledriver(true);
+
+    // Test motor position
+    // for (int i = 0; i < 4; i++) {        
+    //     motors[i]->setSpeedRPM(60); // set speed in RPM
+    //     motors[i]->runForward();
+
+    //     delay(1000);
+
+    //     motors[i]->runBackward();
+
+    //     delay(1000);
+
+    //     motors[i]->stop();
+    // }
     
     xTaskCreatePinnedToCore(
         core1,
@@ -283,20 +333,44 @@ void setSpeed(float new_vx, float new_vy, float new_w) {
         motor2.stop();
         motor3.stop();
         motor4.stop();
+
+        if (last_zero_time == 0)
+        {
+            last_zero_time = millis();
+        }else if (millis() - last_zero_time > 2000) {
+            motor1.Enabledriver(false);
+            motor2.Enabledriver(false);
+            motor3.Enabledriver(false);
+            motor4.Enabledriver(false);
+        }
         return;
     }
+    else if (last_zero_time != 0) {
+        last_zero_time = 0;
+        motor1.Enabledriver(true);
+        motor2.Enabledriver(true);
+        motor3.Enabledriver(true);
+        motor4.Enabledriver(true);
+    }
     
-    float wheelSpeeds [4] = {0, 0, 0, 0};
-    
+    float wheelSpeeds [4] = {0, 0, 0, 0}; // FL, FR, RR, RL
+
     // get the wheel speeds in rad/s
     calculateWheelSpeeds(vx, vy, w, wheelSpeeds);
+    
+    wheelSpeeds[1] *= -1; // invert FR wheel direction to match FL, RR, RL
+    wheelSpeeds[2] *= -1; // invert RR wheel direction to match FL, FR, RL    
     
     for (int i = 0; i < 4; i++) {
         float speed = abs(wheelSpeeds[i]);
         
         motors[i]->setSpeedRPM(speed * 60 / (2 * PI)); // set speed in RPM
         
-        if (wheelSpeeds[i] < 0) {
+
+        if (speed == 0) {
+            motors[i]->stop();
+        }
+        else if (wheelSpeeds[i] < 0) {
             motors[i]->runBackward();
         }
         else {
@@ -305,11 +379,11 @@ void setSpeed(float new_vx, float new_vy, float new_w) {
     }
 }
 
-void calculateWheelSpeeds(float vx, float vy, float w, float* wheelSpeeds) { // self explanatory
-    wheelSpeeds[0] = (1/r) * ( vx + vy - w*lxy ); // FL
-    wheelSpeeds[1] = (1/r) * ( vx - vy + w*lxy ); // FR
-    wheelSpeeds[2] = (1/r) * ( vx - vy - w*lxy ); // RL
-    wheelSpeeds[3] = (1/r) * ( vx + vy + w*lxy ); // RR
+void calculateWheelSpeeds(float vx, float vy, float w, float* ws) {
+    ws[0] = (1/r) * (vx - vy - w*lxy); // FL
+    ws[1] = (1/r) * (vx + vy + w*lxy); // FR
+    ws[2] = (1/r) * (vx - vy + w*lxy); // RR
+    ws[3] = (1/r) * (vx + vy - w*lxy); // RL
 }
 
 
@@ -347,8 +421,7 @@ void core1 (void* pvParameters){
 void core2(void* pvParameters){
     for (;;)
     {
-        RCSOFTCHECK(rclc_executor_spin_some(&executor, RCL_MS_TO_NS(10)));
-        vTaskDelay(1);
+        RCSOFTCHECK(rclc_executor_spin_some(&executor, 0));
     }
 }
 

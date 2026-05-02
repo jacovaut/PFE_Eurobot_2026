@@ -83,8 +83,8 @@ public:
 
     // Camera parameters
     const auto default_calibration_file =
-        ament_index_cpp::get_package_share_directory("pfe")
-        + "/camera_calibration/3840_2160_ELM12MP.yml";
+        ament_index_cpp::get_package_share_directory("camera_calibration")
+        + "/calibration_files/3840_2160_ELM12MP.yml";
     const auto calib_file = declare_parameter<std::string>(
         "calibration_file",
         default_calibration_file);
