@@ -1,160 +1,89 @@
 #include "ArmMotor.h"
 
-// Static member initialization
 ArmMotor* ArmMotor::instance = nullptr;
 
-void ArmMotor::staticHandleInterrupt()
-{
-    if (ArmMotor::instance != nullptr)
-        ArmMotor::instance->handleEncounterReset();
+void ArmMotor::staticHandleInterrupt() {
+    if (instance) instance->onIndexPulse();
+}
+
+void ArmMotor::onIndexPulse() {
+    encoder.setCount(0);   // zero the encoder every time X fires
 }
 
 ArmMotor::ArmMotor(float kp, float ki, float kd,
                    int motor_in1, int motor_in2,
-                   int encoder_a, int encoder_b, int encoder_x)
+                   int encoder_a, int encoder_b, int encoder_x,
+                   int pwm_ch_fwd, int pwm_ch_rev)
     : kp(kp), ki(ki), kd(kd),
-      motor_in1(motor_in1), motor_in2(motor_in2),
-      encoder_a(encoder_a), encoder_b(encoder_b), encoder_x(encoder_x)
-{
+      pin_in1(motor_in1), pin_in2(motor_in2),
+      pin_enc_a(encoder_a), pin_enc_b(encoder_b), pin_enc_x(encoder_x),
+      pwm_ch_fwd(pwm_ch_fwd), pwm_ch_rev(pwm_ch_rev)
+{}
+
+void ArmMotor::setup() {
+    ledcSetup(pwm_ch_fwd, 5000, 8);
+    ledcSetup(pwm_ch_rev, 5000, 8);
+    ledcAttachPin(pin_in1, pwm_ch_fwd);
+    ledcAttachPin(pin_in2, pwm_ch_rev);
+
+    encoder.attachHalfQuad(pin_enc_a, pin_enc_b);
+    encoder.setCount(0);
+
+    pinMode(pin_enc_x, INPUT_PULLUP);
+    instance = this;
+    attachInterrupt(digitalPinToInterrupt(pin_enc_x),
+                    staticHandleInterrupt, RISING);
 }
 
-void ArmMotor::setup()
-{
-    delay(200);
-
-    // Configure LEDC for motor PWM
-    const int frequency = 5000;  // 5 kHz PWM frequency
-    const int resolution = 8;    // 8-bit resolution (0-255)
-    const int channel_in1 = 0;
-    const int channel_in2 = 1;
-
-    ledcSetup(channel_in1, frequency, resolution);
-    ledcSetup(channel_in2, frequency, resolution);
-    ledcAttachPin(motor_in1, channel_in1);
-    ledcAttachPin(motor_in2, channel_in2);
-
-    pinMode(encoder_a, INPUT);
-    pinMode(encoder_b, INPUT);
-    pinMode(encoder_x, INPUT_PULLUP);
-
-    encoder.attachHalfQuad(encoder_a, encoder_b);
-    ArmMotor::instance = this;
-    attachInterrupt(digitalPinToInterrupt(encoder_x), 
-                    ArmMotor::staticHandleInterrupt, RISING);
+void ArmMotor::setTarget(long ticks) {
+    target_ticks    = ticks;
+    integral        = 0.0f;
+    prev_error      = 0.0f;
 }
 
-void ArmMotor::handleEncounterReset()
-{
-    long offset = (long)((HOME_ANGLE_DEG / 360.0f) * COUNTS_PER_REV);
-    encoder.setCount(offset);
-    if (!homed)
-        homed = true;
+void ArmMotor::returnToZero() {
+    setTarget(30);
 }
 
-void ArmMotor::home()
-{
-    while (!homed)
-    {
-        motorWrite(180);
-        delay(10);
-    }
-    motorWrite(0);
-}
+void ArmMotor::applyPWM(int pwm) {
+    pwm = constrain(pwm, -PWM_MAX, PWM_MAX);
 
-float ArmMotor::pulseToAngle(long counts)
-{
-    float angle = fmod((counts / COUNTS_PER_REV) * 360.0f, 360.0f);
-    return angle;
-}
-
-void ArmMotor::motorWrite(int pwm)
-{
-    const int channel_in1 = 0;
-    const int channel_in2 = 1;
-
-    if (pwm > 0)
-    {
-        ledcWrite(channel_in1, abs(pwm));
-        ledcWrite(channel_in2, 0);
-    }
-    else if (pwm < 0)
-    {
-        ledcWrite(channel_in1, 0);
-        ledcWrite(channel_in2, abs(pwm));
-    }
-    else
-    {
-        ledcWrite(channel_in1, 1);
-        ledcWrite(channel_in2, 1);
+    if (pwm > 0) {
+        if (pwm < PWM_MIN) pwm = PWM_MIN;
+        ledcWrite(pwm_ch_fwd, pwm);
+        ledcWrite(pwm_ch_rev, 0);
+    } else if (pwm < 0) {
+        int mag = -pwm;
+        if (mag < PWM_MIN) mag = PWM_MIN;
+        ledcWrite(pwm_ch_fwd, 0);
+        ledcWrite(pwm_ch_rev, mag);
+    } else {
+        ledcWrite(pwm_ch_fwd, 1);
+        ledcWrite(pwm_ch_rev, 1);
     }
 }
 
-void ArmMotor::updatePID()
-{
-    if (!homed)
+void ArmMotor::runPID() {
+    long  counts = encoder.getCount();
+    float error  = (float)(target_ticks - counts);
+
+    if (abs(error) < DEADBAND) {
+        integral   = 0.0f;
+        prev_error = 0.0f;
+        applyPWM(0);
         return;
-
-    float current_angle = pulseToAngle(encoder.getCount());
-
-    // Error calculation
-    float err = target_angle - current_angle;
-
-    // Feedforward: gravity compensation when moving upward
-    if (err > 0 && current_angle < 270)
-    {
-        ff = ff_gain;
-    }
-    else
-    {
-        ff = 0;
     }
 
-    // PID calculation
-    integrale += err * DT;
-    if (integrale > INTEGRALE_MAX)
-        integrale = INTEGRALE_MAX;
-    if (integrale < -INTEGRALE_MAX)
-        integrale = -INTEGRALE_MAX;
+    integral += error * DT;
+    integral  = constrain(integral, -INTEGRAL_MAX, INTEGRAL_MAX);
 
-    float d_error = (err - prev_error) / DT;
-    float pid = err * kp + integrale * ki + d_error * kd;
-    float pid_out = pid;
+    float derivative = (error - prev_error) / DT;
+    float output     = kp * error + ki * integral + kd * derivative;
 
-    final_output = (int)pid_out;
-
-    // Stiction compensation
-    if (final_output > 0 && final_output < (int)pwm_min)
-        final_output = (int)pwm_min;
-    else if (final_output < 0 && final_output > -(int)pwm_min)
-        final_output = -(int)pwm_min;
-
-    final_output += (int)ff;
-
-    // Output limits
-    if (final_output > 255)
-        final_output = 255;
-    else if (final_output < -255)
-        final_output = -255;
-
-    // Deadband: stop jitter at rest
-    if (abs(err) < 0.5f)
-    {
-        final_output = 0;
-        integrale = 0.0f;
-    }
-
-    motorWrite(-1 * final_output);
-
-    last_angle = current_angle;
-    prev_error = err;
+    prev_error = error;
+    applyPWM((int)output);
 }
 
-void ArmMotor::update()
-{
-    updatePID();
-}
-
-void ArmMotor::setTarget(float angle_deg)
-{
-    target_angle = angle_deg;
+void ArmMotor::update() {
+    runPID();
 }
