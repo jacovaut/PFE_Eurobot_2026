@@ -25,7 +25,7 @@ global_localization_node:
     clahe_tile_size: 16
     # Calibration file defaults to the installed pfe package share path.
     # Override calibration_file at launch only when testing a different calibration.
-    debug_view: false
+    debug_view: true
 
     # Frames / topics
     map_frame: "map"
@@ -141,12 +141,13 @@ external_perception_node:
     nids_taille_y_m: [0.450, 0.450]
 
     # Garde-manger (zones communes), dimensions: 200 x 200 mm
+    # Numbering follows table columns left-to-right, each column bottom-to-top.
     garde_manger_noms: [
       "garde_manger_1", "garde_manger_2", "garde_manger_3", "garde_manger_4",
       "garde_manger_5", "garde_manger_6", "garde_manger_7", "garde_manger_8"
     ]
-    garde_manger_centre_x_m: [0.700, 1.500, 2.300, 2.200, 1.500, 0.800, 1.750, 1.250]
-    garde_manger_centre_y_m: [0.100, 0.100, 0.100, 0.800, 0.800, 0.800, 1.450, 1.450]
+    garde_manger_centre_x_m: [1.250, 1.750, 0.800, 1.500, 2.200, 0.700, 1.500, 2.300]
+    garde_manger_centre_y_m: [1.450, 1.450, 0.800, 0.800, 0.800, 0.100, 0.100, 0.100]
     garde_manger_taille_x_m: [0.200, 0.200, 0.200, 0.200, 0.200, 0.200, 0.200, 0.200]
     garde_manger_taille_y_m: [0.200, 0.200, 0.200, 0.200, 0.200, 0.200, 0.200, 0.200]
 
@@ -172,8 +173,8 @@ camera_map_visualizer_node:
       "garde_manger_1", "garde_manger_2", "garde_manger_3", "garde_manger_4",
       "garde_manger_5", "garde_manger_6", "garde_manger_7", "garde_manger_8"
     ]
-    garde_manger_centre_x_m: [0.700, 1.500, 2.300, 2.200, 1.500, 0.800, 1.750, 1.250]
-    garde_manger_centre_y_m: [0.100, 0.100, 0.100, 0.800, 0.800, 0.800, 1.450, 1.450]
+    garde_manger_centre_x_m: [1.250, 1.750, 0.800, 1.500, 2.200, 0.700, 1.500, 2.300]
+    garde_manger_centre_y_m: [1.450, 1.450, 0.800, 0.800, 0.800, 0.100, 0.100, 0.100]
     garde_manger_taille_x_m: [0.200, 0.200, 0.200, 0.200, 0.200, 0.200, 0.200, 0.200]
     garde_manger_taille_y_m: [0.200, 0.200, 0.200, 0.200, 0.200, 0.200, 0.200, 0.200]
 
