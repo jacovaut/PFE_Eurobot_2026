@@ -6,7 +6,6 @@ from typing import Any, Dict, List
 
 import rclpy
 from geometry_msgs.msg import PoseWithCovarianceStamped, TransformStamped
-from nav2_msgs.srv import ClearEntirelyExceptStaticLayers
 from rcl_interfaces.msg import ParameterType, ParameterValue
 from rclpy.node import Node
 from sensor_msgs.msg import PointCloud2
@@ -57,16 +56,20 @@ class CameraMapVisualizer(Node):
             self.declare_parameter('zones_interdites_point_spacing_m', 0.05).value
         )
 
+        self.arena_x_min = float(self.declare_parameter('arena_x_min', 0.0).value)
+        self.arena_x_max = float(self.declare_parameter('arena_x_max', 3.0).value)
+        self.arena_y_min = float(self.declare_parameter('arena_y_min', 0.0).value)
+        self.arena_y_max = float(self.declare_parameter('arena_y_max', 2.0).value)
+        self.arena_wall_spacing_m = float(self.declare_parameter('arena_wall_spacing_m', 0.05).value)
+        self.arena_wall_z_m = float(self.declare_parameter('arena_wall_z_m', 0.05).value)
+
+        self._wall_points: List[List[float]] = self._build_wall_points()
+
         self.tf_broadcaster = TransformBroadcaster(self)
         self.marker_pub = self.create_publisher(MarkerArray, self.marker_topic, 10)
         self.block_pc_pub = self.create_publisher(PointCloud2, self.block_pointcloud_topic, 10)
         self.latest_blocks: List[Dict[str, Any]] = []
         self.has_received_robot_pose = False
-
-        self._clear_local = self.create_client(
-            ClearEntirelyExceptStaticLayers, '/local_costmap/clear_entirely_except_static_layers')
-        self._clear_global = self.create_client(
-            ClearEntirelyExceptStaticLayers, '/global_costmap/clear_entirely_except_static_layers')
 
         self.create_subscription(PoseWithCovarianceStamped, self.robot_pose_topic, self._robot_pose_cb, 20)
         self.create_subscription(String, self.detected_blocks_topic, self._blocks_cb, 20)
@@ -208,15 +211,29 @@ class CameraMapVisualizer(Node):
         self.marker_pub.publish(marker_array)
 
         if self.publish_block_obstacles:
-            req = ClearEntirelyExceptStaticLayers.Request()
-            for client in (self._clear_local, self._clear_global):
-                if client.service_is_ready():
-                    client.call_async(req)
             header = Header()
             header.stamp = now
             header.frame_id = self.map_frame
-            cloud = point_cloud2.create_cloud_xyz32(header, obstacle_points)
+            cloud = point_cloud2.create_cloud_xyz32(header, obstacle_points + self._wall_points)
             self.block_pc_pub.publish(cloud)
+
+    def _build_wall_points(self) -> List[List[float]]:
+        pts: List[List[float]] = []
+        spacing = max(self.arena_wall_spacing_m, 0.02)
+        z = self.arena_wall_z_m
+        x_min, x_max = self.arena_x_min, self.arena_x_max
+        y_min, y_max = self.arena_y_min, self.arena_y_max
+        x = x_min
+        while x <= x_max + 1e-6:
+            pts.append([x, y_min, z])
+            pts.append([x, y_max, z])
+            x += spacing
+        y = y_min
+        while y <= y_max + 1e-6:
+            pts.append([x_min, y, z])
+            pts.append([x_max, y, z])
+            y += spacing
+        return pts
 
     def _append_zone_markers(
         self,
