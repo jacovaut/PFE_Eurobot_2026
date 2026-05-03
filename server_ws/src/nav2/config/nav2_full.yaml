@@ -15,7 +15,7 @@ collision_monitor:
 planner_server:
   ros__parameters:
     use_sim_time: false
-    expected_planner_frequency: 3.0
+    expected_planner_frequency: 5.0
     planner_plugins: ["GridBased"]
 
     # Planner option A (simple): NavFn
@@ -62,28 +62,29 @@ controller_server:
       max_vel_x:  0.4
       min_vel_y: -0.4
       max_vel_y:  0.4
-      max_vel_theta: 0.3
-      min_speed_xy: 0.05
+      max_vel_theta: 0.6
+      min_speed_xy: 0.0
       max_speed_xy: 0.6
-      min_speed_theta: 0.05
+      min_speed_theta: 0.0
 
       acc_lim_x: 1.0
       acc_lim_y: 1.0
-      acc_lim_theta: 0.8
+      acc_lim_theta: 1.2
       decel_lim_x: -1.0
       decel_lim_y: -1.0
-      decel_lim_theta: -0.8
+      decel_lim_theta: -1.2
 
       vx_samples: 12
       vy_samples: 12
       vtheta_samples: 12
-      sim_time: 1.2
-      linear_granularity: 0.08
+      sim_time: 1.0
+      linear_granularity: 0.05
       angular_granularity: 0.03
 
-      transform_tolerance: 0.2
+      transform_tolerance: 0.3
 
-      critics: ["PathAlign", "GoalAlign", "PathDist", "GoalDist", "RotateToGoal", "Oscillation"]
+      critics: ["ObstacleFootprint", "BaseObstacle", "PathAlign", "GoalAlign", "PathDist", "GoalDist", "RotateToGoal", "Oscillation"]
+      BaseObstacle.scale: 0.02
       PathAlign.scale: 8.0
       GoalAlign.scale: 4.0
       PathDist.scale: 24.0
@@ -120,10 +121,10 @@ velocity_smoother:
     smoothing_frequency: 20.0
     scale_velocities: false
     feedback: "OPEN_LOOP"
-    max_velocity: [0.4, 0.4, 0.3]
-    min_velocity: [-0.4, -0.4, -0.3]
-    max_accel: [1.0, 1.0, 0.8]
-    max_decel: [-1.0, -1.0, -0.8]
+    max_velocity: [0.4, 0.4, 0.6]
+    min_velocity: [-0.4, -0.4, -0.6]
+    max_accel: [1.0, 1.0, 1.2]
+    max_decel: [-1.0, -1.0, -1.2]
     odom_topic: "/odometry/local"
     velocity_timeout: 0.5
 
@@ -182,8 +183,8 @@ local_costmap:
       publish_frequency: 5.0
       resolution: 0.05
       rolling_window: true
-      width: 80
-      height: 80
+      width: 4.0
+      height: 4.0
       footprint: "[[-0.045, -0.264], [-0.045, 0.044], [0.469, 0.044], [0.469, -0.264]]"
       footprint_padding: 0.02
       plugins: ["obstacle_layer", "voxel_layer", "inflation_layer"]
@@ -197,7 +198,7 @@ local_costmap:
         observation_sources: lidar
         lidar:
           topic: "/scan"
-          sensor_frame: lidar
+          sensor_frame: laser_frame
           max_obstacle_height: 2.0
           clearing: true
           marking: true

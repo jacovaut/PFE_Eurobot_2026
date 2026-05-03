@@ -25,7 +25,7 @@ global_localization_node:
     clahe_tile_size: 16
     # Calibration file defaults to the installed pfe package share path.
     # Override calibration_file at launch only when testing a different calibration.
-    debug_view: true
+    debug_view: false
 
     # Frames / topics
     map_frame: "map"

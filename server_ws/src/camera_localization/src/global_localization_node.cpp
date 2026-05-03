@@ -18,6 +18,9 @@
 #include <sstream>
 #include <iomanip>
 #include <chrono>
+#include <atomic>
+#include <mutex>
+#include <thread>
 #include <ament_index_cpp/get_package_share_directory.hpp>
 
 class CameraLocalizationNode : public rclcpp::Node
@@ -201,12 +204,13 @@ public:
 
     if (debug_view_) {
       cv::namedWindow("camera_localization_debug", cv::WINDOW_NORMAL);
+      display_timer_ = create_wall_timer(
+        std::chrono::milliseconds(33),
+        std::bind(&CameraLocalizationNode::displayTick, this));
     }
 
-    const int period_ms = std::max(1, static_cast<int>(1000.0 / static_cast<double>(fps_)));
-    timer_ = create_wall_timer(
-      std::chrono::milliseconds(period_ms),
-      std::bind(&CameraLocalizationNode::cameraTick, this));
+    running_.store(true, std::memory_order_release);
+    processing_thread_ = std::thread(&CameraLocalizationNode::processingLoop, this);
 
     RCLCPP_INFO(get_logger(), "global_localization_node started");
     RCLCPP_INFO(get_logger(), "Publishing global pose on %s", pose_topic_.c_str());
@@ -214,6 +218,11 @@ public:
 
   ~CameraLocalizationNode() override
   {
+    running_.store(false, std::memory_order_release);
+    cap_.release();
+    if (processing_thread_.joinable()) {
+      processing_thread_.join();
+    }
     if (debug_view_) {
       cv::destroyAllWindows();
     }
@@ -432,6 +441,13 @@ private:
     dictionary_ = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_4X4_50);
   }
 
+  void processingLoop()
+  {
+    while (running_.load(std::memory_order_acquire) && rclcpp::ok()) {
+      cameraTick();
+    }
+  }
+
   void cameraTick()
   {
     auto tick_start = std::chrono::high_resolution_clock::now();
@@ -441,6 +457,7 @@ private:
     if (!cap_.read(frame) || frame.empty()) {
       empty_frame_count_++;
       RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 2000, "Empty camera frame");
+      std::this_thread::sleep_for(std::chrono::milliseconds(1));
       return;
     }
     
@@ -1441,6 +1458,21 @@ if (ids.empty()) {
       return;
     }
 
+    std::lock_guard<std::mutex> lock(debug_frame_mutex_);
+    debug_frame_ = image.clone();
+  }
+
+  void displayTick()
+  {
+    cv::Mat image;
+    {
+      std::lock_guard<std::mutex> lock(debug_frame_mutex_);
+      if (debug_frame_.empty()) {
+        return;
+      }
+      image = debug_frame_.clone();
+    }
+
     cv::Mat resized;
     cv::resize(image, resized, cv::Size(1280, 720));
     cv::imshow("camera_localization_debug", resized);
@@ -1454,12 +1486,20 @@ if (ids.empty()) {
   // ROS
   rclcpp::Publisher<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr pose_pub_;
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr detected_blocks_pub_;
-  rclcpp::TimerBase::SharedPtr timer_;
+  rclcpp::TimerBase::SharedPtr display_timer_;
 
   // Camera / calibration
   cv::VideoCapture cap_;
   cv::Mat camera_matrix_;
   cv::Mat dist_coeffs_;
+
+  // Background camera processing
+  std::atomic<bool> running_{false};
+  std::thread processing_thread_;
+
+  // Debug display is kept on the ROS executor thread for OpenCV GUI stability.
+  std::mutex debug_frame_mutex_;
+  cv::Mat debug_frame_;
 
   // ArUco
   cv::Ptr<cv::aruco::Dictionary> dictionary_;
