@@ -138,6 +138,10 @@ public:
       declare_parameter<double>("detector_error_correction_rate", 0.35);
     detector_use_corner_refinement_subpix_ =
       declare_parameter<bool>("detector_use_corner_refinement_subpix", true);
+    // Downscale factor applied to the frame before ArUco detection (0.5 = half res = 4x faster).
+    // Detected corners are scaled back to original coordinates for solvePnP.
+    detect_downscale_ =
+      declare_parameter<double>("detect_downscale", 0.5);
 
     // Optional rescue pass focused on large table markers (IDs 20-23)
     enable_table_marker_rescue_pass_ =
@@ -523,10 +527,30 @@ private:
       clahe->apply(gray, gray);
     }
 
+    // Downscale for faster ArUco detection, then scale corners back to original coords for solvePnP.
+    cv::Mat detect_gray;
+    double inv_scale = 1.0;
+    if (detect_downscale_ < 1.0 - 1e-6) {
+      cv::resize(gray, detect_gray, cv::Size(), detect_downscale_, detect_downscale_,
+                 cv::INTER_AREA);
+      inv_scale = 1.0 / detect_downscale_;
+    } else {
+      detect_gray = gray;
+    }
+
     std::vector<int> ids;
     std::vector<std::vector<cv::Point2f>> corners;
     std::vector<std::vector<cv::Point2f>> rejected;
-    cv::aruco::detectMarkers(gray, dictionary_, corners, ids, detector_params_, rejected);
+    cv::aruco::detectMarkers(detect_gray, dictionary_, corners, ids, detector_params_, rejected);
+
+    if (inv_scale != 1.0) {
+      for (auto &corner_set : corners) {
+        for (auto &pt : corner_set) {
+          pt.x *= static_cast<float>(inv_scale);
+          pt.y *= static_cast<float>(inv_scale);
+        }
+      }
+    }
 
     bool marker20_accepted_before_rescue = false;
     for (int id : ids) {
@@ -1725,6 +1749,7 @@ if (ids.empty()) {
   double detector_max_marker_perimeter_rate_{4.0};
   double detector_error_correction_rate_{0.35};
   bool detector_use_corner_refinement_subpix_{true};
+  double detect_downscale_{0.5};
 
   bool enable_table_marker_rescue_pass_{true};
   double rescue_clahe_clip_limit_{2.0};
