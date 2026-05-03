@@ -49,7 +49,7 @@ controller_server:
     goal_checker:
       plugin: "nav2_controller::SimpleGoalChecker"
       stateful: true
-      xy_goal_tolerance: 0.07
+      xy_goal_tolerance: 0.05
       yaw_goal_tolerance: 0.35
 
     # Controller option A (recommended-to-start): DWB holonomic
@@ -58,13 +58,13 @@ controller_server:
       debug_trajectory_details: false
 
       # Holonomic mecanum: allow y velocity
-      min_vel_x: -0.4
-      max_vel_x:  0.4
-      min_vel_y: -0.4
-      max_vel_y:  0.4
+      min_vel_x: -0.5
+      max_vel_x:  0.5
+      min_vel_y: -0.5
+      max_vel_y:  0.5
       max_vel_theta: 0.35
       min_speed_xy: 0.0
-      max_speed_xy: 0.6
+      max_speed_xy: 0.5
       min_speed_theta: 0.0
 
       acc_lim_x: 1.0
@@ -85,11 +85,11 @@ controller_server:
       trans_stopped_velocity: 0.05
 
       critics: ["ObstacleFootprint", "BaseObstacle", "PathAlign", "GoalAlign", "PathDist", "GoalDist", "RotateToGoal", "Oscillation"]
-      BaseObstacle.scale: 0.02
+      BaseObstacle.scale: 0.20
       PathAlign.scale: 0.0
       GoalAlign.scale: 0.0
-      PathDist.scale: 24.0
-      GoalDist.scale: 24.0
+      PathDist.scale: 18.0
+      GoalDist.scale: 18.0
       RotateToGoal.scale: 16.0
       RotateToGoal.slowing_factor: 8.0
       RotateToGoal.lookahead_time: -1.0
@@ -122,8 +122,8 @@ velocity_smoother:
     smoothing_frequency: 20.0
     scale_velocities: false
     feedback: "OPEN_LOOP"
-    max_velocity: [0.4, 0.4, 0.35]
-    min_velocity: [-0.4, -0.4, -0.35]
+    max_velocity: [0.5, 0.5, 0.35]
+    min_velocity: [-0.5, -0.5, -0.35]
     max_accel: [1.0, 1.0, 0.6]
     max_decel: [-1.0, -1.0, -0.6]
     odom_topic: "/odometry/local"
@@ -142,15 +142,15 @@ global_costmap:
       rolling_window: false
       footprint: "[[-0.045, -0.264], [-0.045, 0.044], [0.469, 0.044], [0.469, -0.264]]"
       footprint_padding: 0.02
-      plugins: ["static_layer", "inflation_layer", "voxel_layer"]
+      plugins: ["static_layer", "voxel_layer", "inflation_layer"]
       static_layer:
         plugin: "nav2_costmap_2d::StaticLayer"
         map_subscribe_transient_local: true
         subscribe_to_updates: true
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
-        inflation_radius: 0.40
-        cost_scaling_factor: 3.0
+        inflation_radius: 0.55
+        cost_scaling_factor: 2.0
       voxel_layer:
         plugin: "nav2_costmap_2d::VoxelLayer"
         enabled: true
@@ -191,8 +191,8 @@ local_costmap:
       plugins: ["obstacle_layer", "voxel_layer", "inflation_layer"]
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
-        inflation_radius: 0.4
-        cost_scaling_factor: 3.0
+        inflation_radius: 0.55
+        cost_scaling_factor: 2.0
       obstacle_layer:
         plugin: "nav2_costmap_2d::ObstacleLayer"
         enabled: true

@@ -30,6 +30,9 @@ class CameraMapVisualizer(Node):
         self.detected_obstacle_point_spacing_m = float(
             self.declare_parameter('detected_obstacle_point_spacing_m', 0.05).value
         )
+        self.detected_obstacle_padding_m = float(
+            self.declare_parameter('detected_obstacle_padding_m', 0.06).value
+        )
         self.publish_period_s = float(self.declare_parameter('publish_period_s', 0.25).value)
 
         self.nids_noms = list(self.declare_parameter('nids_noms', ['nid_jaune', 'nid_bleu']).value)
@@ -297,8 +300,9 @@ class CameraMapVisualizer(Node):
         center_x = float(obstacle.get('x', 0.0))
         center_y = float(obstacle.get('y', 0.0))
         center_z = float(obstacle.get('z', max(self.block_obstacle_height_m * 0.5, 0.03)))
-        size_x = max(float(obstacle.get('size_x_m', 0.12)), 0.03)
-        size_y = max(float(obstacle.get('size_y_m', 0.05)), 0.03)
+        padding = max(self.detected_obstacle_padding_m, 0.0)
+        size_x = max(float(obstacle.get('size_x_m', 0.12)) + 2.0 * padding, 0.03)
+        size_y = max(float(obstacle.get('size_y_m', 0.05)) + 2.0 * padding, 0.03)
         yaw = float(obstacle.get('yaw', 0.0))
         spacing = max(self.detected_obstacle_point_spacing_m, 0.02)
 

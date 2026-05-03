@@ -159,6 +159,9 @@ external_perception_node:
 
 camera_map_visualizer_node:
   ros__parameters:
+    detected_obstacle_point_spacing_m: 0.04
+    detected_obstacle_padding_m: 0.06
+
     nids_noms: ["nid_jaune", "nid_bleu"]
     nids_centre_x_m: [0.300, 2.700]
     nids_centre_y_m: [1.775, 1.775]
