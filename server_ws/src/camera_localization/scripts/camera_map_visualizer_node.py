@@ -212,7 +212,7 @@ class CameraMapVisualizer(Node):
 
         if self.publish_block_obstacles:
             header = Header()
-            header.stamp = now
+            header.stamp = rclpy.time.Time().to_msg()
             header.frame_id = self.map_frame
             cloud = point_cloud2.create_cloud_xyz32(header, obstacle_points + self._wall_points)
             self.block_pc_pub.publish(cloud)
