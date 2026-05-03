@@ -86,6 +86,15 @@ global_localization_node:
 
     # Snapshot-based pose stabilization
     pose_update_interval_s: 5.0
+    block_rescue_period_s: 0.5
+    bev_block_rescue_period_s: 1.0
+
+    # EMA tracking for /detected_blocks JSON before obstacle/strategy conversion.
+    enable_entity_tracking: true
+    entity_tracking_match_gate_m: 0.12
+    entity_tracking_ema_alpha: 0.5
+    entity_tracking_yaw_alpha: 0.5
+    entity_tracking_max_missed_frames: 5
 
     # base_link -> robot ArUco transform, measured on the robot.
     # X is forward from base_link, Y is left, Z is up, yaw is radians.
