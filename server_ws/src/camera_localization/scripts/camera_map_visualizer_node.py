@@ -6,6 +6,7 @@ from typing import Any, Dict, List
 
 import rclpy
 from geometry_msgs.msg import PoseWithCovarianceStamped, TransformStamped
+from nav2_msgs.srv import ClearEntirelyExceptStaticLayers
 from rcl_interfaces.msg import ParameterType, ParameterValue
 from rclpy.node import Node
 from sensor_msgs.msg import PointCloud2
@@ -61,6 +62,11 @@ class CameraMapVisualizer(Node):
         self.block_pc_pub = self.create_publisher(PointCloud2, self.block_pointcloud_topic, 10)
         self.latest_blocks: List[Dict[str, Any]] = []
         self.has_received_robot_pose = False
+
+        self._clear_local = self.create_client(
+            ClearEntirelyExceptStaticLayers, '/local_costmap/clear_entirely_except_static_layers')
+        self._clear_global = self.create_client(
+            ClearEntirelyExceptStaticLayers, '/global_costmap/clear_entirely_except_static_layers')
 
         self.create_subscription(PoseWithCovarianceStamped, self.robot_pose_topic, self._robot_pose_cb, 20)
         self.create_subscription(String, self.detected_blocks_topic, self._blocks_cb, 20)
@@ -202,6 +208,10 @@ class CameraMapVisualizer(Node):
         self.marker_pub.publish(marker_array)
 
         if self.publish_block_obstacles:
+            req = ClearEntirelyExceptStaticLayers.Request()
+            for client in (self._clear_local, self._clear_global):
+                if client.service_is_ready():
+                    client.call_async(req)
             header = Header()
             header.stamp = now
             header.frame_id = self.map_frame

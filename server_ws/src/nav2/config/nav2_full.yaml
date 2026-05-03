@@ -166,13 +166,14 @@ global_costmap:
           topic: "/camera/block_obstacles"
           sensor_frame: map
           max_obstacle_height: 2.0
-          clearing: true
+          clearing: false
           marking: true
           data_type: "PointCloud2"
           raytrace_max_range: 5.0
           raytrace_min_range: 0.0
           obstacle_max_range: 5.0
           obstacle_min_range: 0.0
+          observation_keep_time: 0.20
 
 # --- Local costmap params ---
 local_costmap:
@@ -189,7 +190,11 @@ local_costmap:
       height: 4
       footprint: "[[-0.045, -0.264], [-0.045, 0.044], [0.469, 0.044], [0.469, -0.264]]"
       footprint_padding: 0.02
-      plugins: ["obstacle_layer", "voxel_layer", "inflation_layer"]
+      plugins: ["static_layer", "obstacle_layer", "voxel_layer", "inflation_layer"]
+      static_layer:
+        plugin: "nav2_costmap_2d::StaticLayer"
+        map_subscribe_transient_local: true
+        subscribe_to_updates: true
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         inflation_radius: 0.55
@@ -223,13 +228,14 @@ local_costmap:
           topic: "/camera/block_obstacles"
           sensor_frame: map
           max_obstacle_height: 2.0
-          clearing: true
+          clearing: false
           marking: true
           data_type: "PointCloud2"
           raytrace_max_range: 5.0
           raytrace_min_range: 0.0
           obstacle_max_range: 5.0
           obstacle_min_range: 0.0
+          observation_keep_time: 0.20
 
 lifecycle_manager_navigation:
   ros__parameters:
