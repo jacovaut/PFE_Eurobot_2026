@@ -13,7 +13,6 @@ import tf_transformations
 from geometry_msgs.msg import Pose2D, TransformStamped
 from std_msgs.msg import String
 from tf2_ros import Buffer, TransformBroadcaster, TransformListener
-from visualization_msgs.msg import Marker, MarkerArray
 
 
 # =========================
@@ -360,8 +359,6 @@ class MergedLocalPickupNode(
             "merged_local_pickup_node"
         )
 
-        
-
         self.declare_parameter(
             "udp_port",
             5005
@@ -413,7 +410,10 @@ class MergedLocalPickupNode(
             self.tf_buffer,
             self
         )
-        
+        self.tf_broadcaster = TransformBroadcaster(
+            self
+        )
+
         self.cup_frames = [
             "cup_0",
             "cup_1",
@@ -428,12 +428,6 @@ class MergedLocalPickupNode(
             "yellow": 0,
             "unknown": 0
         }
-
-        self.marker_pub = self.create_publisher(
-            MarkerArray,
-            "/block_markers",
-            10
-        )
 
         self.lock_required_frames = 5
 
@@ -497,6 +491,12 @@ class MergedLocalPickupNode(
         self.locked_targets = {}
         self.candidate_signature = None
         self.candidate_count = 0
+        self.block_targets = {
+            "cup_0": None,
+            "cup_1": None,
+            "cup_2": None,
+            "cup_3": None,
+        }
 
     # =========================
     # STATUS CALLBACK
@@ -529,7 +529,6 @@ class MergedLocalPickupNode(
                 for a in best.assignments
             )
         )
-    
 
     # =========================
     # TRACKER
@@ -660,110 +659,51 @@ class MergedLocalPickupNode(
     # =========================
     # TF PUBLISH
     # =========================
-    def publish_markers(self):
+    def publish_block_transforms(
+        self
+    ):
+        now_msg = (
+            self.get_clock().now().to_msg()
+        )
 
-        marker_array = MarkerArray()
-
-        now = self.get_clock().now().to_msg()
-
-        # -------------------------
-        # LIVE BLOCKS
-        # -------------------------
-        for i, (name, b) in enumerate(self.tracked_blocks.items()):
-
-            age = (
-                self.get_clock().now().nanoseconds * 1e-9
-                - b.last_seen
-            )
-
-            if age > self.block_timeout_sec:
+        for cup_name, b in self.block_targets.items():
+            if b is None:
                 continue
 
-            marker = Marker()
-            marker.header.frame_id = "base_link"
-            marker.header.stamp = now
+            slot_idx = cup_name.split("_")[1]
+            frame_name = f"block_target_{slot_idx}"
 
-            marker.ns = "live_blocks"
-            marker.id = i
-            marker.type = Marker.CUBE
-            marker.action = Marker.ADD
+            t = TransformStamped()
 
-            marker.pose.position.x = float(b.x)
-            marker.pose.position.y = float(b.y)
-            marker.pose.position.z = 0.05
+            t.header.stamp = now_msg
+            t.header.frame_id = "base_link"
+            t.child_frame_id = frame_name
+
+            t.transform.translation.x = float(
+                b.x
+            )
+            t.transform.translation.y = float(
+                b.y
+            )
+            t.transform.translation.z = 0.0
 
             q = tf_transformations.quaternion_from_euler(
-                0, 0, math.radians(b.yaw_deg)
+                0.0,
+                0.0,
+                math.radians(
+                    b.yaw_deg
+                )
             )
 
-            marker.pose.orientation.x = q[0]
-            marker.pose.orientation.y = q[1]
-            marker.pose.orientation.z = q[2]
-            marker.pose.orientation.w = q[3]
+            t.transform.rotation.x = q[0]
+            t.transform.rotation.y = q[1]
+            t.transform.rotation.z = q[2]
+            t.transform.rotation.w = q[3]
 
-            marker.scale.x = 0.05
-            marker.scale.y = 0.05
-            marker.scale.z = 0.05
+            self.tf_broadcaster.sendTransform(
+                t
+            )
 
-            # color
-            if b.color == "blue":
-                marker.color.r = 0.1
-                marker.color.g = 0.3
-                marker.color.b = 1.0
-            elif b.color == "yellow":
-                marker.color.r = 1.0
-                marker.color.g = 0.9
-                marker.color.b = 0.1
-            else:
-                marker.color.r = 0.8
-                marker.color.g = 0.8
-                marker.color.b = 0.8
-
-            marker.color.a = 1.0
-
-            marker_array.markers.append(marker)
-
-        # -------------------------
-        # LOCKED BLOCKS
-        # -------------------------
-        if self.solution_locked:
-
-            for i, (name, b) in enumerate(self.locked_targets.items()):
-
-                marker = Marker()
-                marker.header.frame_id = "base_link"
-                marker.header.stamp = now
-
-                marker.ns = "locked_blocks"
-                marker.id = 1000 + i
-                marker.type = Marker.CUBE
-                marker.action = Marker.ADD
-
-                marker.pose.position.x = float(b.x)
-                marker.pose.position.y = float(b.y)
-                marker.pose.position.z = 0.06
-
-                q = tf_transformations.quaternion_from_euler(
-                    0, 0, math.radians(b.yaw_deg)
-                )
-
-                marker.pose.orientation.x = q[0]
-                marker.pose.orientation.y = q[1]
-                marker.pose.orientation.z = q[2]
-                marker.pose.orientation.w = q[3]
-
-                marker.scale.x = 0.06
-                marker.scale.y = 0.06
-                marker.scale.z = 0.06
-
-                marker.color.r = 0.2
-                marker.color.g = 1.0
-                marker.color.b = 0.2
-                marker.color.a = 1.0
-
-                marker_array.markers.append(marker)
-
-        self.marker_pub.publish(marker_array)
     # =========================
     # LOCK LOGIC
     # =========================
@@ -1006,7 +946,7 @@ class MergedLocalPickupNode(
             detections
         )
 
-        self.publish_markers()
+        self.publish_block_transforms()
 
         if not blocks:
             return
@@ -1035,6 +975,21 @@ class MergedLocalPickupNode(
         self,
         best
     ):
+        for key in self.block_targets:
+            self.block_targets[key] = None
+
+        for a in best.assignments:
+            cup_name = a["cup"]
+            block_name = a["block"]
+            if block_name in self.locked_targets:
+                self.block_targets[
+                    cup_name
+                ] = self.locked_targets[block_name]
+            elif block_name in self.tracked_blocks:
+                self.block_targets[
+                    cup_name
+                ] = self.tracked_blocks[block_name]
+
         pose = Pose2D()
 
         pose.x = best.dx
