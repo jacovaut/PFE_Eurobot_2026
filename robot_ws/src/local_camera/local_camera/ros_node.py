@@ -6,7 +6,7 @@ import json
 import math
 import numpy as np
 import tf_transformations
-from geometry_msgs.msg import Pose2D, TransformStamped, Point
+from geometry_msgs.msg import Pose2D, TransformStamped
 from std_msgs.msg import String
 from tf2_ros import Buffer, TransformBroadcaster, TransformListener
 
@@ -42,7 +42,6 @@ class MergedLocalPickupNode(Node):
         self.locked_targets = {}
         self.current_cups = {}
         self.pickup_pose_pub = self.create_publisher(Pose2D, "/pickup_pose", 10)
-        self.pickup_pivot_pub = self.create_publisher(Point, "/pickup_pivot", 10)
         self.best_pickup_pub = self.create_publisher(String, "/best_pickup", 10)
         self.manip_info_pub = self.create_publisher(String, "/manip_info", 10)
         self.pickup_status_sub = self.create_subscription(String, "/pickup_status", self.pickup_status_callback, 10)
@@ -207,15 +206,6 @@ class MergedLocalPickupNode(Node):
         pose.y = best.dy
         pose.theta = best.yaw
         self.pickup_pose_pub.publish(pose)
-        # Debug TF: visualize robot's goal pose in RViz
-        self.tf_publisher.publish_pickup_target_tf(best.dx, best.dy, best.yaw)
-        # Publish cup centroid as pivot point for rotation-around-pickup in dock controller
-        assigned_cups = [a["cup"] for a in best.assignments if a["cup"] in self.current_cups]
-        if assigned_cups:
-            pivot = Point()
-            pivot.x = sum(self.current_cups[c].x for c in assigned_cups) / len(assigned_cups)
-            pivot.y = sum(self.current_cups[c].y for c in assigned_cups) / len(assigned_cups)
-            self.pickup_pivot_pub.publish(pivot)
         msg = String()
         msg.data = json.dumps({
             "dx": best.dx,

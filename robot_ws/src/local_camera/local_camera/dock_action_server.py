@@ -26,7 +26,7 @@ from rclpy.executors import MultiThreadedExecutor
 import math
 import time
 
-from geometry_msgs.msg import Pose2D, Twist, Point
+from geometry_msgs.msg import Pose2D, Twist
 from std_msgs.msg import String
 
 from custom_msgs.action import DockToBlock
@@ -109,15 +109,6 @@ class DockActionServer(Node):
             callback_group=cb_group
         )
 
-        self.pivot = (0.0, 0.0)  # cup centroid in base_link; default = robot center
-        self.create_subscription(
-            Point,
-            "/pickup_pivot",
-            self._pivot_callback,
-            10,
-            callback_group=cb_group
-        )
-
         self._action_server = ActionServer(
             self,
             DockToBlock,
@@ -136,9 +127,6 @@ class DockActionServer(Node):
     def _pose_callback(self, msg: Pose2D):
         self.current_pose = msg
         self.pose_stamp = time.time()
-
-    def _pivot_callback(self, msg: Point):
-        self.pivot = (msg.x, msg.y)
 
     # =========================
     # ACTION CALLBACKS
@@ -289,15 +277,6 @@ class DockActionServer(Node):
             vx = clamp(self.kx * dx, -self.max_vx, self.max_vx)
             vy = clamp(self.ky * dy, -self.max_vy, self.max_vy)
             w  = clamp(self.kt * dtheta, -self.max_w, self.max_w)
-
-            # Rotate around pickup pivot instead of robot center.
-            # When robot spins at rate w, the pivot point (px, py) sweeps at
-            # velocity (-w*py, w*px). Add the inverse to keep pivot stationary.
-            px, py = self.pivot
-            vx += w * py
-            vy -= w * px
-            vx = clamp(vx, -self.max_vx, self.max_vx)
-            vy = clamp(vy, -self.max_vy, self.max_vy)
 
             # Acceleration limiting
             vx = self._limit_accel(vx, self.last_cmd.linear.x,  self.max_ax)

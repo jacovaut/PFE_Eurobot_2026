@@ -27,20 +27,3 @@ class TfPublisher:
             t.transform.rotation.z = q[2]
             t.transform.rotation.w = q[3]
             self.tf_broadcaster.sendTransform(t)
-
-    def publish_pickup_target_tf(self, dx, dy, yaw_rad):
-        """Publish a TF frame showing where base_link needs to move to."""
-        now_msg = self.get_clock().now().to_msg()
-        t = TransformStamped()
-        t.header.stamp = now_msg
-        t.header.frame_id = "base_link"
-        t.child_frame_id = "pickup_target"
-        t.transform.translation.x = float(dx)
-        t.transform.translation.y = float(dy)
-        t.transform.translation.z = 0.0
-        q = tf_transformations.quaternion_from_euler(0.0, 0.0, yaw_rad)
-        t.transform.rotation.x = q[0]
-        t.transform.rotation.y = q[1]
-        t.transform.rotation.z = q[2]
-        t.transform.rotation.w = q[3]
-        self.tf_broadcaster.sendTransform(t)
