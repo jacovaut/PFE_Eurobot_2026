@@ -1,6 +1,6 @@
 #include <Arduino.h>
 #include <ESP32Encoder.h>
-#include "pins.h"
+#include "pins_pami_ninja.h"
 
 // Encoder objects
 ESP32Encoder encoder1;
@@ -10,6 +10,10 @@ ESP32Encoder encoder4;
 
 // Track motor speeds
 int motorSpeeds[4] = {0, 0, 0, 0};
+
+// Track motor IN1 and IN2 outputs
+int motorIN1[4] = {0, 0, 0, 0};  // PWM value on IN1
+int motorIN2[4] = {0, 0, 0, 0};  // PWM value on IN2
 
 // Encoder reading control
 bool encoderReadingEnabled = false;
@@ -83,16 +87,25 @@ void setMotor(int motor, int speed) {
 
   if (speed > 0) {
     // Forward: PWM on IN1, LOW on IN2
+    Serial.printf("Setting Motor %d forward: IN1=%d, IN2=%d\n", motor, in1, in2);
+    motorIN1[motor - 1] = pwm;
+    motorIN2[motor - 1] = 0;
     digitalWrite(in2, LOW);
     ledcWrite(channel, pwm);
 
   } else if (speed < 0) {
     // Reverse: PWM on IN2, LOW on IN1
+    Serial.printf("Setting Motor %d reverse: IN1=%d, IN2=%d\n", motor, in1, in2);
+    motorIN1[motor - 1] = 0;
+    motorIN2[motor - 1] = pwm;
     digitalWrite(in1, LOW);
     ledcWrite(channel, pwm);
 
   } else {
     // Stop: PWM to 0, both pins LOW
+    Serial.printf("Stopping Motor %d: IN1=%d, IN2=%d\n", motor, in1, in2);
+    motorIN1[motor - 1] = 0;
+    motorIN2[motor - 1] = 0;
     ledcWrite(channel, 0);
     digitalWrite(in1, LOW);
     digitalWrite(in2, LOW);
@@ -115,6 +128,23 @@ void printMotorStatus() {
   Serial.print(motorSpeeds[2]);
   Serial.print(", RR=");
   Serial.println(motorSpeeds[3]);
+  
+  Serial.print("Motor Outputs (IN1/IN2): FL=");
+  Serial.print(motorIN1[0]);
+  Serial.print("/");
+  Serial.print(motorIN2[0]);
+  Serial.print(", FR=");
+  Serial.print(motorIN1[1]);
+  Serial.print("/");
+  Serial.print(motorIN2[1]);
+  Serial.print(", RL=");
+  Serial.print(motorIN1[2]);
+  Serial.print("/");
+  Serial.print(motorIN2[2]);
+  Serial.print(", RR=");
+  Serial.print(motorIN1[3]);
+  Serial.print("/");
+  Serial.println(motorIN2[3]);
 }
 
 void printEncoderStatus() {

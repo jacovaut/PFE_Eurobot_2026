@@ -1,7 +1,7 @@
 #include <Arduino.h>
 #include <ESP32Encoder.h>
 #include <ESP32Servo.h>
-#include "pins.h"
+#include "pins_pami_ninja.h"
 
 // Encoder objects
 ESP32Encoder encoder1;
@@ -15,6 +15,9 @@ Servo servo2;
 
 // Track motor speeds
 int motorSpeeds[4] = {0, 0, 0, 0};
+
+// Valve and pump states
+bool valveState = false;
 
 // Encoder reading control
 bool encoderReadingEnabled = false;
@@ -35,6 +38,10 @@ void setup() {
   // Pump
   pinMode(PUMP_PIN, OUTPUT);
   digitalWrite(PUMP_PIN, LOW);
+
+  // Valve (Solenoid)
+  pinMode(SOLENOID_PIN, OUTPUT);
+  digitalWrite(SOLENOID_PIN, LOW);
 
   // PWM setup
 
@@ -84,17 +91,20 @@ void setMotor(int motor, int speed) {
     // Forward: PWM on IN1, LOW on IN2
     digitalWrite(in2, LOW);
     ledcWrite(channel, pwm);
+    Serial.printf("Motor %d - IN1: %d, IN2: 0\n", motor, pwm);
 
   } else if (speed < 0) {
     // Reverse: PWM on IN2, LOW on IN1
     digitalWrite(in1, LOW);
     ledcWrite(channel, pwm);
+    Serial.printf("Motor %d - IN1: 0, IN2: %d\n", motor, pwm);
 
   } else {
     // Stop: PWM to 0, both pins LOW
     ledcWrite(channel, 0);
     digitalWrite(in1, LOW);
     digitalWrite(in2, LOW);
+    Serial.printf("Motor %d - IN1: 0, IN2: 0\n", motor);
   }
 }
 
@@ -108,6 +118,19 @@ void setServo(int servo, int angle) {
 
 void setPump(bool state) {
   digitalWrite(PUMP_PIN, state ? HIGH : LOW);
+}
+
+void setValve(bool state) {
+  valveState = state;
+  digitalWrite(SOLENOID_PIN, state ? HIGH : LOW);
+}
+
+void resetEncoders() {
+  encoder1.clearCount();
+  encoder2.clearCount();
+  encoder3.clearCount();
+  encoder4.clearCount();
+  Serial.println("All encoders reset");
 }
 
 void setMecanumSpeeds(float vx, float vy, float omega) {
@@ -200,12 +223,10 @@ void loop() {
       // Servo command: s <angle>
       int spaceIndex = command.indexOf(' ');
       if (spaceIndex > 0) {
-        int servo = command.substring(1, spaceIndex).toInt();
         int angle = command.substring(spaceIndex + 1).toInt();
-        setServo(servo, angle);
-        Serial.print("Set servo ");
-        Serial.print(servo);
-        Serial.print(" to angle ");
+        setServo(1, angle);
+        setServo(2, angle);
+        Serial.print("Set servo 1 and 2  to angle ");
         Serial.println(angle);
       }
     } else if (command.startsWith("p ")) {
@@ -223,8 +244,23 @@ void loop() {
           Serial.println("Pump: use 'p on' or 'p off'");
         }
       }
+    } else if (command.startsWith("v ")) {
+      // Valve command: v on or v off
+      int spaceIndex = command.indexOf(' ');
+      if (spaceIndex > 0) {
+        String state = command.substring(spaceIndex + 1);
+        if (state == "on") {
+          setValve(true);
+          Serial.println("Valve ON");
+        } else if (state == "off") {
+          setValve(false);
+          Serial.println("Valve OFF");
+        } else {
+          Serial.println("Valve: use 'v on' or 'v off'");
+        }
+      }
     } else if (command.startsWith("enc ")) {
-      // Encoder control: enc on or enc off
+      // Encoder control: enc on/off or enc r for reset
       int spaceIndex = command.indexOf(' ');
       if (spaceIndex > 0) {
         String state = command.substring(spaceIndex + 1);
@@ -234,8 +270,10 @@ void loop() {
         } else if (state == "off") {
           encoderReadingEnabled = false;
           Serial.println("Encoder reading disabled");
+        } else if (state == "r") {
+          resetEncoders();
         } else {
-          Serial.println("Encoder: use 'enc on' or 'enc off'");
+          Serial.println("Encoder: use 'enc on', 'enc off', or 'enc r' to reset");
         }
       }
     } else if (command == "pick") {
@@ -244,6 +282,7 @@ void loop() {
       setServo(1, ARM_DOWN_ANGLE);
       setServo(2, ARM_DOWN_ANGLE);
       delay(ARM_MOVE_DELAY);  // Wait for servo to reach position
+      setValve(false);
       setPump(true);
       Serial.println("Pump activated");
       delay(500);  // Wait 1 second for pump to compress
@@ -253,19 +292,20 @@ void loop() {
     }
     
     else if (command == "release") {
-      // Release block: lower servo, deactivate pump, wait, then lift
+      // Release block: lower servo, deactivate pump, activate valve, wait, then lift
       Serial.println("Releasing block...");
       setServo(1, ARM_DOWN_ANGLE);
       setServo(2, ARM_DOWN_ANGLE);
       delay(ARM_MOVE_DELAY);  // Wait for servo to reach position
       setPump(false);
-      Serial.println("Pump deactivated");
+      setValve(true);
+      Serial.println("Valve activated");
       delay(500);  // Wait 1 second for block to release
       setServo(1, ARM_UP_ANGLE);
       setServo(2, ARM_UP_ANGLE);
       Serial.println("Block released");
     } else {
-      Serial.println("Unknown command. Use: f/b/l/r/cw/ccw <speed>, stop, s <angle>, p on/off, enc on/off, pick, release");
+      Serial.println("Unknown command. Use: f/b/l/r/cw/ccw <speed>, stop, s <angle>, p on/off, v on/off, enc on/off/r, pick, release");
     }
   }
 
