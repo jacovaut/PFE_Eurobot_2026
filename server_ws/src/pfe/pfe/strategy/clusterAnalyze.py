@@ -83,14 +83,14 @@ class ClusterAnalyzeNode(Node):
             "nid_bleu": self._make_rect_zone("nid_bleu", 2.700, 1.775, 0.600, 0.450),
         }
         self.zones_garde_manger = {
-            "garde_manger_1": self._make_rect_zone("garde_manger_1", 0.700, 0.100, 0.200, 0.200),
-            "garde_manger_2": self._make_rect_zone("garde_manger_2", 1.500, 0.100, 0.200, 0.200),
-            "garde_manger_3": self._make_rect_zone("garde_manger_3", 2.300, 0.100, 0.200, 0.200),
-            "garde_manger_4": self._make_rect_zone("garde_manger_4", 2.200, 0.800, 0.200, 0.200),
-            "garde_manger_5": self._make_rect_zone("garde_manger_5", 1.500, 0.800, 0.200, 0.200),
-            "garde_manger_6": self._make_rect_zone("garde_manger_6", 0.800, 0.800, 0.200, 0.200),
-            "garde_manger_7": self._make_rect_zone("garde_manger_7", 1.750, 1.450, 0.200, 0.200),
-            "garde_manger_8": self._make_rect_zone("garde_manger_8", 1.250, 1.450, 0.200, 0.200),
+            "garde_manger_1": self._make_rect_zone("garde_manger_1", 1.250, 1.450, 0.200, 0.200),
+            "garde_manger_2": self._make_rect_zone("garde_manger_2", 1.750, 1.450, 0.200, 0.200),
+            "garde_manger_3": self._make_rect_zone("garde_manger_3", 0.800, 0.800, 0.200, 0.200),
+            "garde_manger_4": self._make_rect_zone("garde_manger_4", 1.500, 0.800, 0.200, 0.200),
+            "garde_manger_5": self._make_rect_zone("garde_manger_5", 2.200, 0.800, 0.200, 0.200),
+            "garde_manger_6": self._make_rect_zone("garde_manger_6", 0.700, 0.100, 0.200, 0.200),
+            "garde_manger_7": self._make_rect_zone("garde_manger_7", 1.500, 0.100, 0.200, 0.200),
+            "garde_manger_8": self._make_rect_zone("garde_manger_8", 2.300, 0.100, 0.200, 0.200),
         }
 
         # Zones interdites (ex: grenier inaccessible au robot)

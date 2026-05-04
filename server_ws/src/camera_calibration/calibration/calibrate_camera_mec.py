@@ -18,7 +18,7 @@ def compute_reprojection_error(objpoints, imgpoints, rvecs, tvecs, K, dist):
 
 def main():
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    default_images = os.path.join(script_dir, "calibration_images")
+    default_images = os.path.join(script_dir, "calibration_images_blue")
     default_out = os.path.join(script_dir, "..", "camera_calibration", "calibration_mec.yml")
 
     ap = argparse.ArgumentParser()

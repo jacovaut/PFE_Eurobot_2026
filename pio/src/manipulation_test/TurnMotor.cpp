@@ -1,26 +1,26 @@
-#include "ArmMotor.h"
+#include "TurnMotor.h"
 
-ArmMotor* ArmMotor::instance = nullptr;
+TurnMotor* TurnMotor::instance = nullptr;
 
-void ArmMotor::staticHandleInterrupt() {
+void TurnMotor::staticHandleInterrupt() {
     if (instance) instance->onIndexPulse();
 }
 
-void ArmMotor::onIndexPulse() {
+void TurnMotor::onIndexPulse() {
     encoder.setCount(0);
 }
 
-ArmMotor::ArmMotor(float kp, float ki, float kd,
-                   int motor_in1, int motor_in2,
-                   int encoder_a, int encoder_b, int encoder_x,
-                   int pwm_ch_fwd, int pwm_ch_rev)
+TurnMotor::TurnMotor(float kp, float ki, float kd,
+                     int motor_in1, int motor_in2,
+                     int encoder_a, int encoder_b, int encoder_x,
+                     int pwm_ch_fwd, int pwm_ch_rev)
     : kp(kp), ki(ki), kd(kd),
       pin_in1(motor_in1), pin_in2(motor_in2),
       pin_enc_a(encoder_a), pin_enc_b(encoder_b), pin_enc_x(encoder_x),
       pwm_ch_fwd(pwm_ch_fwd), pwm_ch_rev(pwm_ch_rev)
 {}
 
-void ArmMotor::setup() {
+void TurnMotor::setup() {
     ledcSetup(pwm_ch_fwd, 5000, 8);
     ledcSetup(pwm_ch_rev, 5000, 8);
     ledcAttachPin(pin_in1, pwm_ch_fwd);
@@ -32,21 +32,21 @@ void ArmMotor::setup() {
     pinMode(pin_enc_x, INPUT_PULLUP);
     instance = this;
     attachInterrupt(digitalPinToInterrupt(pin_enc_x),
-                    staticHandleInterrupt, RISING);
+                    staticHandleInterrupt, FALLING);
 }
 
-void ArmMotor::setTarget(long ticks) {
-    target_ticks   = ticks;
-    integral       = 0.0f;
-    prev_error     = 0.0f;
-    reached_target = false;   // re-enable PID on new target
+void TurnMotor::setTarget(long ticks) {
+    target_ticks    = ticks;
+    integral        = 0.0f;
+    prev_error      = 0.0f;
+    reached_target  = false;   // re-enable PID on new target
 }
 
-void ArmMotor::returnToZero() {
+void TurnMotor::returnToZero() {
     setTarget(0);
 }
 
-void ArmMotor::applyPWM(int pwm) {
+void TurnMotor::applyPWM(int pwm) {
     pwm = constrain(pwm, -PWM_MAX, PWM_MAX);
 
     if (pwm > 0) {
@@ -64,15 +64,22 @@ void ArmMotor::applyPWM(int pwm) {
     }
 }
 
-void ArmMotor::runPID() {
+void TurnMotor::runPID() {
+    if (reached_target) {
+        applyPWM(0);   // keep braking, not just once
+        return;
+    }
+
     long  counts = encoder.getCount();
     float error  = (float)(target_ticks - counts);
 
     if (abs(error) <= DEADBAND) {
         integral       = 0.0f;
         prev_error     = 0.0f;
-        reached_target = true;
+        reached_target = true;   // flag it so sequence can advance
         applyPWM(0);
+        Serial.print("TurnMotor reached target at tick: ");
+        Serial.println(counts);
         return;
     }
 
@@ -83,15 +90,10 @@ void ArmMotor::runPID() {
     float output     = kp * error + ki * integral + kd * derivative;
 
     prev_error = error;
-
-    if (error > 0) {
-        applyPWM(255);
-    } else {
-        applyPWM((int)output);
-    }
+    applyPWM((int)output);
 }
 
-void ArmMotor::update() {
+void TurnMotor::update() {
     if (return_zero_pending && (millis() - return_zero_timer >= 1000)) {
         return_zero_pending = false;
         setTarget(0);

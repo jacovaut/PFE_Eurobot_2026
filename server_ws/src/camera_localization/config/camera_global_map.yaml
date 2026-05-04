@@ -10,9 +10,9 @@ global_localization_node:
     height: 2160
     fps: 15
     fourcc: "MJPG"
-    camera_gain: 210
-    camera_gamma: 230
-    camera_backlight_compensation: 50
+    camera_gain: 255
+    camera_gamma: 64
+    camera_backlight_compensation: 27
     camera_autofocus: 0
     camera_focus_absolute: 0
     camera_exposure_time_absolute: 200
@@ -86,11 +86,23 @@ global_localization_node:
 
     # Snapshot-based pose stabilization
     pose_update_interval_s: 5.0
+    block_rescue_period_s: 0.5
+    bev_block_rescue_period_s: 1.0
 
-    # Marker -> base_link transform (in marker frame)
-    marker_to_base_x: 0.0
-    marker_to_base_y: 0.0
-    marker_to_base_z: 0.0
+    # EMA tracking for /detected_blocks JSON before obstacle/strategy conversion.
+    enable_entity_tracking: true
+    entity_tracking_match_gate_m: 0.12
+    entity_tracking_ema_alpha: 0.5
+    entity_tracking_yaw_alpha: 0.5
+    entity_tracking_max_missed_frames: 5
+
+    # base_link -> robot ArUco transform, measured on the robot.
+    # X is forward from base_link, Y is left, Z is up, yaw is radians.
+    # Example: if the marker center is 12 cm forward and 4 cm left of base_link, use x=0.12, y=0.04.
+    base_link_to_aruco_x: 0.0
+    base_link_to_aruco_y: 0.0
+    base_link_to_aruco_z: 0.0
+    base_link_to_aruco_yaw: 0.0
 
 external_perception_node:
   ros__parameters:
@@ -101,8 +113,6 @@ external_perception_node:
     fps: 15
     fourcc: "MJPG"
     debug_view: true
-    marker_to_base_yaw: 0.0
-
     # Measurement covariance
     position_variance_x: 0.01
     position_variance_y: 0.01
@@ -131,12 +141,13 @@ external_perception_node:
     nids_taille_y_m: [0.450, 0.450]
 
     # Garde-manger (zones communes), dimensions: 200 x 200 mm
+    # Numbering follows table columns left-to-right, each column bottom-to-top.
     garde_manger_noms: [
       "garde_manger_1", "garde_manger_2", "garde_manger_3", "garde_manger_4",
       "garde_manger_5", "garde_manger_6", "garde_manger_7", "garde_manger_8"
     ]
-    garde_manger_centre_x_m: [0.700, 1.500, 2.300, 2.200, 1.500, 0.800, 1.750, 1.250]
-    garde_manger_centre_y_m: [0.100, 0.100, 0.100, 0.800, 0.800, 0.800, 1.450, 1.450]
+    garde_manger_centre_x_m: [1.250, 1.750, 0.800, 1.500, 2.200, 0.700, 1.500, 2.300]
+    garde_manger_centre_y_m: [1.450, 1.450, 0.800, 0.800, 0.800, 0.100, 0.100, 0.100]
     garde_manger_taille_x_m: [0.200, 0.200, 0.200, 0.200, 0.200, 0.200, 0.200, 0.200]
     garde_manger_taille_y_m: [0.200, 0.200, 0.200, 0.200, 0.200, 0.200, 0.200, 0.200]
 
@@ -149,6 +160,9 @@ external_perception_node:
 
 camera_map_visualizer_node:
   ros__parameters:
+    detected_obstacle_point_spacing_m: 0.04
+    detected_obstacle_padding_m: 0.06
+
     nids_noms: ["nid_jaune", "nid_bleu"]
     nids_centre_x_m: [0.300, 2.700]
     nids_centre_y_m: [1.775, 1.775]
@@ -159,8 +173,8 @@ camera_map_visualizer_node:
       "garde_manger_1", "garde_manger_2", "garde_manger_3", "garde_manger_4",
       "garde_manger_5", "garde_manger_6", "garde_manger_7", "garde_manger_8"
     ]
-    garde_manger_centre_x_m: [0.700, 1.500, 2.300, 2.200, 1.500, 0.800, 1.750, 1.250]
-    garde_manger_centre_y_m: [0.100, 0.100, 0.100, 0.800, 0.800, 0.800, 1.450, 1.450]
+    garde_manger_centre_x_m: [1.250, 1.750, 0.800, 1.500, 2.200, 0.700, 1.500, 2.300]
+    garde_manger_centre_y_m: [1.450, 1.450, 0.800, 0.800, 0.800, 0.100, 0.100, 0.100]
     garde_manger_taille_x_m: [0.200, 0.200, 0.200, 0.200, 0.200, 0.200, 0.200, 0.200]
     garde_manger_taille_y_m: [0.200, 0.200, 0.200, 0.200, 0.200, 0.200, 0.200, 0.200]
 
