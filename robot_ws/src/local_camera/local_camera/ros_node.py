@@ -49,7 +49,6 @@ class MergedLocalPickupNode(Node):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.bind(("0.0.0.0", self.udp_port))
         self.sock.setblocking(False)
-        self.timer = self.create_timer(loop_period, self.loop)
         self.get_logger().info("[SOLVER READY]")
 
     def reset_lock(self):
