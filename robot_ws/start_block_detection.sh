@@ -36,6 +36,7 @@ sleep 1
 
 echo "[INFO] Starting MJPEG broadcast proxy (8887 -> raw:8888, HTTP:8080)..."
 # python3 "$(dirname "$0")/mjpeg_broadcast.py"
-python3 "$(dirname "$0")/block_publisher.py"
+# python3 "$(dirname "$0")/block_publisher.py"
+python3 "$(dirname "$0")/calibrate_onboard_cam.py"
 
 kill $CAMERA_PID 2>/dev/null || true

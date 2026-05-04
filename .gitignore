@@ -49,3 +49,5 @@ uros_ws/*
 
 /server_ws/src/camera_calibration/calibration/calibration_images/*.png
 /server_ws/src/camera_calibration/calibration/calibration_images_blue/*.png
+
+/robot_ws/calib_captures/*.png

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import cv2
 import numpy as np
+import os
 import socket
 import json
 import time
@@ -17,19 +18,16 @@ UDP_PORT = 5005
 # =========================
 MARKER_LENGTH = 0.03  # 30 mm
 
-camera_matrix = np.array([
-    [457.33917579, 0.0, 637.592287],
-    [0.0, 453.81772548, 374.90978642],
-    [0.0, 0.0, 1.0]
-], dtype=np.float64)
+_CALIB_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                           "calibration_files", "onboard_charuco_calibration.yml")
 
-dist_coeffs = np.array([
-    -0.0241479,
-    -0.01872201,
-    0.00181977,
-    -0.00044101,
-    0.04127062
-], dtype=np.float64)
+_fs = cv2.FileStorage(_CALIB_FILE, cv2.FILE_STORAGE_READ)
+if not _fs.isOpened():
+    raise RuntimeError(f"[ERROR] Cannot open calibration file: {_CALIB_FILE}")
+camera_matrix = _fs.getNode("camera_matrix").mat()
+dist_coeffs   = _fs.getNode("distortion_coefficients").mat()
+_fs.release()
+print(f"[INFO] Loaded calibration from {_CALIB_FILE}")
 
 m = MARKER_LENGTH / 2.0
 obj_points = np.array([
