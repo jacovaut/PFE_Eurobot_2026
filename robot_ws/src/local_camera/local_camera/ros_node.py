@@ -23,10 +23,12 @@ class MergedLocalPickupNode(Node):
         self.declare_parameter("team_color", "blue")
         self.declare_parameter("block_timeout_sec", 1.0)
         self.declare_parameter("match_distance_m", 0.035)
+        self.declare_parameter("camera_seen_timeout", 0.3)  # stop publishing if no detections for this long
         self.udp_port = int(self.get_parameter("udp_port").value)
         self.team_color = str(self.get_parameter("team_color").value)
         self.block_timeout_sec = float(self.get_parameter("block_timeout_sec").value)
         self.match_distance_m = float(self.get_parameter("match_distance_m").value)
+        self.camera_seen_timeout = float(self.get_parameter("camera_seen_timeout").value)
         self.id_to_color = {36: "blue", 47: "yellow"}
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self)
@@ -38,6 +40,7 @@ class MergedLocalPickupNode(Node):
         self.reset_lock()
         self.locked_targets = {}
         self.current_cups = {}
+        self.last_detection_time = 0.0  # wall time when camera last saw any block
         self.pickup_pose_pub = self.create_publisher(Pose2D, "/pickup_pose", 10)
         self.best_pickup_pub = self.create_publisher(String, "/best_pickup", 10)
         self.manip_info_pub = self.create_publisher(String, "/manip_info", 10)
@@ -154,6 +157,17 @@ class MergedLocalPickupNode(Node):
             except Exception:
                 pass
         now = self.get_clock().now().nanoseconds * 1e-9
+
+        # Update last time camera actually saw a block
+        if detections:
+            self.last_detection_time = now
+
+        # If camera hasn't seen any block recently, stop publishing entirely
+        camera_age = now - self.last_detection_time
+        if camera_age > self.camera_seen_timeout:
+            self.tf_publisher.publish_block_transforms(self.block_targets)
+            return
+
         locked_names = set()
         if self.solution_locked and self.locked_best:
             for a in self.locked_best.assignments:
