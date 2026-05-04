@@ -30,7 +30,7 @@ def compute_best_pickup(cups, blocks, team_color="blue"):
     W_COLOR = 100.0
     W_BLOCK_PARALLEL = 25.0
     cup_items = list(cups.items())
-    block_items = list(blocks.items())
+    block_items = [(n, b) for n, b in blocks.items() if b.color in ("blue", "yellow")]
     best = None
     for n in range(1, min(len(cup_items), len(block_items)) + 1):
         for cup_subset in combinations(cup_items, n):
