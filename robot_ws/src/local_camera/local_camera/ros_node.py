@@ -10,11 +10,11 @@ from geometry_msgs.msg import Pose2D, TransformStamped
 from std_msgs.msg import String
 from tf2_ros import Buffer, TransformBroadcaster, TransformListener
 
-from modules.data_structures import XY, Block, PickupCandidate
-from modules.math_utils import rotate_xy, angle_between, wrap_angle, rectangular_yaw_diff_deg
-from modules.solver import compute_best_pickup, recompute_locked_pose
-from modules.block_tracker import BlockTracker
-from modules.tf_utils import TfPublisher
+from .modules.data_structures import XY, Block, PickupCandidate
+from .modules.math_utils import rotate_xy, angle_between, wrap_angle, rectangular_yaw_diff_deg
+from .modules.solver import compute_best_pickup, recompute_locked_pose
+from .modules.block_tracker import BlockTracker
+from .modules.tf_utils import TfPublisher
 
 class MergedLocalPickupNode(Node):
     def __init__(self):

@@ -40,7 +40,7 @@ def generate_launch_description():
         ),
         Node(
             package='local_camera',
-            executable='ros_node.py',
+            executable='ros_node',
             name='merged_local_pickup_node',
             output='screen',
             parameters=[{
