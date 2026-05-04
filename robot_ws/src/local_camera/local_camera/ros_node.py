@@ -207,6 +207,8 @@ class MergedLocalPickupNode(Node):
         pose.y = best.dy
         pose.theta = best.yaw
         self.pickup_pose_pub.publish(pose)
+        # Debug TF: visualize robot's goal pose in RViz
+        self.tf_publisher.publish_pickup_target_tf(best.dx, best.dy, best.yaw)
         # Publish cup centroid as pivot point for rotation-around-pickup in dock controller
         assigned_cups = [a["cup"] for a in best.assignments if a["cup"] in self.current_cups]
         if assigned_cups:
