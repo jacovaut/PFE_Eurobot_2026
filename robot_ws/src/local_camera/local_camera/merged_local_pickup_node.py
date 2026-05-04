@@ -497,12 +497,6 @@ class MergedLocalPickupNode(
         self.locked_targets = {}
         self.candidate_signature = None
         self.candidate_count = 0
-        self.block_targets = {
-            "cup_0": None,
-            "cup_1": None,
-            "cup_2": None,
-            "cup_3": None,
-        }
 
     # =========================
     # STATUS CALLBACK
@@ -1041,21 +1035,6 @@ class MergedLocalPickupNode(
         self,
         best
     ):
-        for key in self.block_targets:
-            self.block_targets[key] = None
-
-        for a in best.assignments:
-            cup_name = a["cup"]
-            block_name = a["block"]
-            if block_name in self.locked_targets:
-                self.block_targets[
-                    cup_name
-                ] = self.locked_targets[block_name]
-            elif block_name in self.tracked_blocks:
-                self.block_targets[
-                    cup_name
-                ] = self.tracked_blocks[block_name]
-
         pose = Pose2D()
 
         pose.x = best.dx
