@@ -54,7 +54,7 @@ class PickupCandidate:
 def rotate_xy(p, yaw):
     c = math.cos(yaw)
     s = math.sin(yaw)
-    return XY(c*p.x - s*p.y, s*p.x + c*p.y)
+    return XY(c * p.x - s * p.y, s * p.x + c * p.y)
 
 
 def angle_between(a, b):
@@ -63,9 +63,9 @@ def angle_between(a, b):
 
 def wrap_angle(a):
     while a > math.pi:
-        a -= 2*math.pi
+        a -= 2 * math.pi
     while a < -math.pi:
-        a += 2*math.pi
+        a += 2 * math.pi
     return a
 
 
@@ -98,7 +98,7 @@ def compute_best_pickup(cups, blocks, team_color="blue"):
         for cup_subset in combinations(cup_items, n):
             for block_subset in combinations(block_items, n):
 
-                # --- YAW CONSISTENCY ---
+                # ===== block yaw consistency =====
                 if n > 1:
                     ref = block_subset[0][1].yaw_deg
                     yaw_spread = 0.0
@@ -134,7 +134,7 @@ def compute_best_pickup(cups, blocks, team_color="blue"):
 
                     dx = dy = 0.0
 
-                    for (cn, cxy), (bn, b) in zip(cup_subset, perm):
+                    for (_, cxy), (_, b) in zip(cup_subset, perm):
                         rc = rotate_xy(cxy, yaw)
                         dx += b.x - rc.x
                         dy += b.y - rc.y
@@ -147,7 +147,7 @@ def compute_best_pickup(cups, blocks, team_color="blue"):
                     valid = True
                     assigns = []
 
-                    for (cn, cxy), (bn, b) in zip(cup_subset, perm):
+                    for (cn, cxy), (_, b) in zip(cup_subset, perm):
                         rc = rotate_xy(cxy, yaw)
 
                         px = rc.x + dx
@@ -200,6 +200,87 @@ def compute_best_pickup(cups, blocks, team_color="blue"):
 
 
 # =========================
+# RECOMPUTE LOCKED POSE
+# =========================
+def recompute_locked_pose(cups, blocks, locked_assignments):
+
+    n = len(locked_assignments)
+
+    if n == 0:
+        return None
+
+    cup_subset = []
+    block_subset = []
+
+    for a in locked_assignments:
+        cup_name = a["cup"]
+        block_name = a["block"]
+
+        if cup_name not in cups:
+            return None
+
+        if block_name not in blocks:
+            return None
+
+        cup_subset.append((cup_name, cups[cup_name]))
+        block_subset.append((block_name, blocks[block_name]))
+
+    if n == 1:
+        yaw = 0.0
+    else:
+        (_, c1), (_, c2) = cup_subset[0], cup_subset[-1]
+        (_, b1), (_, b2) = block_subset[0], block_subset[-1]
+
+        yaw = wrap_angle(
+            angle_between(b1, b2) - angle_between(c1, c2)
+        )
+
+    dx = dy = 0.0
+    total_err = 0.0
+    new_assignments = []
+
+    for (_, cxy), (_, b) in zip(cup_subset, block_subset):
+        rc = rotate_xy(cxy, yaw)
+
+        dx += b.x - rc.x
+        dy += b.y - rc.y
+
+    dx /= n
+    dy /= n
+
+    for (cn, cxy), (_, b) in zip(cup_subset, block_subset):
+        rc = rotate_xy(cxy, yaw)
+
+        px = rc.x + dx
+        py = rc.y + dy
+
+        err = math.hypot(px - b.x, py - b.y)
+        total_err += err
+
+        new_assignments.append({
+            "cup": cn,
+            "block": b.name,
+            "color": b.color,
+            "err_m": err,
+            "err_mm": err * 1000,
+            "raw_id": b.raw_id,
+            "block_yaw_deg": b.yaw_deg
+        })
+
+    avg_err = total_err / n
+
+    return PickupCandidate(
+        score=0.0,
+        picked_count=n,
+        avg_error=avg_err,
+        yaw=yaw,
+        dx=dx,
+        dy=dy,
+        assignments=new_assignments
+    )
+
+
+# =========================
 # NODE
 # =========================
 class MergedLocalPickupNode(Node):
@@ -217,33 +298,23 @@ class MergedLocalPickupNode(Node):
         self.block_timeout_sec = float(self.get_parameter('block_timeout_sec').value)
         self.match_distance_m = float(self.get_parameter('match_distance_m').value)
 
-        # ID → color
-        self.id_to_color = {36: "blue", 47: "yellow"}
+        self.id_to_color = {
+            36: "blue",
+            47: "yellow"
+        }
 
-        # TF
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self)
 
         self.cup_frames = ["cup_0", "cup_1", "cup_2", "cup_3"]
 
-        # tracking
         self.tracked_blocks = {}
-        self.next_index_by_color = {"blue": 0, "yellow": 0, "unknown": 0}
+        self.next_index_by_color = {
+            "blue": 0,
+            "yellow": 0,
+            "unknown": 0
+        }
 
-        # publishers
-        self.pickup_pose_pub = self.create_publisher(Pose2D, "/pickup_pose", 10)
-        self.best_pickup_pub = self.create_publisher(String, "/best_pickup", 10)
-        self.manip_info_pub = self.create_publisher(String, "/manip_info", 10)
-
-        # subscriber for unlock
-        self.pickup_status_sub = self.create_subscription(
-            String,
-            "/pickup_status",
-            self.pickup_status_callback,
-            10
-        )
-
-        # confidence lock
         self.lock_required_frames = 5
         self.candidate_signature = None
         self.candidate_count = 0
@@ -251,7 +322,34 @@ class MergedLocalPickupNode(Node):
         self.locked_best = None
         self.solution_locked = False
 
-        # UDP
+        self.locked_targets = {}
+        self.current_cups = {}
+
+        self.pickup_pose_pub = self.create_publisher(
+            Pose2D,
+            "/pickup_pose",
+            10
+        )
+
+        self.best_pickup_pub = self.create_publisher(
+            String,
+            "/best_pickup",
+            10
+        )
+
+        self.manip_info_pub = self.create_publisher(
+            String,
+            "/manip_info",
+            10
+        )
+
+        self.pickup_status_sub = self.create_subscription(
+            String,
+            "/pickup_status",
+            self.pickup_status_callback,
+            10
+        )
+
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.bind(("0.0.0.0", self.udp_port))
         self.sock.setblocking(False)
@@ -261,7 +359,7 @@ class MergedLocalPickupNode(Node):
         self.get_logger().info("[SOLVER READY]")
 
     # =========================
-    # LOCK CALLBACK
+    # STATUS CALLBACK
     # =========================
     def pickup_status_callback(self, msg):
         status = msg.data.lower().strip()
@@ -272,103 +370,52 @@ class MergedLocalPickupNode(Node):
             self.solution_locked = False
             self.locked_signature = None
             self.locked_best = None
+            self.locked_targets = {}
+
             self.candidate_signature = None
             self.candidate_count = 0
 
     # =========================
-    # LOCK LOGIC
+    # SIGNATURE
     # =========================
     def get_signature(self, best):
         return "|".join(
             sorted([f"{a['cup']}->{a['block']}" for a in best.assignments])
         )
 
-
-    def recompute_locked_pose(self, cups, blocks, locked_assignments):
-
-        n = len(locked_assignments)
-
-        if n == 0:
-            return None
-
-        cup_subset = []
-        block_subset = []
-
-        for a in locked_assignments:
-            cup_name = a["cup"]
-            block_name = a["block"]
-
-            if cup_name not in cups:
-                return None
-
-            if block_name not in blocks:
-                return None
-
-            cup_subset.append((cup_name, cups[cup_name]))
-            block_subset.append((block_name, blocks[block_name]))
-
-        if n == 1:
-            yaw = 0.0
-        else:
-            (_, c1), (_, c2) = cup_subset[0], cup_subset[-1]
-            (_, b1), (_, b2) = block_subset[0], block_subset[-1]
-
-            yaw = wrap_angle(
-                angle_between(b1, b2) - angle_between(c1, c2)
-            )
-
-        dx = dy = 0.0
-        total_err = 0.0
-        new_assignments = []
-
-        for (cn, cxy), (bn, b) in zip(cup_subset, block_subset):
-
-            rc = rotate_xy(cxy, yaw)
-
-            dx += b.x - rc.x
-            dy += b.y - rc.y
-
-        dx /= n
-        dy /= n
-
-        for (cn, cxy), (bn, b) in zip(cup_subset, block_subset):
-
-            rc = rotate_xy(cxy, yaw)
-
-            px = rc.x + dx
-            py = rc.y + dy
-
-            err = math.hypot(px - b.x, py - b.y)
-            total_err += err
-
-            new_assignments.append({
-                "cup": cn,
-                "block": b.name,
-                "color": b.color,
-                "err_m": err,
-                "err_mm": err * 1000,
-                "raw_id": b.raw_id,
-                "block_yaw_deg": b.yaw_deg
-            })
-
-        avg_err = total_err / n
-
-        return PickupCandidate(
-            score=0.0,
-            picked_count=n,
-            avg_error=avg_err,
-            yaw=yaw,
-            dx=dx,
-            dy=dy,
-            assignments=new_assignments
-        )
-
+    # =========================
+    # LOCK LOGIC
+    # =========================
     def update_lock(self, best):
 
         if self.solution_locked:
-            updated = self.recompute_locked_pose(
+
+            frozen_blocks = {}
+
+            for a in self.locked_best.assignments:
+                block_name = a["block"]
+
+                # refresh if visible
+                if block_name in self.tracked_blocks:
+                    b = self.tracked_blocks[block_name]
+
+                    self.locked_targets[block_name] = Block(
+                        name=b.name,
+                        x=b.x,
+                        y=b.y,
+                        color=b.color,
+                        yaw_deg=b.yaw_deg,
+                        last_seen=b.last_seen,
+                        raw_id=b.raw_id
+                    )
+
+                # fallback frozen
+                if block_name in self.locked_targets:
+                    frozen_blocks[block_name] = self.locked_targets[block_name]
+
+            updated = recompute_locked_pose(
                 self.current_cups,
-                self.tracked_blocks,
+                frozen_blocks,
                 self.locked_best.assignments
             )
 
@@ -378,7 +425,7 @@ class MergedLocalPickupNode(Node):
                 self.locked_best.yaw = updated.yaw
                 self.locked_best.avg_error = updated.avg_error
                 self.locked_best.assignments = updated.assignments
-        
+
             return self.locked_best
 
         if best is None:
@@ -399,10 +446,32 @@ class MergedLocalPickupNode(Node):
             self.locked_signature = sig
             self.locked_best = best
 
+            # freeze targets
+            self.locked_targets = {}
+
+            for a in best.assignments:
+                block_name = a["block"]
+
+                if block_name in self.tracked_blocks:
+                    b = self.tracked_blocks[block_name]
+
+                    self.locked_targets[block_name] = Block(
+                        name=b.name,
+                        x=b.x,
+                        y=b.y,
+                        color=b.color,
+                        yaw_deg=b.yaw_deg,
+                        last_seen=b.last_seen,
+                        raw_id=b.raw_id
+                    )
+
             self.get_logger().info(f"[LOCKED] {sig}")
             return best
 
-        self.get_logger().info(f"[CANDIDATE] {sig} ({self.candidate_count}/5)")
+        self.get_logger().info(
+            f"[CANDIDATE] {sig} ({self.candidate_count}/{self.lock_required_frames})"
+        )
+
         return None
 
     # =========================
@@ -416,7 +485,6 @@ class MergedLocalPickupNode(Node):
     def update_tracking(self, detections):
 
         now = self.get_clock().now().nanoseconds * 1e-9
-
         updated = set()
 
         for d in detections:
@@ -467,31 +535,33 @@ class MergedLocalPickupNode(Node):
             del self.tracked_blocks[name]
 
         return self.tracked_blocks
-    
-   
+
     # =========================
-    # LOOP
+    # MAIN LOOP
     # =========================
     def loop(self):
 
-        # cups
         cups = {}
+
         for name in self.cup_frames:
             try:
                 tf = self.tf_buffer.lookup_transform(
-                    "base_link", name,
+                    "base_link",
+                    name,
                     rclpy.time.Time(),
                     timeout=rclpy.duration.Duration(seconds=0.005)
                 )
+
                 t = tf.transform.translation
                 cups[name] = XY(t.x, t.y)
+
             except:
                 return
-            
+
         self.current_cups = cups
 
-        # UDP
         latest = None
+
         while True:
             try:
                 data, _ = self.sock.recvfrom(4096)
@@ -500,13 +570,14 @@ class MergedLocalPickupNode(Node):
                 break
 
         raw = []
+
         if latest:
             raw = json.loads(latest.decode())
 
-        # TF cam
         try:
             tf = self.tf_buffer.lookup_transform(
-                "base_link", "arducam_optical_frame",
+                "base_link",
+                "arducam_optical_frame",
                 rclpy.time.Time(),
                 timeout=rclpy.duration.Duration(seconds=0.005)
             )
@@ -515,7 +586,11 @@ class MergedLocalPickupNode(Node):
 
         t = tf.transform.translation
         q = tf.transform.rotation
-        T = tf_transformations.quaternion_matrix([q.x, q.y, q.z, q.w])
+
+        T = tf_transformations.quaternion_matrix(
+            [q.x, q.y, q.z, q.w]
+        )
+
         T[0:3, 3] = [t.x, t.y, t.z]
 
         detections = []
@@ -553,7 +628,11 @@ class MergedLocalPickupNode(Node):
         if not blocks:
             return
 
-        best = compute_best_pickup(cups, blocks, self.team_color)
+        best = compute_best_pickup(
+            cups,
+            blocks,
+            self.team_color
+        )
 
         locked = self.update_lock(best)
 
@@ -562,7 +641,6 @@ class MergedLocalPickupNode(Node):
 
         self.publish_best_pickup(locked)
 
-    # (moved above)
     # =========================
     # PUBLISH
     # =========================
@@ -572,6 +650,7 @@ class MergedLocalPickupNode(Node):
         pose.x = best.dx
         pose.y = best.dy
         pose.theta = best.yaw
+
         self.pickup_pose_pub.publish(pose)
 
         msg = String()
@@ -581,9 +660,15 @@ class MergedLocalPickupNode(Node):
             "yaw_deg": math.degrees(best.yaw),
             "assignments": best.assignments
         })
+
         self.best_pickup_pub.publish(msg)
 
-        pump = {"cup_0": "", "cup_1": "", "cup_2": "", "cup_3": ""}
+        pump = {
+            "cup_0": "",
+            "cup_1": "",
+            "cup_2": "",
+            "cup_3": ""
+        }
 
         for a in best.assignments:
             if a["color"] == "blue":
@@ -591,11 +676,15 @@ class MergedLocalPickupNode(Node):
             elif a["color"] == "yellow":
                 pump[a["cup"]] = "Y"
 
-        s = f"P1={pump['cup_0']} ,P2={pump['cup_1']} ,P3={pump['cup_2']} ,P4={pump['cup_3']}"
+        manip = String()
+        manip.data = (
+            f"P1={pump['cup_0']} ,"
+            f"P2={pump['cup_1']} ,"
+            f"P3={pump['cup_2']} ,"
+            f"P4={pump['cup_3']}"
+        )
 
-        m = String()
-        m.data = s
-        self.manip_info_pub.publish(m)
+        self.manip_info_pub.publish(manip)
 
 
 # =========================
