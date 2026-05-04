@@ -29,7 +29,12 @@ class BlockTracker:
                 t = self.tracked_blocks[best_name]
                 t.x = d.x
                 t.y = d.y
-                t.yaw_deg = d.yaw_deg
+                # EMA smoothing on yaw to reduce PnP noise (handles angle wraparound)
+                diff_rad = math.atan2(
+                    math.sin(math.radians(d.yaw_deg - t.yaw_deg)),
+                    math.cos(math.radians(d.yaw_deg - t.yaw_deg))
+                )
+                t.yaw_deg += 0.35 * math.degrees(diff_rad)
                 t.raw_id = d.raw_id
                 t.last_seen = now
                 updated.add(best_name)

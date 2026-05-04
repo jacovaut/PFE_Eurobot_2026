@@ -144,12 +144,17 @@ class MergedLocalPickupNode(Node):
                 yaw_cam = float(b.get("yaw_deg", 0.0))
                 p = np.array([float(b["x_cam"]), float(b["y_cam"]), float(b["z_cam"]), 1.0])
                 pb = T @ p
+                # Transform marker yaw from camera frame to base_link frame
+                yaw_rad_cam = math.radians(yaw_cam)
+                heading_cam = np.array([math.cos(yaw_rad_cam), math.sin(yaw_rad_cam), 0.0])
+                heading_base = T[0:3, 0:3] @ heading_cam
+                yaw_base_deg = math.degrees(math.atan2(heading_base[1], heading_base[0]))
                 detections.append(Block(
                     name="d",
                     x=pb[0],
                     y=pb[1],
                     color=color,
-                    yaw_deg=yaw_cam,
+                    yaw_deg=yaw_base_deg,
                     last_seen=0.0,
                     raw_id=raw_id
                 ))
