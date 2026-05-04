@@ -491,6 +491,12 @@ class MergedLocalPickupNode(
         self.locked_targets = {}
         self.candidate_signature = None
         self.candidate_count = 0
+        self.block_targets = {
+            "cup_0": None,
+            "cup_1": None,
+            "cup_2": None,
+            "cup_3": None,
+        }
 
     # =========================
     # STATUS CALLBACK
@@ -660,58 +666,18 @@ class MergedLocalPickupNode(
             self.get_clock().now().to_msg()
         )
 
-        now_sec = (
-            self.get_clock().now().nanoseconds
-            * 1e-9
-        )
-
-        for name, b in self.tracked_blocks.items():
-
-            age = now_sec - b.last_seen
-
-            if (
-                age
-                > self.block_timeout_sec
-            ):
+        for cup_name, b in self.block_targets.items():
+            if b is None:
                 continue
 
+            slot_idx = cup_name.split("_")[1]
+            frame_name = f"block_target_{slot_idx}"
+
             t = TransformStamped()
 
             t.header.stamp = now_msg
             t.header.frame_id = "base_link"
-            t.child_frame_id = name
-
-            t.transform.translation.x = float(
-                b.x
-            )
-            t.transform.translation.y = float(
-                b.y
-            )
-            t.transform.translation.z = 0.0
-
-            q = tf_transformations.quaternion_from_euler(
-                0.0,
-                0.0,
-                math.radians(
-                    b.yaw_deg
-                )
-            )
-
-            t.transform.rotation.x = q[0]
-            t.transform.rotation.y = q[1]
-            t.transform.rotation.z = q[2]
-            t.transform.rotation.w = q[3]
-
-            self.tf_broadcaster.sendTransform(
-                t
-            )
-
-        for name, b in self.locked_targets.items():
-            t = TransformStamped()
-
-            t.header.stamp = now_msg
-            t.header.frame_id = "base_link"
-            t.child_frame_id = f"locked_{name}"
+            t.child_frame_id = frame_name
 
             t.transform.translation.x = float(
                 b.x
@@ -1009,6 +975,21 @@ class MergedLocalPickupNode(
         self,
         best
     ):
+        for key in self.block_targets:
+            self.block_targets[key] = None
+
+        for a in best.assignments:
+            cup_name = a["cup"]
+            block_name = a["block"]
+            if block_name in self.locked_targets:
+                self.block_targets[
+                    cup_name
+                ] = self.locked_targets[block_name]
+            elif block_name in self.tracked_blocks:
+                self.block_targets[
+                    cup_name
+                ] = self.tracked_blocks[block_name]
+
         pose = Pose2D()
 
         pose.x = best.dx
