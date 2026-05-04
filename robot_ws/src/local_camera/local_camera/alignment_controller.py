@@ -47,6 +47,23 @@ class AlignmentController(Node):
 
         self.get_logger().info("[ALIGNMENT CONTROLLER READY]")
 
+    # =========================
+    # GOAL CALLBACK
+    # =========================
+    def goal_callback(self, msg: Pose2D):
+        if not self.active:
+            self.get_logger().info(
+                f"[NEW GOAL] dx={msg.x:.3f}, dy={msg.y:.3f}, yaw={math.degrees(msg.theta):.1f} deg"
+            )
+            self.active = True
+            self.stable_start = None
+
+        # Always update goal with latest pose estimate (dynamic docking behavior)
+        self.goal = msg
+
+    # =========================
+    # LOOP
+    # =========================
     def loop(self):
         timeout = rclpy.duration.Duration(seconds=0.005)
         try:
@@ -60,26 +77,49 @@ class AlignmentController(Node):
             self._publish_stop()
             return
 
-        dx = tf_block.transform.translation.x - tf_cup.transform.translation.x
-        dy = tf_block.transform.translation.y - tf_cup.transform.translation.y
+        dx = self.goal.x
+        dy = self.goal.y
+        dtheta = self.goal.theta
 
-        if (dx * dx + dy * dy) ** 0.5 < self.tol_xy:
-            self._publish_stop()
-            return
+        # ===== CHECK TOLERANCE =====
+        in_pos = abs(dx) < self.tol_xy and abs(dy) < self.tol_xy
+        in_ang = abs(dtheta) < self.tol_theta
 
-        # Proportional control
-        vx = clamp(self.kx * dx, -self.max_vx, self.max_vx)
-        vy = clamp(self.ky * dy, -self.max_vy, self.max_vy)
+        if in_pos and in_ang:
+            if self.stable_start is None:
+                self.stable_start = time.time()
 
-        # Acceleration limiting (smoothing)
-        max_dvx = self.max_ax * self.dt
-        max_dvy = self.max_ay * self.dt
-        vx = self.last_vx + clamp(vx - self.last_vx, -max_dvx, max_dvx)
-        vy = self.last_vy + clamp(vy - self.last_vy, -max_dvy, max_dvy)
+            if time.time() - self.stable_start > self.stable_time_required:
+                self.get_logger().info("[ALIGNMENT COMPLETE]")
 
-        self.last_vx = vx
-        self.last_vy = vy
+                self.publish_stop()
 
+                msg = String()
+                msg.data = "aligned"
+                self.status_pub.publish(msg)
+
+                self.active = False
+                self.goal = None
+                return
+        else:
+            self.stable_start = None
+
+        # ===== CONTROL LAW =====
+        vx = self.kx * dx
+        vy = self.ky * dy
+        w = self.kt * dtheta
+
+        # ===== LIMIT VELOCITY =====
+        vx = clamp(vx, -self.max_vx, self.max_vx)
+        vy = clamp(vy, -self.max_vy, self.max_vy)
+        w = clamp(w, -self.max_w, self.max_w)
+
+        # ===== LIMIT ACCELERATION =====
+        vx = self.limit_accel(vx, self.last_cmd.linear.x, self.max_ax)
+        vy = self.limit_accel(vy, self.last_cmd.linear.y, self.max_ay)
+        w = self.limit_accel(w, self.last_cmd.angular.z, self.max_aw)
+
+        # ===== PUBLISH =====
         cmd = Twist()
         cmd.linear.x = vx
         cmd.linear.y = vy

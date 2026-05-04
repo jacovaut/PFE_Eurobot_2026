@@ -154,7 +154,11 @@ class MergedLocalPickupNode(Node):
             except Exception:
                 pass
         now = self.get_clock().now().nanoseconds * 1e-9
-        blocks = self.block_tracker.update_tracking(detections, now)
+        locked_names = set()
+        if self.solution_locked and self.locked_best:
+            for a in self.locked_best.assignments:
+                locked_names.add(a["block"])
+        blocks = self.block_tracker.update_tracking(detections, now, locked_names=locked_names)
         self.tf_publisher.publish_block_transforms(self.block_targets)
         if not blocks:
             return
