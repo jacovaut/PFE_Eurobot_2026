@@ -56,15 +56,15 @@ class DockActionServer(Node):
 
         # ----- Parameters -----
         self.declare_parameter("k_x",          2.5)
-        self.declare_parameter("k_y",          2.5)
+        self.declare_parameter("k_y",          4.0)
         self.declare_parameter("k_theta",      3.0)
         self.declare_parameter("max_vx",       0.4)
-        self.declare_parameter("max_vy",       0.4)
-        self.declare_parameter("max_w",        2.0)
+        self.declare_parameter("max_vy",       0.7)
+        self.declare_parameter("max_w",        0.8)
         self.declare_parameter("max_ax",       1.5)
-        self.declare_parameter("max_ay",       1.5)
+        self.declare_parameter("max_ay",       2.5)
         self.declare_parameter("max_aw",       6.0)
-        self.declare_parameter("tol_xy",              0.020)
+        self.declare_parameter("tol_xy",              0.025)
         self.declare_parameter("tol_theta",           math.radians(5.0))
         self.declare_parameter("stable_time",         0.3)
         self.declare_parameter("control_rate",        50.0)
@@ -145,7 +145,6 @@ class DockActionServer(Node):
     def _execute(self, goal_handle):
         timeout_sec = goal_handle.request.timeout_sec
         start_time  = time.time()
-        stable_start: float | None = None
         feedback = DockToBlock.Feedback()
         self.last_good_error = float("inf")
         self.last_good_state = self.STATE_SEARCHING
@@ -156,6 +155,9 @@ class DockActionServer(Node):
 
         # Reset pickup solver lock so it starts fresh
         self._publish_status("unlock")
+
+        stable_start: float | None = None   # alignment stability timer
+        blind_start:  float | None = None   # blind-hold timer (separate)
 
         while rclpy.ok():
 
@@ -204,10 +206,10 @@ class DockActionServer(Node):
                     return result
 
                 # Blocks went out of view too early — hold and wait
-                if stable_start is None:
-                    stable_start = time.time()  # reuse stable_start as blind hold timer
+                if blind_start is None:
+                    blind_start = time.time()
 
-                if time.time() - stable_start > self.blind_hold_time:
+                if time.time() - blind_start > self.blind_hold_time:
                     # Waited long enough with no blocks — abort
                     self._stop()
                     goal_handle.abort()
@@ -228,7 +230,7 @@ class DockActionServer(Node):
                 time.sleep(self.dt)
                 continue
             else:
-                stable_start = None  # reset blind hold timer when pose is valid again
+                blind_start = None  # reset blind hold timer when pose is valid again
 
             dx     = pose.x
             dy     = pose.y
@@ -283,7 +285,7 @@ class DockActionServer(Node):
 
             cmd = Twist()
             cmd.linear.x  = vx
-            cmd.linear.y  = vy
+            cmd.linear.y  = -vy
             cmd.angular.z = w
             self.cmd_pub.publish(cmd)
             self.last_cmd = cmd

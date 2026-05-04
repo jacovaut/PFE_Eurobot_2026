@@ -37,11 +37,10 @@ class MergedLocalPickupNode(Node):
         self.block_tracker = BlockTracker(self.block_timeout_sec, self.match_distance_m)
         self.tf_publisher = TfPublisher(self.tf_broadcaster, self.get_clock)
         self.lock_required_frames = 5
-        self.last_detection_time = 0.0
+        self.last_detection_time = None  # None until first detection received
         self.reset_lock()
         self.locked_targets = {}
         self.current_cups = {}
-        self.last_detection_time = 0.0  # wall time when camera last saw any block
         self.pickup_pose_pub = self.create_publisher(Pose2D, "/pickup_pose", 10)
         self.best_pickup_pub = self.create_publisher(String, "/best_pickup", 10)
         self.manip_info_pub = self.create_publisher(String, "/manip_info", 10)
@@ -163,10 +162,11 @@ class MergedLocalPickupNode(Node):
             self.last_detection_time = now
 
         # If camera hasn't seen any block recently, stop publishing entirely
-        camera_age = now - self.last_detection_time
-        if camera_age > self.camera_seen_timeout:
-            self.tf_publisher.publish_block_transforms(self.block_targets)
-            return
+        if self.last_detection_time is not None:
+            camera_age = now - self.last_detection_time
+            if camera_age > self.camera_seen_timeout:
+                self.tf_publisher.publish_block_transforms(self.block_targets)
+                return
 
         locked_names = set()
         if self.solution_locked and self.locked_best:
@@ -174,7 +174,7 @@ class MergedLocalPickupNode(Node):
                 locked_names.add(a["block"])
         blocks = self.block_tracker.update_tracking(detections, now, locked_names=locked_names)
         self.tf_publisher.publish_block_transforms(self.block_targets)
-        if self.solution_locked and (now - self.last_detection_time) > self.block_timeout_sec:
+        if self.solution_locked and self.last_detection_time is not None and (now - self.last_detection_time) > self.block_timeout_sec:
             self.get_logger().warn("[GOAL FAILED] Blocks lost — resetting lock")
             self.reset_lock()
             return
@@ -225,9 +225,15 @@ class MergedLocalPickupNode(Node):
 def main():
     rclpy.init()
     node = MergedLocalPickupNode()
-    rclpy.spin(node)
-    node.destroy_node()
-    rclpy.shutdown()
+    try:
+        while rclpy.ok():
+            node.loop()
+            rclpy.spin_once(node, timeout_sec=0.0)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        node.destroy_node()
+        rclpy.shutdown()
 
 if __name__ == "__main__":
     main()
