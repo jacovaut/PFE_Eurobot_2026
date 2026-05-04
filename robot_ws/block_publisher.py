@@ -51,28 +51,38 @@ class MjpegTcpClient:
 
     def read(self):
         try:
-            while True:
-                chunk = self.sock.recv(65536)
-                if not chunk:
-                    return False, None
+            # Drain everything available to get the freshest frame
+            self.sock.setblocking(False)
+            try:
+                while True:
+                    chunk = self.sock.recv(65536)
+                    if not chunk:
+                        return False, None
+                    self.buffer += chunk
+            except BlockingIOError:
+                pass
+            self.sock.setblocking(True)
 
-                self.buffer += chunk
+            # Keep only the last complete JPEG in the buffer
+            last_start = self.buffer.rfind(b"\xff\xd8")
+            last_end   = self.buffer.rfind(b"\xff\xd9")
 
-                start = self.buffer.find(b"\xff\xd8")
-                end = self.buffer.find(b"\xff\xd9")
+            if last_start != -1 and last_end > last_start:
+                jpg = self.buffer[last_start:last_end + 2]
+                self.buffer = b""  # discard everything — we have the latest frame
 
-                if start != -1 and end != -1 and end > start:
-                    jpg = self.buffer[start:end + 2]
-                    self.buffer = self.buffer[end + 2:]
+                arr   = np.frombuffer(jpg, dtype=np.uint8)
+                frame = cv2.imdecode(arr, cv2.IMREAD_COLOR)
+                if frame is not None:
+                    return True, frame
 
-                    arr = np.frombuffer(jpg, dtype=np.uint8)
-                    frame = cv2.imdecode(arr, cv2.IMREAD_COLOR)
-
-                    if frame is not None:
-                        return True, frame
-
-                if len(self.buffer) > 2_000_000:
-                    self.buffer = self.buffer[-500_000:]
+            # Buffer has no complete frame yet — wait for one
+            self.sock.settimeout(1.0)
+            chunk = self.sock.recv(65536)
+            if not chunk:
+                return False, None
+            self.buffer += chunk
+            return False, None
 
         except socket.timeout:
             return False, None

@@ -23,10 +23,12 @@ class MergedLocalPickupNode(Node):
         self.declare_parameter("team_color", "blue")
         self.declare_parameter("block_timeout_sec", 1.0)
         self.declare_parameter("match_distance_m", 0.035)
+        self.declare_parameter("loop_rate_hz", 50.0)
         self.udp_port = int(self.get_parameter("udp_port").value)
         self.team_color = str(self.get_parameter("team_color").value)
         self.block_timeout_sec = float(self.get_parameter("block_timeout_sec").value)
         self.match_distance_m = float(self.get_parameter("match_distance_m").value)
+        loop_period = 1.0 / float(self.get_parameter("loop_rate_hz").value)
         self.id_to_color = {36: "blue", 47: "yellow"}
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self)
@@ -35,6 +37,7 @@ class MergedLocalPickupNode(Node):
         self.block_tracker = BlockTracker(self.block_timeout_sec, self.match_distance_m)
         self.tf_publisher = TfPublisher(self.tf_broadcaster, self.get_clock)
         self.lock_required_frames = 5
+        self.last_detection_time = 0.0
         self.reset_lock()
         self.locked_targets = {}
         self.current_cups = {}
@@ -45,7 +48,7 @@ class MergedLocalPickupNode(Node):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.bind(("0.0.0.0", self.udp_port))
         self.sock.setblocking(False)
-        self.timer = self.create_timer(0.05, self.loop)
+        self.timer = self.create_timer(loop_period, self.loop)
         self.get_logger().info("[SOLVER READY]")
 
     def reset_lock(self):
@@ -154,12 +157,18 @@ class MergedLocalPickupNode(Node):
             except Exception:
                 pass
         now = self.get_clock().now().nanoseconds * 1e-9
+        if detections:
+            self.last_detection_time = now
         locked_names = set()
         if self.solution_locked and self.locked_best:
             for a in self.locked_best.assignments:
                 locked_names.add(a["block"])
         blocks = self.block_tracker.update_tracking(detections, now, locked_names=locked_names)
         self.tf_publisher.publish_block_transforms(self.block_targets)
+        if self.solution_locked and (now - self.last_detection_time) > self.block_timeout_sec:
+            self.get_logger().warn("[GOAL FAILED] Blocks lost — resetting lock")
+            self.reset_lock()
+            return
         if not blocks:
             return
         best = compute_best_pickup(cups, blocks, self.team_color)
