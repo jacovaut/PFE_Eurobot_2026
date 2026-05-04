@@ -1,24 +1,18 @@
 #!/usr/bin/env python3
-import rclpy
-from rclpy.node import Node
-import rclpy.duration
-
-from geometry_msgs.msg import Pose2D
-from geometry_msgs.msg import TransformStamped
-from std_msgs.msg import String
-
-from tf2_ros import Buffer
-from tf2_ros import TransformListener
-from tf2_ros import TransformBroadcaster
-
-import socket
 import json
 import math
-import numpy as np
-import tf_transformations
-
+import socket
 from dataclasses import dataclass
 from itertools import combinations, permutations
+
+import numpy as np
+import rclpy
+import rclpy.duration
+import tf_transformations
+
+from geometry_msgs.msg import Pose2D, TransformStamped
+from std_msgs.msg import String
+from tf2_ros import Buffer, TransformBroadcaster, TransformListener
 
 
 # =========================
@@ -56,8 +50,7 @@ class PickupCandidate:
 # MATH
 # =========================
 def rotate_xy(p, yaw):
-    c = math.cos(yaw)
-    s = math.sin(yaw)
+    c, s = math.cos(yaw), math.sin(yaw)
     return XY(
         c * p.x - s * p.y,
         s * p.x + c * p.y
@@ -72,17 +65,61 @@ def angle_between(a, b):
 
 
 def wrap_angle(a):
-    while a > math.pi:
-        a -= 2 * math.pi
-    while a < -math.pi:
-        a += 2 * math.pi
-    return a
+    return math.atan2(
+        math.sin(a),
+        math.cos(a)
+    )
 
 
 def rectangular_yaw_diff_deg(a, b):
     return abs(
         (a - b + 90.0) % 180.0 - 90.0
     )
+
+
+# =========================
+# SHARED SOLVE
+# =========================
+def solve_pose(
+    cup_subset,
+    block_subset
+):
+    n = len(cup_subset)
+
+    if n == 1:
+        yaw = 0.0
+    else:
+        (_, c1), (_, c2) = (
+            cup_subset[0],
+            cup_subset[-1]
+        )
+
+        (_, b1), (_, b2) = (
+            block_subset[0],
+            block_subset[-1]
+        )
+
+        yaw = wrap_angle(
+            angle_between(b1, b2)
+            - angle_between(c1, c2)
+        )
+
+    dx = 0.0
+    dy = 0.0
+
+    for (_, cxy), (_, b) in zip(
+        cup_subset,
+        block_subset
+    ):
+        rc = rotate_xy(cxy, yaw)
+
+        dx += b.x - rc.x
+        dy += b.y - rc.y
+
+    dx /= n
+    dy /= n
+
+    return dx, dy, yaw
 
 
 # =========================
@@ -93,7 +130,6 @@ def compute_best_pickup(
     blocks,
     team_color="blue"
 ):
-
     MAX_ERROR = 0.040
     MAX_YAW = math.radians(105)
     MAX_BLOCK_YAW_DIFF_DEG = 20.0
@@ -113,14 +149,19 @@ def compute_best_pickup(
         1,
         min(len(cup_items), len(block_items)) + 1
     ):
+        for cup_subset in combinations(
+            cup_items,
+            n
+        ):
+            for block_subset in combinations(
+                block_items,
+                n
+            ):
 
-        for cup_subset in combinations(cup_items, n):
-            for block_subset in combinations(block_items, n):
+                yaw_spread = 0.0
 
                 if n > 1:
                     ref = block_subset[0][1].yaw_deg
-                    yaw_spread = 0.0
-                    valid_parallel = True
 
                     for _, b in block_subset[1:]:
                         diff = rectangular_yaw_diff_deg(
@@ -134,56 +175,27 @@ def compute_best_pickup(
                         )
 
                         if diff > MAX_BLOCK_YAW_DIFF_DEG:
-                            valid_parallel = False
                             break
-
-                    if not valid_parallel:
-                        continue
-                else:
-                    yaw_spread = 0.0
-
-                for perm in permutations(block_subset):
-
-                    if n == 1:
-                        yaw = 0.0
                     else:
-                        (_, c1), (_, c2) = (
-                            cup_subset[0],
-                            cup_subset[-1]
-                        )
+                        pass
+                    if diff > MAX_BLOCK_YAW_DIFF_DEG:
+                        continue
 
-                        (_, b1), (_, b2) = (
-                            perm[0],
-                            perm[-1]
-                        )
-
-                        yaw = wrap_angle(
-                            angle_between(b1, b2)
-                            - angle_between(c1, c2)
-                        )
+                for perm in permutations(
+                    block_subset
+                ):
+                    dx, dy, yaw = solve_pose(
+                        cup_subset,
+                        perm
+                    )
 
                     if abs(yaw) > MAX_YAW:
                         continue
 
-                    dx = 0.0
-                    dy = 0.0
-
-                    for (_, cxy), (_, b) in zip(
-                        cup_subset,
-                        perm
-                    ):
-                        rc = rotate_xy(cxy, yaw)
-
-                        dx += b.x - rc.x
-                        dy += b.y - rc.y
-
-                    dx /= n
-                    dy /= n
-
                     total_err = 0.0
                     color_score = 0.0
-                    valid = True
                     assigns = []
+                    valid = True
 
                     for (cn, cxy), (_, b) in zip(
                         cup_subset,
@@ -260,24 +272,20 @@ def recompute_locked_pose(
     blocks,
     locked_assignments
 ):
-
-    n = len(locked_assignments)
-
-    if n == 0:
+    if not locked_assignments:
         return None
 
     cup_subset = []
     block_subset = []
 
     for a in locked_assignments:
-
         cup_name = a["cup"]
         block_name = a["block"]
 
-        if cup_name not in cups:
-            return None
-
-        if block_name not in blocks:
+        if (
+            cup_name not in cups
+            or block_name not in blocks
+        ):
             return None
 
         cup_subset.append(
@@ -288,38 +296,10 @@ def recompute_locked_pose(
             (block_name, blocks[block_name])
         )
 
-    if n == 1:
-        yaw = 0.0
-    else:
-        (_, c1), (_, c2) = (
-            cup_subset[0],
-            cup_subset[-1]
-        )
-
-        (_, b1), (_, b2) = (
-            block_subset[0],
-            block_subset[-1]
-        )
-
-        yaw = wrap_angle(
-            angle_between(b1, b2)
-            - angle_between(c1, c2)
-        )
-
-    dx = 0.0
-    dy = 0.0
-
-    for (_, cxy), (_, b) in zip(
+    dx, dy, yaw = solve_pose(
         cup_subset,
         block_subset
-    ):
-        rc = rotate_xy(cxy, yaw)
-
-        dx += b.x - rc.x
-        dy += b.y - rc.y
-
-    dx /= n
-    dy /= n
+    )
 
     total_err = 0.0
     new_assignments = []
@@ -350,11 +330,15 @@ def recompute_locked_pose(
             "block_yaw_deg": b.yaw_deg
         })
 
-    avg_err = total_err / n
+    avg_err = total_err / len(
+        locked_assignments
+    )
 
     return PickupCandidate(
         score=0.0,
-        picked_count=n,
+        picked_count=len(
+            locked_assignments
+        ),
         avg_error=avg_err,
         yaw=yaw,
         dx=dx,
@@ -366,7 +350,9 @@ def recompute_locked_pose(
 # =========================
 # NODE
 # =========================
-class MergedLocalPickupNode(Node):
+class MergedLocalPickupNode(
+    rclpy.node.Node
+):
 
     def __init__(self):
         super().__init__(
@@ -377,17 +363,14 @@ class MergedLocalPickupNode(Node):
             "udp_port",
             5005
         )
-
         self.declare_parameter(
             "team_color",
             "blue"
         )
-
         self.declare_parameter(
             "block_timeout_sec",
             1.0
         )
-
         self.declare_parameter(
             "match_distance_m",
             0.035
@@ -427,7 +410,6 @@ class MergedLocalPickupNode(Node):
             self.tf_buffer,
             self
         )
-
         self.tf_broadcaster = TransformBroadcaster(
             self
         )
@@ -448,11 +430,8 @@ class MergedLocalPickupNode(Node):
         }
 
         self.lock_required_frames = 5
-        self.candidate_signature = None
-        self.candidate_count = 0
-        self.locked_signature = None
-        self.locked_best = None
-        self.solution_locked = False
+
+        self.reset_lock()
 
         self.locked_targets = {}
         self.current_cups = {}
@@ -503,6 +482,17 @@ class MergedLocalPickupNode(Node):
         )
 
     # =========================
+    # LOCK RESET
+    # =========================
+    def reset_lock(self):
+        self.solution_locked = False
+        self.locked_signature = None
+        self.locked_best = None
+        self.locked_targets = {}
+        self.candidate_signature = None
+        self.candidate_count = 0
+
+    # =========================
     # STATUS CALLBACK
     # =========================
     def pickup_status_callback(
@@ -518,12 +508,7 @@ class MergedLocalPickupNode(Node):
             "failed",
             "aligned"
         ]:
-            self.solution_locked = False
-            self.locked_signature = None
-            self.locked_best = None
-            self.locked_targets = {}
-            self.candidate_signature = None
-            self.candidate_count = 0
+            self.reset_lock()
 
     # =========================
     # SIGNATURE
@@ -533,197 +518,32 @@ class MergedLocalPickupNode(Node):
         best
     ):
         return "|".join(
-            sorted([
+            sorted(
                 f"{a['cup']}->{a['block']}"
                 for a in best.assignments
-            ])
+            )
         )
 
     # =========================
-    # TF PUBLISHING
-    # =========================
-    def publish_block_transforms(
-        self
-    ):
-
-        now = self.get_clock().now().to_msg()
-
-        # LIVE TRACKED BLOCKS
-        for name, b in self.tracked_blocks.items():
-
-            t = TransformStamped()
-
-            t.header.stamp = now
-            t.header.frame_id = "base_link"
-            t.child_frame_id = name
-
-            t.transform.translation.x = float(b.x)
-            t.transform.translation.y = float(b.y)
-            t.transform.translation.z = 0.0
-
-            q = tf_transformations.quaternion_from_euler(
-                0.0,
-                0.0,
-                math.radians(b.yaw_deg)
-            )
-
-            t.transform.rotation.x = q[0]
-            t.transform.rotation.y = q[1]
-            t.transform.rotation.z = q[2]
-            t.transform.rotation.w = q[3]
-
-            self.tf_broadcaster.sendTransform(t)
-
-        # LOCKED TARGETS
-        for name, b in self.locked_targets.items():
-
-            t = TransformStamped()
-
-            t.header.stamp = now
-            t.header.frame_id = "base_link"
-            t.child_frame_id = f"locked_{name}"
-
-            t.transform.translation.x = float(b.x)
-            t.transform.translation.y = float(b.y)
-            t.transform.translation.z = 0.0
-
-            q = tf_transformations.quaternion_from_euler(
-                0.0,
-                0.0,
-                math.radians(b.yaw_deg)
-            )
-
-            t.transform.rotation.x = q[0]
-            t.transform.rotation.y = q[1]
-            t.transform.rotation.z = q[2]
-            t.transform.rotation.w = q[3]
-
-            self.tf_broadcaster.sendTransform(t)
-
-    # =========================
-    # LOCK LOGIC
-    # =========================
-    def update_lock(
-        self,
-        best
-    ):
-
-        if self.solution_locked:
-
-            frozen_blocks = {}
-
-            for a in self.locked_best.assignments:
-                block_name = a["block"]
-
-                if block_name in self.tracked_blocks:
-                    b = self.tracked_blocks[
-                        block_name
-                    ]
-
-                    self.locked_targets[
-                        block_name
-                    ] = Block(
-                        name=b.name,
-                        x=b.x,
-                        y=b.y,
-                        color=b.color,
-                        yaw_deg=b.yaw_deg,
-                        last_seen=b.last_seen,
-                        raw_id=b.raw_id
-                    )
-
-                if block_name in self.locked_targets:
-                    frozen_blocks[
-                        block_name
-                    ] = self.locked_targets[
-                        block_name
-                    ]
-
-            updated = recompute_locked_pose(
-                self.current_cups,
-                frozen_blocks,
-                self.locked_best.assignments
-            )
-
-            if updated is not None:
-                self.locked_best.dx = updated.dx
-                self.locked_best.dy = updated.dy
-                self.locked_best.yaw = updated.yaw
-                self.locked_best.avg_error = updated.avg_error
-                self.locked_best.assignments = updated.assignments
-
-            return self.locked_best
-
-        if best is None:
-            self.candidate_signature = None
-            self.candidate_count = 0
-            return None
-
-        sig = self.get_signature(best)
-
-        if sig == self.candidate_signature:
-            self.candidate_count += 1
-        else:
-            self.candidate_signature = sig
-            self.candidate_count = 1
-
-        if self.candidate_count >= self.lock_required_frames:
-
-            self.solution_locked = True
-            self.locked_signature = sig
-            self.locked_best = best
-            self.locked_targets = {}
-
-            for a in best.assignments:
-                block_name = a["block"]
-
-                if block_name in self.tracked_blocks:
-                    b = self.tracked_blocks[
-                        block_name
-                    ]
-
-                    self.locked_targets[
-                        block_name
-                    ] = Block(
-                        name=b.name,
-                        x=b.x,
-                        y=b.y,
-                        color=b.color,
-                        yaw_deg=b.yaw_deg,
-                        last_seen=b.last_seen,
-                        raw_id=b.raw_id
-                    )
-
-            self.get_logger().info(
-                f"[LOCKED] {sig}"
-            )
-
-            return best
-
-        self.get_logger().info(
-            f"[CANDIDATE] {sig} "
-            f"({self.candidate_count}/"
-            f"{self.lock_required_frames})"
-        )
-
-        return None
-
-    # =========================
-    # TRACKING
+    # TRACKER
     # =========================
     def make_name(
         self,
         color
     ):
-        idx = self.next_index_by_color[color]
-        self.next_index_by_color[color] += 1
+        idx = self.next_index_by_color[
+            color
+        ]
+        self.next_index_by_color[
+            color
+        ] += 1
+
         return f"{color}_{idx}"
 
     def update_tracking(
         self,
         detections
     ):
-
         now = (
             self.get_clock().now().nanoseconds
             * 1e-9
@@ -732,18 +552,17 @@ class MergedLocalPickupNode(Node):
         updated = set()
 
         for d in detections:
-
             best_name = None
             best_dist = None
 
-            for name, t in self.tracked_blocks.items():
+            same_color = [
+                (n, t)
+                for n, t in self.tracked_blocks.items()
+                if t.color == d.color
+                and n not in updated
+            ]
 
-                if (
-                    t.color != d.color
-                    or name in updated
-                ):
-                    continue
-
+            for name, t in same_color:
                 dist = math.hypot(
                     d.x - t.x,
                     d.y - t.y
@@ -791,13 +610,55 @@ class MergedLocalPickupNode(Node):
 
                 updated.add(name)
 
-        to_del = []
+        self.cleanup_stale_blocks(
+            now
+        )
 
+        return self.tracked_blocks
+
+    def cleanup_stale_blocks(
+        self,
+        now
+    ):
         locked_names = set()
 
-        if self.solution_locked and self.locked_best is not None:
+        if (
+            self.solution_locked
+            and self.locked_best
+        ):
             for a in self.locked_best.assignments:
-                locked_names.add(a["block"])
+                locked_names.add(
+                    a["block"]
+                )
+
+        to_del = []
+
+        for name, b in self.tracked_blocks.items():
+
+            if name in locked_names:
+                continue
+
+            if (
+                now - b.last_seen
+                > self.block_timeout_sec
+            ):
+                to_del.append(name)
+
+        for name in to_del:
+            self.get_logger().info(
+                f"[TRACKER] Removing stale block: {name}"
+            )
+            del self.tracked_blocks[name]
+
+    # =========================
+    # TF PUBLISH
+    # =========================
+    def publish_block_transforms(
+        self
+    ):
+        now_msg = (
+            self.get_clock().now().to_msg()
+        )
 
         now_sec = (
             self.get_clock().now().nanoseconds
@@ -808,22 +669,202 @@ class MergedLocalPickupNode(Node):
 
             age = now_sec - b.last_seen
 
-            if age > self.block_timeout_sec:
+            if (
+                age
+                > self.block_timeout_sec
+            ):
                 continue
 
-        for name in to_del:
-            self.get_logger().info(
-                f"[TRACKER] Removing stale block: {name}"
-            )
-            del self.tracked_blocks[name]
+            t = TransformStamped()
 
-        return self.tracked_blocks
+            t.header.stamp = now_msg
+            t.header.frame_id = "base_link"
+            t.child_frame_id = name
+
+            t.transform.translation.x = float(
+                b.x
+            )
+            t.transform.translation.y = float(
+                b.y
+            )
+            t.transform.translation.z = 0.0
+
+            q = tf_transformations.quaternion_from_euler(
+                0.0,
+                0.0,
+                math.radians(
+                    b.yaw_deg
+                )
+            )
+
+            t.transform.rotation.x = q[0]
+            t.transform.rotation.y = q[1]
+            t.transform.rotation.z = q[2]
+            t.transform.rotation.w = q[3]
+
+            self.tf_broadcaster.sendTransform(
+                t
+            )
+
+        for name, b in self.locked_targets.items():
+            t = TransformStamped()
+
+            t.header.stamp = now_msg
+            t.header.frame_id = "base_link"
+            t.child_frame_id = f"locked_{name}"
+
+            t.transform.translation.x = float(
+                b.x
+            )
+            t.transform.translation.y = float(
+                b.y
+            )
+            t.transform.translation.z = 0.0
+
+            q = tf_transformations.quaternion_from_euler(
+                0.0,
+                0.0,
+                math.radians(
+                    b.yaw_deg
+                )
+            )
+
+            t.transform.rotation.x = q[0]
+            t.transform.rotation.y = q[1]
+            t.transform.rotation.z = q[2]
+            t.transform.rotation.w = q[3]
+
+            self.tf_broadcaster.sendTransform(
+                t
+            )
+
+    # =========================
+    # LOCK LOGIC
+    # =========================
+    def update_lock(
+        self,
+        best
+    ):
+        if self.solution_locked:
+            frozen_blocks = {}
+
+            for a in self.locked_best.assignments:
+                block_name = a["block"]
+
+                if (
+                    block_name
+                    in self.tracked_blocks
+                ):
+                    b = self.tracked_blocks[
+                        block_name
+                    ]
+
+                    self.locked_targets[
+                        block_name
+                    ] = Block(
+                        name=b.name,
+                        x=b.x,
+                        y=b.y,
+                        color=b.color,
+                        yaw_deg=b.yaw_deg,
+                        last_seen=b.last_seen,
+                        raw_id=b.raw_id
+                    )
+
+                if (
+                    block_name
+                    in self.locked_targets
+                ):
+                    frozen_blocks[
+                        block_name
+                    ] = self.locked_targets[
+                        block_name
+                    ]
+
+            updated = recompute_locked_pose(
+                self.current_cups,
+                frozen_blocks,
+                self.locked_best.assignments
+            )
+
+            if updated:
+                self.locked_best.dx = updated.dx
+                self.locked_best.dy = updated.dy
+                self.locked_best.yaw = updated.yaw
+                self.locked_best.avg_error = (
+                    updated.avg_error
+                )
+                self.locked_best.assignments = (
+                    updated.assignments
+                )
+
+            return self.locked_best
+
+        if best is None:
+            self.candidate_signature = None
+            self.candidate_count = 0
+            return None
+
+        sig = self.get_signature(
+            best
+        )
+
+        if sig == self.candidate_signature:
+            self.candidate_count += 1
+        else:
+            self.candidate_signature = sig
+            self.candidate_count = 1
+
+        if (
+            self.candidate_count
+            >= self.lock_required_frames
+        ):
+            self.solution_locked = True
+            self.locked_signature = sig
+            self.locked_best = best
+            self.locked_targets = {}
+
+            for a in best.assignments:
+                block_name = a["block"]
+
+                if (
+                    block_name
+                    in self.tracked_blocks
+                ):
+                    b = self.tracked_blocks[
+                        block_name
+                    ]
+
+                    self.locked_targets[
+                        block_name
+                    ] = Block(
+                        name=b.name,
+                        x=b.x,
+                        y=b.y,
+                        color=b.color,
+                        yaw_deg=b.yaw_deg,
+                        last_seen=b.last_seen,
+                        raw_id=b.raw_id
+                    )
+
+            self.get_logger().info(
+                f"[LOCKED] {sig}"
+            )
+
+            return best
+
+        self.get_logger().info(
+            f"[CANDIDATE] {sig} "
+            f"({self.candidate_count}/"
+            f"{self.lock_required_frames})"
+        )
+
+        return None
 
     # =========================
     # MAIN LOOP
     # =========================
     def loop(self):
-
         cups = {}
 
         for name in self.cup_frames:
@@ -844,7 +885,7 @@ class MergedLocalPickupNode(Node):
                     t.y
                 )
 
-            except:
+            except Exception:
                 return
 
         self.current_cups = cups
@@ -876,7 +917,7 @@ class MergedLocalPickupNode(Node):
                     seconds=0.005
                 )
             )
-        except:
+        except Exception:
             return
 
         t = tf.transform.translation
@@ -906,7 +947,10 @@ class MergedLocalPickupNode(Node):
                 )
 
                 yaw = float(
-                    b.get("yaw_deg", 0.0)
+                    b.get(
+                        "yaw_deg",
+                        0.0
+                    )
                 )
 
                 p = np.array([
@@ -925,20 +969,16 @@ class MergedLocalPickupNode(Node):
                         y=pb[1],
                         color=color,
                         yaw_deg=yaw,
-                        last_seen=0.0,
                         raw_id=raw_id
                     )
                 )
 
-            except:
+            except Exception:
                 continue
 
-        if raw is not None:
-            blocks = self.update_tracking(
-                detections
-            )
-        else:
-            blocks = self.tracked_blocks
+        blocks = self.update_tracking(
+            detections
+        )
 
         self.publish_block_transforms()
 
@@ -951,7 +991,9 @@ class MergedLocalPickupNode(Node):
             self.team_color
         )
 
-        locked = self.update_lock(best)
+        locked = self.update_lock(
+            best
+        )
 
         if not locked:
             return
@@ -967,8 +1009,8 @@ class MergedLocalPickupNode(Node):
         self,
         best
     ):
-
         pose = Pose2D()
+
         pose.x = best.dx
         pose.y = best.dy
         pose.theta = best.yaw
@@ -999,13 +1041,16 @@ class MergedLocalPickupNode(Node):
             "cup_3": ""
         }
 
+        color_map = {
+            "blue": "B",
+            "yellow": "Y"
+        }
+
         for a in best.assignments:
-
-            if a["color"] == "blue":
-                pump[a["cup"]] = "B"
-
-            elif a["color"] == "yellow":
-                pump[a["cup"]] = "Y"
+            pump[a["cup"]] = color_map.get(
+                a["color"],
+                ""
+            )
 
         manip = String()
 
