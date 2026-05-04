@@ -13,7 +13,7 @@ class BlockTracker:
         self.next_index_by_color[color] += 1
         return f"{color}_{idx}"
 
-    def update_tracking(self, detections, now):
+    def update_tracking(self, detections, now, locked_names=None):
         updated = set()
         for d in detections:
             best_name = None
@@ -45,12 +45,16 @@ class BlockTracker:
                     raw_id=d.raw_id
                 )
                 updated.add(name)
-        self.cleanup_stale_blocks(now)
+        self.cleanup_stale_blocks(now, locked_names=locked_names)
         return self.tracked_blocks
 
-    def cleanup_stale_blocks(self, now):
+    def cleanup_stale_blocks(self, now, locked_names=None):
+        if locked_names is None:
+            locked_names = set()
         to_del = []
         for name, b in self.tracked_blocks.items():
+            if name in locked_names:
+                continue
             if now - b.last_seen > self.block_timeout_sec:
                 to_del.append(name)
         for name in to_del:

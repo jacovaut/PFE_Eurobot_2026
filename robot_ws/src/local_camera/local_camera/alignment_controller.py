@@ -75,17 +75,15 @@ class AlignmentController(Node):
     # GOAL CALLBACK
     # =========================
     def goal_callback(self, msg: Pose2D):
-        if self.active:
-            # ignore updates while executing
-            return
+        if not self.active:
+            self.get_logger().info(
+                f"[NEW GOAL] dx={msg.x:.3f}, dy={msg.y:.3f}, yaw={math.degrees(msg.theta):.1f} deg"
+            )
+            self.active = True
+            self.stable_start = None
 
+        # Always update goal with latest pose estimate (dynamic docking behavior)
         self.goal = msg
-        self.active = True
-        self.stable_start = None
-
-        self.get_logger().info(
-            f"[NEW GOAL] dx={msg.x:.3f}, dy={msg.y:.3f}, yaw={math.degrees(msg.theta):.1f} deg"
-        )
 
     # =========================
     # LOOP
@@ -108,18 +106,18 @@ class AlignmentController(Node):
             if self.stable_start is None:
                 self.stable_start = time.time()
 
-                if time.time() - self.stable_start > self.stable_time_required:
-                    self.get_logger().info("[ALIGNMENT COMPLETE]")
+            if time.time() - self.stable_start > self.stable_time_required:
+                self.get_logger().info("[ALIGNMENT COMPLETE]")
 
-                    self.publish_stop()
+                self.publish_stop()
 
-                    msg = String()
-                    msg.data = "aligned"
-                    self.status_pub.publish(msg)
+                msg = String()
+                msg.data = "aligned"
+                self.status_pub.publish(msg)
 
-                    self.active = False
-                    self.goal = None
-                    return
+                self.active = False
+                self.goal = None
+                return
         else:
             self.stable_start = None
 
