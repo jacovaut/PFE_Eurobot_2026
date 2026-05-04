@@ -108,18 +108,18 @@ class AlignmentController(Node):
             if self.stable_start is None:
                 self.stable_start = time.time()
 
-            if time.time() - self.stable_start > self.stable_time_required:
-                self.get_logger().info("[ALIGNMENT DONE]")
+                if time.time() - self.stable_start > self.stable_time_required:
+                    self.get_logger().info("[ALIGNMENT COMPLETE]")
 
-                self.publish_stop()
+                    self.publish_stop()
 
-                msg = String()
-                msg.data = "done"
-                self.status_pub.publish(msg)
+                    msg = String()
+                    msg.data = "aligned"
+                    self.status_pub.publish(msg)
 
-                self.active = False
-                self.goal = None
-                return
+                    self.active = False
+                    self.goal = None
+                    return
         else:
             self.stable_start = None
 

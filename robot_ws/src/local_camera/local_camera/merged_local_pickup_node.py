@@ -283,9 +283,102 @@ class MergedLocalPickupNode(Node):
             sorted([f"{a['cup']}->{a['block']}" for a in best.assignments])
         )
 
+
+    def recompute_locked_pose(self, cups, blocks, locked_assignments):
+
+        n = len(locked_assignments)
+
+        if n == 0:
+            return None
+
+        cup_subset = []
+        block_subset = []
+
+        for a in locked_assignments:
+            cup_name = a["cup"]
+            block_name = a["block"]
+
+            if cup_name not in cups:
+                return None
+
+            if block_name not in blocks:
+                return None
+
+            cup_subset.append((cup_name, cups[cup_name]))
+            block_subset.append((block_name, blocks[block_name]))
+
+        if n == 1:
+            yaw = 0.0
+        else:
+            (_, c1), (_, c2) = cup_subset[0], cup_subset[-1]
+            (_, b1), (_, b2) = block_subset[0], block_subset[-1]
+
+            yaw = wrap_angle(
+                angle_between(b1, b2) - angle_between(c1, c2)
+            )
+
+        dx = dy = 0.0
+        total_err = 0.0
+        new_assignments = []
+
+        for (cn, cxy), (bn, b) in zip(cup_subset, block_subset):
+
+            rc = rotate_xy(cxy, yaw)
+
+            dx += b.x - rc.x
+            dy += b.y - rc.y
+
+        dx /= n
+        dy /= n
+
+        for (cn, cxy), (bn, b) in zip(cup_subset, block_subset):
+
+            rc = rotate_xy(cxy, yaw)
+
+            px = rc.x + dx
+            py = rc.y + dy
+
+            err = math.hypot(px - b.x, py - b.y)
+            total_err += err
+
+            new_assignments.append({
+                "cup": cn,
+                "block": b.name,
+                "color": b.color,
+                "err_m": err,
+                "err_mm": err * 1000,
+                "raw_id": b.raw_id,
+                "block_yaw_deg": b.yaw_deg
+            })
+
+        avg_err = total_err / n
+
+        return PickupCandidate(
+            score=0.0,
+            picked_count=n,
+            avg_error=avg_err,
+            yaw=yaw,
+            dx=dx,
+            dy=dy,
+            assignments=new_assignments
+        )
+
     def update_lock(self, best):
 
         if self.solution_locked:
+            updated = self.recompute_locked_pose(
+                self.current_cups,
+                self.tracked_blocks,
+                self.locked_best.assignments
+            )
+
+            if updated is not None:
+                self.locked_best.dx = updated.dx
+                self.locked_best.dy = updated.dy
+                self.locked_best.yaw = updated.yaw
+                self.locked_best.avg_error = updated.avg_error
+                self.locked_best.assignments = updated.assignments
+        
             return self.locked_best
 
         if best is None:
@@ -394,6 +487,8 @@ class MergedLocalPickupNode(Node):
                 cups[name] = XY(t.x, t.y)
             except:
                 return
+            
+        self.current_cups = cups
 
         # UDP
         latest = None
@@ -467,6 +562,7 @@ class MergedLocalPickupNode(Node):
 
         self.publish_best_pickup(locked)
 
+    # (moved above)
     # =========================
     # PUBLISH
     # =========================
