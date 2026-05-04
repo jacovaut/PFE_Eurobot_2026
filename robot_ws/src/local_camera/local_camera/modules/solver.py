@@ -6,7 +6,11 @@ from .math_utils import rotate_xy, angle_between, wrap_angle, rectangular_yaw_di
 def solve_pose(cup_subset, block_subset):
     n = len(cup_subset)
     if n == 1:
-        yaw = 0.0
+        # Use the block's own yaw (already in base_link frame).
+        # Normalize to [-90, 90] to handle 180-degree marker symmetry.
+        yaw_deg_raw = block_subset[0][1].yaw_deg
+        yaw_deg_norm = (yaw_deg_raw + 90.0) % 180.0 - 90.0
+        yaw = math.radians(yaw_deg_norm)
     else:
         (_, c1), (_, c2) = cup_subset[0], cup_subset[-1]
         (_, b1), (_, b2) = block_subset[0], block_subset[-1]
