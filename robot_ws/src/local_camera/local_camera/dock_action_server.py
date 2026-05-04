@@ -64,10 +64,12 @@ class DockActionServer(Node):
         self.declare_parameter("max_ax",       1.5)
         self.declare_parameter("max_ay",       1.5)
         self.declare_parameter("max_aw",       6.0)
-        self.declare_parameter("tol_xy",       0.012)
-        self.declare_parameter("tol_theta",    math.radians(3.0))
-        self.declare_parameter("stable_time",  0.3)
-        self.declare_parameter("control_rate", 50.0)
+        self.declare_parameter("tol_xy",              0.020)
+        self.declare_parameter("tol_theta",           math.radians(5.0))
+        self.declare_parameter("stable_time",         0.3)
+        self.declare_parameter("control_rate",        50.0)
+        self.declare_parameter("blind_commit_dist",   0.040)  # m: if last error < this when going blind, succeed
+        self.declare_parameter("blind_hold_time",     1.0)    # s: how long to hold position waiting for pose to return
 
         self.kx    = self.get_parameter("k_x").value
         self.ky    = self.get_parameter("k_y").value
@@ -80,14 +82,18 @@ class DockActionServer(Node):
         self.max_aw = self.get_parameter("max_aw").value
         self.tol_xy    = self.get_parameter("tol_xy").value
         self.tol_theta = self.get_parameter("tol_theta").value
-        self.stable_time_required = self.get_parameter("stable_time").value
+        self.stable_time_required  = self.get_parameter("stable_time").value
+        self.blind_commit_dist     = self.get_parameter("blind_commit_dist").value
+        self.blind_hold_time       = self.get_parameter("blind_hold_time").value
         self.dt = 1.0 / self.get_parameter("control_rate").value
 
         # ----- State -----
         self.current_pose: Pose2D | None = None
         self.pose_stamp: float = 0.0
         self.last_cmd = Twist()
-        self.pose_max_age = 0.5  # seconds before pose considered stale
+        self.pose_max_age = 0.5       # seconds before pose considered stale
+        self.last_good_error: float = float("inf")  # error when pose was last valid
+        self.last_good_state: int = self.STATE_SEARCHING
 
         # ----- ROS interfaces -----
         cb_group = ReentrantCallbackGroup()
@@ -141,6 +147,8 @@ class DockActionServer(Node):
         start_time  = time.time()
         stable_start: float | None = None
         feedback = DockToBlock.Feedback()
+        self.last_good_error = float("inf")
+        self.last_good_state = self.STATE_SEARCHING
 
         self.get_logger().info(
             f"[DOCK] Executing (timeout={timeout_sec:.1f}s)"
@@ -177,34 +185,72 @@ class DockActionServer(Node):
             # ----- Get latest pose -----
             pose = self.current_pose
             pose_age = time.time() - self.pose_stamp
+            pose_stale = (pose is None or pose_age > self.pose_max_age)
 
-            if pose is None or pose_age > self.pose_max_age:
-                # No valid pose yet — searching
+            if pose_stale:
+                # ---- Blind phase: blocks left camera FOV ----
+                if self.last_good_error < self.blind_commit_dist:
+                    # We were close enough — commit success immediately
+                    self._stop()
+                    self._publish_status("aligned")
+                    goal_handle.succeed()
+                    result = DockToBlock.Result()
+                    result.success = True
+                    result.message = f"Blind commit (last error={self.last_good_error*1000:.1f}mm)"
+                    result.final_error_m = self.last_good_error
+                    self.get_logger().info(
+                        f"[DOCK] Blind commit — blocks under robot, last error={self.last_good_error*1000:.1f}mm"
+                    )
+                    return result
+
+                # Blocks went out of view too early — hold and wait
+                if stable_start is None:
+                    stable_start = time.time()  # reuse stable_start as blind hold timer
+
+                if time.time() - stable_start > self.blind_hold_time:
+                    # Waited long enough with no blocks — abort
+                    self._stop()
+                    goal_handle.abort()
+                    result = DockToBlock.Result()
+                    result.success = False
+                    result.message = f"Lost blocks (last error={self.last_good_error*1000:.1f}mm)"
+                    result.final_error_m = self.last_good_error
+                    self.get_logger().warn("[DOCK] Lost blocks during approach")
+                    return result
+
                 self._stop()
                 feedback.dx      = 0.0
                 feedback.dy      = 0.0
                 feedback.yaw_deg = 0.0
-                feedback.error_m = 0.0
+                feedback.error_m = self.last_good_error
                 feedback.state   = self.STATE_SEARCHING
                 goal_handle.publish_feedback(feedback)
                 time.sleep(self.dt)
                 continue
+            else:
+                stable_start = None  # reset blind hold timer when pose is valid again
 
             dx     = pose.x
             dy     = pose.y
             dtheta = pose.theta
             error  = math.hypot(dx, dy)
 
+            # Track last known good error and state
+            self.last_good_error = error
+
             # ----- Determine state -----
-            in_pos = abs(dx) < self.tol_xy and abs(dy) < self.tol_xy
+            # Use error magnitude (not per-axis) to avoid noise resetting stability
+            in_pos = error < self.tol_xy
             in_ang = abs(dtheta) < self.tol_theta
 
             if in_pos and in_ang:
                 state = self.STATE_ALIGNED
-            elif error < self.tol_xy * 2:
+            elif error < self.tol_xy * 2.5:
                 state = self.STATE_CONVERGING
             else:
                 state = self.STATE_LOCKED
+
+            self.last_good_state = state
 
             # ----- Stability check -----
             if in_pos and in_ang:
