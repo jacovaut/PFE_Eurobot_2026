@@ -34,13 +34,13 @@ def generate_launch_description():
         ),
         Node(
             package='local_camera',
-            executable='alignment_controller',
-            name='alignment_controller',
+            executable='dock_action_server',
+            name='dock_action_server',
             output='screen',
         ),
         Node(
             package='local_camera',
-            executable='ros_node.py',
+            executable='ros_node',
             name='merged_local_pickup_node',
             output='screen',
             parameters=[{

@@ -27,6 +27,8 @@ setup(
         'console_scripts': [
             'merged_local_pickup_node = local_camera.merged_local_pickup_node:main',
             'alignment_controller = local_camera.alignment_controller:main',
+            'ros_node = local_camera.ros_node:main',
+            'dock_action_server = local_camera.dock_action_server:main',
         ],
     },
 )
