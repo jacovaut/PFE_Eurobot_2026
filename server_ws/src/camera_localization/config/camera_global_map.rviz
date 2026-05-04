@@ -91,6 +91,16 @@ Visualization Manager:
       Color: 255; 80; 80
       Selectable: true
       Autocompute Intensity Bounds: true
+    - Class: rviz_default_plugins/Image
+      Enabled: true
+      Name: Debug Image (local camera)
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        Reliability Policy: Reliable
+        Value: /debug_image
+      Value: true
+      Transport Hint: raw
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
