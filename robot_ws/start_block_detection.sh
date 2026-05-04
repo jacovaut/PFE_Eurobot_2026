@@ -18,8 +18,8 @@ echo "[INFO] Starting LOW-LATENCY MJPEG TCP stream..."
 rpicam-vid -t 0 -n \
   --listen \
   --codec mjpeg \
-  --width 640 \
-  --height 480 \
+  --width 4656 \
+  --height 3496 \
   --framerate 30 \
   --flush \
   -o tcp://0.0.0.0:8888 &
