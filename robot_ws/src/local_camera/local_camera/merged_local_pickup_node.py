@@ -793,14 +793,28 @@ class MergedLocalPickupNode(Node):
 
         to_del = []
 
+        locked_names = set()
+
+        if self.solution_locked and self.locked_best is not None:
+            for a in self.locked_best.assignments:
+                locked_names.add(a["block"])
+
+        now_sec = (
+            self.get_clock().now().nanoseconds
+            * 1e-9
+        )
+
         for name, b in self.tracked_blocks.items():
-            if (
-                now - b.last_seen
-                > self.block_timeout_sec
-            ):
-                to_del.append(name)
+
+            age = now_sec - b.last_seen
+
+            if age > self.block_timeout_sec:
+                continue
 
         for name in to_del:
+            self.get_logger().info(
+                f"[TRACKER] Removing stale block: {name}"
+            )
             del self.tracked_blocks[name]
 
         return self.tracked_blocks
@@ -919,9 +933,12 @@ class MergedLocalPickupNode(Node):
             except:
                 continue
 
-        blocks = self.update_tracking(
-            detections
-        )
+        if raw is not None:
+            blocks = self.update_tracking(
+                detections
+            )
+        else:
+            blocks = self.tracked_blocks
 
         self.publish_block_transforms()
 
