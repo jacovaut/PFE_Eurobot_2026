@@ -16,6 +16,7 @@ def generate_launch_description():
     start_yaw_deg = LaunchConfiguration('start_yaw_deg')
     stamp_diagnostics = LaunchConfiguration('stamp_diagnostics')
     max_stamp_offset_sec = LaunchConfiguration('max_stamp_offset_sec')
+    max_tick_delta = LaunchConfiguration('max_tick_delta')
 
     return LaunchDescription([
         DeclareLaunchArgument(
@@ -43,6 +44,11 @@ def generate_launch_description():
             default_value='1.0',
             description='Maximum allowed deadwheel source stamp offset before falling back to receive time'
         ),
+        DeclareLaunchArgument(
+            'max_tick_delta',
+            default_value='50000',
+            description='Largest allowed tick delta per message before treating encoders as reset/reconnected'
+        ),
         # Deadwheel odometry node
         Node(
             package='deadwheel_odometry',
@@ -55,6 +61,7 @@ def generate_launch_description():
                 'initial_yaw_deg': start_yaw_deg,
                 'stamp_diagnostics': ParameterValue(stamp_diagnostics, value_type=bool),
                 'max_stamp_offset_sec': ParameterValue(max_stamp_offset_sec, value_type=float),
+                'max_tick_delta': ParameterValue(max_tick_delta, value_type=int),
             }]
         ),
 

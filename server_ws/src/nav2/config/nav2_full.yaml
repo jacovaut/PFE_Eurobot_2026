@@ -230,7 +230,6 @@ lifecycle_manager_navigation:
     use_sim_time: false
     autostart: true
     node_names:
-      - map_server
       - planner_server
       - controller_server
       - smoother_server
