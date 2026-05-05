@@ -43,18 +43,25 @@ void setup() {
   pinMode(SOLENOID_PIN, OUTPUT);
   digitalWrite(SOLENOID_PIN, LOW);
 
-  // PWM setup
+  // PWM setup for all 8 motor control pins (IN1 and IN2 for each motor)
+  ledcSetup(CH_FL_IN1, PWM_FREQ, PWM_RES);
+  ledcSetup(CH_FL_IN2, PWM_FREQ, PWM_RES);
+  ledcSetup(CH_FR_IN1, PWM_FREQ, PWM_RES);
+  ledcSetup(CH_FR_IN2, PWM_FREQ, PWM_RES);
+  ledcSetup(CH_RL_IN1, PWM_FREQ, PWM_RES);
+  ledcSetup(CH_RL_IN2, PWM_FREQ, PWM_RES);
+  ledcSetup(CH_RR_IN1, PWM_FREQ, PWM_RES);
+  ledcSetup(CH_RR_IN2, PWM_FREQ, PWM_RES);
 
-  ledcSetup(PWM_CH1, PWM_FREQ, PWM_RES);
-  ledcSetup(PWM_CH2, PWM_FREQ, PWM_RES);
-  ledcSetup(PWM_CH3, PWM_FREQ, PWM_RES);
-  ledcSetup(PWM_CH4, PWM_FREQ, PWM_RES);
-
-  // Attach default PWM pins (IN1 side)
-  ledcAttachPin(MOTOR_FL_IN1, PWM_CH1);
-  ledcAttachPin(MOTOR_FR_IN1, PWM_CH2);
-  ledcAttachPin(MOTOR_RL_IN1, PWM_CH3);
-  ledcAttachPin(MOTOR_RR_IN1, PWM_CH4);
+  // Attach PWM pins for both IN1 and IN2
+  ledcAttachPin(MOTOR_FL_IN1, CH_FL_IN1);
+  ledcAttachPin(MOTOR_FL_IN2, CH_FL_IN2);
+  ledcAttachPin(MOTOR_FR_IN1, CH_FR_IN1);
+  ledcAttachPin(MOTOR_FR_IN2, CH_FR_IN2);
+  ledcAttachPin(MOTOR_RL_IN1, CH_RL_IN1);
+  ledcAttachPin(MOTOR_RL_IN2, CH_RL_IN2);
+  ledcAttachPin(MOTOR_RR_IN1, CH_RR_IN1);
+  ledcAttachPin(MOTOR_RR_IN2, CH_RR_IN2);
 
   // Encoders
   encoder1.attachHalfQuad(ENC_FL_A, ENC_FL_B);
@@ -69,17 +76,17 @@ void setup() {
 }
 
 void setMotor(int motor, int speed) {
-  int in1, in2, channel;
+  int in1, in2, ch_in1, ch_in2;
 
   switch (motor) {
     case 1:
-      in1 = MOTOR_FL_IN1; in2 = MOTOR_FL_IN2; channel = PWM_CH1; break;
+      in1 = MOTOR_FL_IN1; in2 = MOTOR_FL_IN2; ch_in1 = CH_FL_IN1; ch_in2 = CH_FL_IN2; break;
     case 2:
-      in1 = MOTOR_FR_IN1; in2 = MOTOR_FR_IN2; channel = PWM_CH2; break;
+      in1 = MOTOR_FR_IN1; in2 = MOTOR_FR_IN2; ch_in1 = CH_FR_IN1; ch_in2 = CH_FR_IN2; break;
     case 3:
-      in1 = MOTOR_RL_IN1; in2 = MOTOR_RL_IN2; channel = PWM_CH3; break;
+      in1 = MOTOR_RL_IN1; in2 = MOTOR_RL_IN2; ch_in1 = CH_RL_IN1; ch_in2 = CH_RL_IN2; break;
     case 4:
-      in1 = MOTOR_RR_IN1; in2 = MOTOR_RR_IN2; channel = PWM_CH4; break;
+      in1 = MOTOR_RR_IN1; in2 = MOTOR_RR_IN2; ch_in1 = CH_RR_IN1; ch_in2 = CH_RR_IN2; break;
     default:
       return;
   }
@@ -89,21 +96,20 @@ void setMotor(int motor, int speed) {
 
   if (speed > 0) {
     // Forward: PWM on IN1, LOW on IN2
-    digitalWrite(in2, LOW);
-    ledcWrite(channel, pwm);
+    ledcWrite(ch_in1, pwm);    // Write PWM to IN1 channel
+    ledcWrite(ch_in2, 0);       // Set IN2 to 0
     Serial.printf("Motor %d - IN1: %d, IN2: 0\n", motor, pwm);
 
   } else if (speed < 0) {
     // Reverse: PWM on IN2, LOW on IN1
-    digitalWrite(in1, LOW);
-    ledcWrite(channel, pwm);
+    ledcWrite(ch_in1, 0);       // Set IN1 to 0
+    ledcWrite(ch_in2, pwm);     // Write PWM to IN2 channel
     Serial.printf("Motor %d - IN1: 0, IN2: %d\n", motor, pwm);
 
   } else {
     // Stop: PWM to 0, both pins LOW
-    ledcWrite(channel, 0);
-    digitalWrite(in1, LOW);
-    digitalWrite(in2, LOW);
+    ledcWrite(ch_in1, 0);       // Set IN1 to 0
+    ledcWrite(ch_in2, 0);       // Set IN2 to 0
     Serial.printf("Motor %d - IN1: 0, IN2: 0\n", motor);
   }
 }
@@ -137,24 +143,25 @@ void setMecanumSpeeds(float vx, float vy, float omega) {
   float L = WHEELBASE_LENGTH / 2.0;
   float W = WHEELBASE_WIDTH / 2.0;
   float R = WHEEL_RADIUS;
-  //Serial.printf("Calculating speeds for vx=%.2f, vy=%.2f, omega=%.2f\n", vx, vy, omega);
+  Serial.printf("Calculating speeds for vx=%.2f, vy=%.2f, omega=%.2f\n", vx, vy, omega);
   float w1 = (vx - vy - (L + W) * omega) / R;
   float w2 = (vx + vy + (L + W) * omega) / R;
   float w3 = (vx + vy - (L + W) * omega) / R;
   float w4 = (vx - vy + (L + W) * omega) / R;
-  //Serial.printf("Raw wheel speeds: w1=%.2f, w2=%.2f, w3=%.2f, w4=%.2f\n", w1, w2, w3, w4);
+  Serial.printf("Raw wheel speeds: w1=%.3f, w2=%.3f, w3=%.3f, w4=%.3f\n", w1, w2, w3, w4);
   float scale = MAX_SPEED / 1.0;
 
-  int pwm1 = constrain((int)(w1 * scale), -MAX_SPEED, MAX_SPEED);
-  int pwm2 = constrain((int)(w2 * scale), -MAX_SPEED, MAX_SPEED);
-  int pwm3 = constrain((int)(w3 * scale), -MAX_SPEED, MAX_SPEED);
-  int pwm4 = constrain((int)(w4 * scale), -MAX_SPEED, MAX_SPEED);
+  // Use proper rounding instead of truncation
+  int pwm1 = constrain((int)round(w1 * scale), -MAX_SPEED, MAX_SPEED);
+  int pwm2 = constrain((int)round(w2 * scale), -MAX_SPEED, MAX_SPEED);
+  int pwm3 = constrain((int)round(w3 * scale), -MAX_SPEED, MAX_SPEED);
+  int pwm4 = constrain((int)round(w4 * scale), -MAX_SPEED, MAX_SPEED);
 
   setMotor(1, pwm1);
   setMotor(2, pwm2);
   setMotor(3, pwm3);
   setMotor(4, pwm4);
-  //Serial.printf("Set speeds: FL=%d, FR=%d, RL=%d, RR=%d\n", pwm1, pwm2, pwm3, pwm4);
+  Serial.printf("Set PWM: FL=%d, FR=%d, RL=%d, RR=%d\n", pwm1, pwm2, pwm3, pwm4);
 }
 
 
@@ -276,6 +283,15 @@ void loop() {
           Serial.println("Encoder: use 'enc on', 'enc off', or 'enc r' to reset");
         }
       }
+    } else if (command.startsWith("test ")) {
+      // Test mode: send same speed to all motors (hardware test)
+      int speed = command.substring(5).toInt();
+      Serial.printf("TEST MODE: Setting all motors to speed %d\n", speed);
+      setMotor(1, speed);
+      setMotor(2, speed);
+      setMotor(3, speed);
+      setMotor(4, speed);
+      Serial.println("All motors set to same speed");
     } else if (command == "pick") {
       // Pick up block: lower servo, activate pump, wait, then lift
       Serial.println("Picking up block...");

@@ -31,17 +31,25 @@ void setup() {
   pinMode(MOTOR_RR_IN1, OUTPUT);
   pinMode(MOTOR_RR_IN2, OUTPUT);
 
-  // PWM setup
-  ledcSetup(PWM_CH1, PWM_FREQ, PWM_RES);
-  ledcSetup(PWM_CH2, PWM_FREQ, PWM_RES);
-  ledcSetup(PWM_CH3, PWM_FREQ, PWM_RES);
-  ledcSetup(PWM_CH4, PWM_FREQ, PWM_RES);
+  // PWM setup for all 8 motor control pins (IN1 and IN2 for each motor)
+  ledcSetup(CH_FL_IN1, PWM_FREQ, PWM_RES);
+  ledcSetup(CH_FL_IN2, PWM_FREQ, PWM_RES);
+  ledcSetup(CH_FR_IN1, PWM_FREQ, PWM_RES);
+  ledcSetup(CH_FR_IN2, PWM_FREQ, PWM_RES);
+  ledcSetup(CH_RL_IN1, PWM_FREQ, PWM_RES);
+  ledcSetup(CH_RL_IN2, PWM_FREQ, PWM_RES);
+  ledcSetup(CH_RR_IN1, PWM_FREQ, PWM_RES);
+  ledcSetup(CH_RR_IN2, PWM_FREQ, PWM_RES);
 
-  // Attach default PWM pins (IN1 side)
-  ledcAttachPin(MOTOR_FL_IN1, PWM_CH1);
-  ledcAttachPin(MOTOR_FR_IN1, PWM_CH2);
-  ledcAttachPin(MOTOR_RL_IN1, PWM_CH3);
-  ledcAttachPin(MOTOR_RR_IN1, PWM_CH4);
+  // Attach PWM pins for both IN1 and IN2
+  ledcAttachPin(MOTOR_FL_IN1, CH_FL_IN1);
+  ledcAttachPin(MOTOR_FL_IN2, CH_FL_IN2);
+  ledcAttachPin(MOTOR_FR_IN1, CH_FR_IN1);
+  ledcAttachPin(MOTOR_FR_IN2, CH_FR_IN2);
+  ledcAttachPin(MOTOR_RL_IN1, CH_RL_IN1);
+  ledcAttachPin(MOTOR_RL_IN2, CH_RL_IN2);
+  ledcAttachPin(MOTOR_RR_IN1, CH_RR_IN1);
+  ledcAttachPin(MOTOR_RR_IN2, CH_RR_IN2);
 
   // Encoders
   encoder1.attachHalfQuad(ENC_FL_A, ENC_FL_B);
@@ -67,17 +75,17 @@ void setup() {
 }
 
 void setMotor(int motor, int speed) {
-  int in1, in2, channel;
+  int in1, in2, ch_in1, ch_in2;
 
   switch (motor) {
     case 1:
-      in1 = MOTOR_FL_IN1; in2 = MOTOR_FL_IN2; channel = PWM_CH1; break;
+      in1 = MOTOR_FL_IN1; in2 = MOTOR_FL_IN2; ch_in1 = CH_FL_IN1; ch_in2 = CH_FL_IN2; break;
     case 2:
-      in1 = MOTOR_FR_IN1; in2 = MOTOR_FR_IN2; channel = PWM_CH2; break;
+      in1 = MOTOR_FR_IN1; in2 = MOTOR_FR_IN2; ch_in1 = CH_FR_IN1; ch_in2 = CH_FR_IN2; break;
     case 3:
-      in1 = MOTOR_RL_IN1; in2 = MOTOR_RL_IN2; channel = PWM_CH3; break;
+      in1 = MOTOR_RL_IN1; in2 = MOTOR_RL_IN2; ch_in1 = CH_RL_IN1; ch_in2 = CH_RL_IN2; break;
     case 4:
-      in1 = MOTOR_RR_IN1; in2 = MOTOR_RR_IN2; channel = PWM_CH4; break;
+      in1 = MOTOR_RR_IN1; in2 = MOTOR_RR_IN2; ch_in1 = CH_RR_IN1; ch_in2 = CH_RR_IN2; break;
     default:
       return;
   }
@@ -87,28 +95,27 @@ void setMotor(int motor, int speed) {
 
   if (speed > 0) {
     // Forward: PWM on IN1, LOW on IN2
-    Serial.printf("Setting Motor %d forward: IN1=%d, IN2=%d\n", motor, in1, in2);
+    Serial.printf("Setting Motor %d forward: IN1=%d, IN2=%d, PWM=%d\n", motor, in1, in2, pwm);
     motorIN1[motor - 1] = pwm;
     motorIN2[motor - 1] = 0;
-    digitalWrite(in2, LOW);
-    ledcWrite(channel, pwm);
+    ledcWrite(ch_in1, pwm);    // Write PWM to IN1 channel
+    ledcWrite(ch_in2, 0);       // Set IN2 to 0
 
   } else if (speed < 0) {
     // Reverse: PWM on IN2, LOW on IN1
-    Serial.printf("Setting Motor %d reverse: IN1=%d, IN2=%d\n", motor, in1, in2);
+    Serial.printf("Setting Motor %d reverse: IN1=%d, IN2=%d, PWM=%d\n", motor, in1, in2, pwm);
     motorIN1[motor - 1] = 0;
     motorIN2[motor - 1] = pwm;
-    digitalWrite(in1, LOW);
-    ledcWrite(channel, pwm);
+    ledcWrite(ch_in1, 0);       // Set IN1 to 0
+    ledcWrite(ch_in2, pwm);     // Write PWM to IN2 channel
 
   } else {
     // Stop: PWM to 0, both pins LOW
     Serial.printf("Stopping Motor %d: IN1=%d, IN2=%d\n", motor, in1, in2);
     motorIN1[motor - 1] = 0;
     motorIN2[motor - 1] = 0;
-    ledcWrite(channel, 0);
-    digitalWrite(in1, LOW);
-    digitalWrite(in2, LOW);
+    ledcWrite(ch_in1, 0);       // Set IN1 to 0
+    ledcWrite(ch_in2, 0);       // Set IN2 to 0
   }
 }
 
