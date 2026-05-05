@@ -17,6 +17,9 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/DeadwheelTicks.msg"
   "msg/Blocks.msg"
   "action/DockToBlock.action"
+  "action/Dispense.action"
+  "action/Pick.action"
+  "action/Therm.action"
   DEPENDENCIES std_msgs builtin_interfaces action_msgs unique_identifier_msgs
 )
 
