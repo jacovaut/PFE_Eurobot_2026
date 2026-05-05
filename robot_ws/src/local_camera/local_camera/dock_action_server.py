@@ -59,7 +59,7 @@ class DockActionServer(Node):
         # ----- Parameters -----
         self.declare_parameter("k_x",          0.5)
         self.declare_parameter("k_y",          0.5)
-        self.declare_parameter("k_theta",      3.0)
+        self.declare_parameter("k_theta",      0.5)
         self.declare_parameter("max_vx",       0.4)
         self.declare_parameter("max_vy",       0.7)
         self.declare_parameter("max_w",        0.8)
@@ -279,23 +279,18 @@ class DockActionServer(Node):
                         stable_start = time.time()
                     if time.time() - stable_start >= self.stable_time_required:
                         self._stop()
-                        if self.n_blocks == 1:
-                            r_target = self.orbit_radius
-                            orbit_dir = 1.0 if dtheta >= 0 else -1.0
-                            phase = "orbit"
-                            self.get_logger().info(
-                                f"[DOCK] Position reached, starting orbit "
-                                f"({'CCW' if orbit_dir>0 else 'CW'}, dtheta={math.degrees(dtheta):.1f}°)")
-                        else:
-                            phase = "approach2"
-                            self.get_logger().info(
-                                f"[DOCK] Position reached (n={self.n_blocks}), skipping orbit → approach2")
+                        r_target = self.orbit_radius
+                        orbit_dir = 1.0 if dtheta >= 0 else -1.0
+                        phase = "orbit"
                         stable_start = None
+                        self.get_logger().info(
+                            f"[DOCK] Position reached, starting orbit "
+                            f"({'CCW' if orbit_dir>0 else 'CW'}, dtheta={math.degrees(dtheta):.1f}°)")
                 else:
                     stable_start = None
                     vx = clamp(self.kx * dx, -self.max_vx, self.max_vx)
                     vy = clamp(self.ky * dy, -self.max_vy, self.max_vy)
-                w = 0.0
+                w = clamp(self.kt * dtheta, -self.max_w, self.max_w)
 
             # ==================
             # PHASE: ORBIT
@@ -342,8 +337,7 @@ class DockActionServer(Node):
             # ==================
             elif phase == "approach2":
                 in_pos = abs(dx) < self.tol_xy and abs(dy) < self.tol_xy
-                in_ang = abs(dtheta) < self.tol_theta
-                if in_pos and in_ang:
+                if in_pos:
                     state = self.STATE_ALIGNED
                 elif error < self.tol_xy * 2.5:
                     state = self.STATE_CONVERGING
@@ -351,7 +345,7 @@ class DockActionServer(Node):
                     state = self.STATE_LOCKED
                 self.last_good_state = state
 
-                if in_pos and in_ang:
+                if in_pos:
                     vx = vy = w = 0.0
                     if stable_start is None:
                         stable_start = time.time()
@@ -369,7 +363,7 @@ class DockActionServer(Node):
                     stable_start = None
                     vx = clamp(self.kx * dx, -self.max_vx, self.max_vx)
                     vy = clamp(self.ky * dy, -self.max_vy, self.max_vy)
-                    w  = clamp(self.kt * dtheta, -self.max_w, self.max_w)
+                    w  = 0.0
 
             # Acceleration limiting
             # Note: cmd.linear.y = -vy, so last_cmd.linear.y = -vy_prev.
