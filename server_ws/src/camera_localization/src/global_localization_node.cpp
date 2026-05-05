@@ -18,6 +18,9 @@
 #include <sstream>
 #include <iomanip>
 #include <chrono>
+#include <atomic>
+#include <mutex>
+#include <thread>
 #include <ament_index_cpp/get_package_share_directory.hpp>
 
 class CameraLocalizationNode : public rclcpp::Node
@@ -135,6 +138,10 @@ public:
       declare_parameter<double>("detector_error_correction_rate", 0.35);
     detector_use_corner_refinement_subpix_ =
       declare_parameter<bool>("detector_use_corner_refinement_subpix", true);
+    // Downscale factor applied to the frame before ArUco detection (0.5 = half res = 4x faster).
+    // Detected corners are scaled back to original coordinates for solvePnP.
+    detect_downscale_ =
+      declare_parameter<double>("detect_downscale", 0.5);
 
     // Optional rescue pass focused on large table markers (IDs 20-23)
     enable_table_marker_rescue_pass_ =
@@ -177,6 +184,21 @@ public:
     // Snapshot-based pose stabilization
     pose_update_interval_s_ =
       declare_parameter<double>("pose_update_interval_s", 5.0);
+    block_rescue_period_s_ =
+      declare_parameter<double>("block_rescue_period_s", 0.5);
+    bev_block_rescue_period_s_ =
+      declare_parameter<double>("bev_block_rescue_period_s", 1.0);
+
+    enable_entity_tracking_ =
+      declare_parameter<bool>("enable_entity_tracking", true);
+    entity_tracking_match_gate_m_ =
+      declare_parameter<double>("entity_tracking_match_gate_m", 0.12);
+    entity_tracking_ema_alpha_ =
+      declare_parameter<double>("entity_tracking_ema_alpha", 0.5);
+    entity_tracking_yaw_alpha_ =
+      declare_parameter<double>("entity_tracking_yaw_alpha", 0.5);
+    entity_tracking_max_missed_frames_ =
+      declare_parameter<int>("entity_tracking_max_missed_frames", 5);
 
     // ----------------------------
     // Publisher
@@ -201,12 +223,13 @@ public:
 
     if (debug_view_) {
       cv::namedWindow("camera_localization_debug", cv::WINDOW_NORMAL);
+      display_timer_ = create_wall_timer(
+        std::chrono::milliseconds(33),
+        std::bind(&CameraLocalizationNode::displayTick, this));
     }
 
-    const int period_ms = std::max(1, static_cast<int>(1000.0 / static_cast<double>(fps_)));
-    timer_ = create_wall_timer(
-      std::chrono::milliseconds(period_ms),
-      std::bind(&CameraLocalizationNode::cameraTick, this));
+    running_.store(true, std::memory_order_release);
+    processing_thread_ = std::thread(&CameraLocalizationNode::processingLoop, this);
 
     RCLCPP_INFO(get_logger(), "global_localization_node started");
     RCLCPP_INFO(get_logger(), "Publishing global pose on %s", pose_topic_.c_str());
@@ -214,6 +237,11 @@ public:
 
   ~CameraLocalizationNode() override
   {
+    running_.store(false, std::memory_order_release);
+    cap_.release();
+    if (processing_thread_.joinable()) {
+      processing_thread_.join();
+    }
     if (debug_view_) {
       cv::destroyAllWindows();
     }
@@ -235,6 +263,12 @@ private:
     double size_x_m{0.0};
     double size_y_m{0.0};
     bool is_dynamic{true};
+  };
+
+  struct TrackedEntity
+  {
+    DetectedEntity entity;
+    int missed_frames{0};
   };
 
   void openCamera()
@@ -432,6 +466,13 @@ private:
     dictionary_ = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_4X4_50);
   }
 
+  void processingLoop()
+  {
+    while (running_.load(std::memory_order_acquire) && rclcpp::ok()) {
+      cameraTick();
+    }
+  }
+
   void cameraTick()
   {
     auto tick_start = std::chrono::high_resolution_clock::now();
@@ -441,6 +482,7 @@ private:
     if (!cap_.read(frame) || frame.empty()) {
       empty_frame_count_++;
       RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 2000, "Empty camera frame");
+      std::this_thread::sleep_for(std::chrono::milliseconds(1));
       return;
     }
     
@@ -485,10 +527,30 @@ private:
       clahe->apply(gray, gray);
     }
 
+    // Downscale for faster ArUco detection, then scale corners back to original coords for solvePnP.
+    cv::Mat detect_gray;
+    double inv_scale = 1.0;
+    if (detect_downscale_ < 1.0 - 1e-6) {
+      cv::resize(gray, detect_gray, cv::Size(), detect_downscale_, detect_downscale_,
+                 cv::INTER_AREA);
+      inv_scale = 1.0 / detect_downscale_;
+    } else {
+      detect_gray = gray;
+    }
+
     std::vector<int> ids;
     std::vector<std::vector<cv::Point2f>> corners;
     std::vector<std::vector<cv::Point2f>> rejected;
-    cv::aruco::detectMarkers(gray, dictionary_, corners, ids, detector_params_, rejected);
+    cv::aruco::detectMarkers(detect_gray, dictionary_, corners, ids, detector_params_, rejected);
+
+    if (inv_scale != 1.0) {
+      for (auto &corner_set : corners) {
+        for (auto &pt : corner_set) {
+          pt.x *= static_cast<float>(inv_scale);
+          pt.y *= static_cast<float>(inv_scale);
+        }
+      }
+    }
 
     bool marker20_accepted_before_rescue = false;
     for (int id : ids) {
@@ -504,8 +566,13 @@ private:
       if (table_ids_.count(id)) table_markers_before_rescue++;
     }
 
-    runTableMarkerRescuePass(gray, ids, corners);
-    runBlockMarkerBorderRescuePass(gray, ids, corners);
+    auto now = std::chrono::steady_clock::now();
+    double elapsed_s = std::chrono::duration<double>(now - last_pose_update_time_).count();
+    bool should_update_pose = !have_active_pose_ || elapsed_s >= pose_update_interval_s_;
+
+    if (should_update_pose) {
+      runTableMarkerRescuePass(gray, ids, corners);
+    }
 
     bool marker20_accepted_after_rescue = false;
     for (int id : ids) {
@@ -548,7 +615,7 @@ private:
 }
 
 if (ids.empty()) {
-  publishDetectedEntities({});
+  publishDetectedEntities(updateTrackedEntities({}));
   showDebug(debug_image);
   return;
 }
@@ -561,10 +628,6 @@ if (ids.empty()) {
     // Prefer the pose from when all 4 table markers were visible ("golden").
     // Keep the very first successful pose as a fallback.
     // -------------------------------------------------------
-    auto now = std::chrono::steady_clock::now();
-    double elapsed_s = std::chrono::duration<double>(now - last_pose_update_time_).count();
-    bool should_update_pose = !have_active_pose_ || elapsed_s >= pose_update_interval_s_;
-
     if (should_update_pose) {
       std::vector<cv::Point3f> obj_pts_map;
       std::vector<cv::Point2f> img_pts;
@@ -641,14 +704,10 @@ if (ids.empty()) {
       failed_solvepnp_++;
       RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 2000,
         "No camera pose available yet (waiting for table markers)");
-      publishDetectedEntities({});
+      publishDetectedEntities(updateTrackedEntities({}));
       showDebug(debug_image);
       return;
     }
-
-    // Update BEV homography from current active pose, then run BEV block rescue.
-    updateBevHomography();
-    runBirdEyeBlockRescuePass(gray, ids, corners);
 
     // Use the active (golden or fallback) pose
     cv::Mat Rcv_camera_map;
@@ -658,6 +717,100 @@ if (ids.empty()) {
     // Invert to get map <- camera
     const cv::Matx33d R_map_camera = R_camera_map.t();
     const cv::Vec3d t_map_camera = -(R_map_camera * active_tvec_);
+
+    // -------------------------------------------------------
+    // Step 2: Find OUR robot marker and publish /camera/global_pose
+    // before the expensive block rescue passes run.
+    // -------------------------------------------------------
+    bool have_robot_pose = false;
+    DetectedEntity robot_entity;
+    cv::Vec3d t_map_base(0.0, 0.0, 0.0);
+    double yaw_map_base = 0.0;
+    cv::Vec3d rvec_camera_marker, tvec_camera_marker;
+
+    int robot_index = -1;
+    for (size_t i = 0; i < ids.size(); ++i) {
+      if (ids[i] == robot_marker_id_) {
+        robot_index = static_cast<int>(i);
+        break;
+      }
+    }
+
+    if (robot_index < 0) {
+      RCLCPP_WARN_THROTTLE(
+        get_logger(), *get_clock(), 1000,
+        "Robot marker ID %d not visible", robot_marker_id_);
+    } else {
+      const bool ok_robot = cv::solvePnP(
+        obj_points_robot_,
+        corners[robot_index],
+        camera_matrix_,
+        dist_coeffs_,
+        rvec_camera_marker,
+        tvec_camera_marker,
+        false,
+        cv::SOLVEPNP_IPPE_SQUARE);
+
+      if (!ok_robot) {
+        RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 1000, "Robot marker solvePnP failed");
+      } else {
+        cv::Mat Rcv_camera_marker;
+        cv::Rodrigues(rvec_camera_marker, Rcv_camera_marker);
+
+        // Fix Z-axis ambiguity: marker Z should point toward camera (positive Z in camera frame).
+        // If it points away (R's 3rd column Z < 0), flip by rotating 180° around X.
+        if (Rcv_camera_marker.at<double>(2, 2) < 0) {
+          Rcv_camera_marker.col(1) *= -1.0;
+          Rcv_camera_marker.col(2) *= -1.0;
+          cv::Rodrigues(Rcv_camera_marker, rvec_camera_marker);
+        }
+
+        const cv::Matx33d R_camera_marker(Rcv_camera_marker);
+        const cv::Matx33d R_map_marker = R_map_camera * R_camera_marker;
+        const cv::Vec3d t_map_marker = R_map_camera * tvec_camera_marker + t_map_camera;
+
+        const cv::Matx33d R_base_aruco = rotationZ(base_link_to_aruco_yaw_);
+        const cv::Vec3d t_base_aruco(
+          base_link_to_aruco_x_,
+          base_link_to_aruco_y_,
+          base_link_to_aruco_z_);
+
+        const cv::Matx33d R_aruco_base = R_base_aruco.t();
+        const cv::Vec3d t_aruco_base = -(R_aruco_base * t_base_aruco);
+
+        const cv::Matx33d R_map_base = R_map_marker * R_aruco_base;
+        t_map_base = R_map_marker * t_aruco_base + t_map_marker;
+        yaw_map_base = std::atan2(R_map_base(1, 0), R_map_base(0, 0));
+
+        robot_entity.marker_id = robot_marker_id_;
+        robot_entity.color = "robot";
+        robot_entity.position_map = cv::Vec3d(t_map_base[0], t_map_base[1], t_map_base[2]);
+        robot_entity.yaw_rad = yaw_map_base;
+        robot_entity.size_x_m = 0.0;
+        robot_entity.size_y_m = 0.0;
+        robot_entity.is_dynamic = true;
+
+        publishPose(t_map_base, yaw_map_base);
+        have_robot_pose = true;
+      }
+    }
+
+    // These passes are useful for obstacle/strategy output, but they are expensive.
+    // Run them periodically so /camera/global_pose is not limited by block rescue throughput.
+    const double block_rescue_elapsed_s =
+      std::chrono::duration<double>(now - last_block_rescue_time_).count();
+    if (block_rescue_period_s_ <= 0.0 || block_rescue_elapsed_s >= block_rescue_period_s_) {
+      runBlockMarkerBorderRescuePass(gray, ids, corners);
+      last_block_rescue_time_ = now;
+    }
+
+    const double bev_rescue_elapsed_s =
+      std::chrono::duration<double>(now - last_bev_block_rescue_time_).count();
+    if (bev_block_rescue_period_s_ <= 0.0 || bev_rescue_elapsed_s >= bev_block_rescue_period_s_) {
+      updateBevHomography();
+      runBirdEyeBlockRescuePass(gray, ids, corners);
+      last_bev_block_rescue_time_ = now;
+    }
 
     if (debug_view_) {
       drawMapOrigin(debug_image, active_rvec_, active_tvec_);
@@ -731,106 +884,12 @@ if (ids.empty()) {
       break;
     }
 
-    // -------------------------------------------------------
-    // Step 2: Find OUR robot marker
-    // -------------------------------------------------------
-    int robot_index = -1;
-    for (size_t i = 0; i < ids.size(); ++i) {
-      if (ids[i] == robot_marker_id_) {
-        robot_index = static_cast<int>(i);
-        break;
-      }
+    if (have_robot_pose) {
+      detected_entities.push_back(robot_entity);
     }
+    publishDetectedEntities(updateTrackedEntities(detected_entities));
 
-    if (robot_index < 0) {
-      RCLCPP_WARN_THROTTLE(
-        get_logger(), *get_clock(), 1000,
-        "Robot marker ID %d not visible", robot_marker_id_);
-      publishDetectedEntities(detected_entities);
-      showDebug(debug_image);
-      return;
-    }
-
-    // -------------------------------------------------------
-    // Step 3: Estimate robot marker pose in camera frame
-    // solvePnP gives: X_camera = R_camera_marker * X_marker + t_camera_marker
-    // -------------------------------------------------------
-    cv::Vec3d rvec_camera_marker, tvec_camera_marker;
-    const bool ok_robot = cv::solvePnP(
-      obj_points_robot_,
-      corners[robot_index],
-      camera_matrix_,
-      dist_coeffs_,
-      rvec_camera_marker,
-      tvec_camera_marker,
-      false,
-      cv::SOLVEPNP_IPPE_SQUARE);
-
-    if (!ok_robot) {
-      RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 1000, "Robot marker solvePnP failed");
-      publishDetectedEntities(detected_entities);
-      showDebug(debug_image);
-      return;
-    }
-
-    cv::Mat Rcv_camera_marker;
-    cv::Rodrigues(rvec_camera_marker, Rcv_camera_marker);
-
-    // Fix Z-axis ambiguity: marker Z should point toward camera (positive Z in camera frame).
-    // If it points away (R's 3rd column Z < 0), flip by rotating 180° around X.
-    if (Rcv_camera_marker.at<double>(2, 2) < 0) {
-      // Flip Z and Y axes (180° rotation around X)
-      Rcv_camera_marker.col(1) *= -1.0;
-      Rcv_camera_marker.col(2) *= -1.0;
-      cv::Rodrigues(Rcv_camera_marker, rvec_camera_marker);
-    }
-
-    cv::Matx33d R_camera_marker(Rcv_camera_marker);
-
-    // -------------------------------------------------------
-    // Step 4: Compose map <- marker
-    // X_map = R_map_camera * (R_camera_marker * X_marker + t_camera_marker) + t_map_camera
-    // So:
-    // R_map_marker = R_map_camera * R_camera_marker
-    // t_map_marker = R_map_camera * t_camera_marker + t_map_camera
-    // -------------------------------------------------------
-    const cv::Matx33d R_map_marker = R_map_camera * R_camera_marker;
-    const cv::Vec3d t_map_marker = R_map_camera * tvec_camera_marker + t_map_camera;
-
-    // -------------------------------------------------------
-    // Step 5: Convert detected marker pose into base_link pose.
-    // The measured robot mounting transform is T_base_aruco, so:
-    // T_map_base = T_map_aruco * inverse(T_base_aruco)
-    // -------------------------------------------------------
-    const cv::Matx33d R_base_aruco = rotationZ(base_link_to_aruco_yaw_);
-    const cv::Vec3d t_base_aruco(
-      base_link_to_aruco_x_,
-      base_link_to_aruco_y_,
-      base_link_to_aruco_z_);
-
-    const cv::Matx33d R_aruco_base = R_base_aruco.t();
-    const cv::Vec3d t_aruco_base = -(R_aruco_base * t_base_aruco);
-
-    const cv::Matx33d R_map_base = R_map_marker * R_aruco_base;
-    const cv::Vec3d t_map_base = R_map_marker * t_aruco_base + t_map_marker;
-
-    // Extract planar yaw in ROS ENU map frame
-    const double yaw_map_base = std::atan2(R_map_base(1, 0), R_map_base(0, 0));
-
-    DetectedEntity robot_entity;
-    robot_entity.marker_id = robot_marker_id_;
-    robot_entity.color = "robot";
-    robot_entity.position_map = cv::Vec3d(t_map_base[0], t_map_base[1], t_map_base[2]);
-    robot_entity.yaw_rad = yaw_map_base;
-    robot_entity.size_x_m = 0.0;
-    robot_entity.size_y_m = 0.0;
-    robot_entity.is_dynamic = true;
-    detected_entities.push_back(robot_entity);
-
-    publishPose(t_map_base, yaw_map_base);
-    publishDetectedEntities(detected_entities);
-
-    if (debug_view_) {
+    if (debug_view_ && have_robot_pose) {
       drawPoseText(debug_image, t_map_base, yaw_map_base);
       cv::drawFrameAxes(
         debug_image,
@@ -1173,6 +1232,92 @@ if (ids.empty()) {
     return escaped;
   }
 
+  static double wrapAngle(double angle)
+  {
+    return std::atan2(std::sin(angle), std::cos(angle));
+  }
+
+  double filterYaw(double previous_yaw, double measured_yaw) const
+  {
+    const double diff = wrapAngle(measured_yaw - previous_yaw);
+    return wrapAngle(previous_yaw + entity_tracking_yaw_alpha_ * diff);
+  }
+
+  std::vector<DetectedEntity> updateTrackedEntities(const std::vector<DetectedEntity> &detections)
+  {
+    if (!enable_entity_tracking_) {
+      return detections;
+    }
+
+    std::vector<bool> matched_tracks(tracked_entities_.size(), false);
+
+    for (const auto &detection : detections) {
+      int best_index = -1;
+      double best_distance = entity_tracking_match_gate_m_;
+
+      for (std::size_t i = 0; i < tracked_entities_.size(); ++i) {
+        if (matched_tracks[i]) {
+          continue;
+        }
+
+        const auto &track = tracked_entities_[i].entity;
+        if (track.marker_id != detection.marker_id || track.color != detection.color) {
+          continue;
+        }
+
+        const double dx = detection.position_map[0] - track.position_map[0];
+        const double dy = detection.position_map[1] - track.position_map[1];
+        const double distance = std::sqrt(dx * dx + dy * dy);
+        if (distance < best_distance) {
+          best_distance = distance;
+          best_index = static_cast<int>(i);
+        }
+      }
+
+      if (best_index >= 0) {
+        auto &track = tracked_entities_[best_index];
+        auto &entity = track.entity;
+        const double alpha = entity_tracking_ema_alpha_;
+        entity.position_map[0] =
+          alpha * detection.position_map[0] + (1.0 - alpha) * entity.position_map[0];
+        entity.position_map[1] =
+          alpha * detection.position_map[1] + (1.0 - alpha) * entity.position_map[1];
+        entity.position_map[2] = detection.position_map[2];
+        entity.yaw_rad = filterYaw(entity.yaw_rad, detection.yaw_rad);
+        entity.size_x_m = detection.size_x_m;
+        entity.size_y_m = detection.size_y_m;
+        entity.is_dynamic = detection.is_dynamic;
+        track.missed_frames = 0;
+        matched_tracks[best_index] = true;
+      } else {
+        tracked_entities_.push_back(TrackedEntity{detection, 0});
+        matched_tracks.push_back(true);
+      }
+    }
+
+    for (std::size_t i = 0; i < tracked_entities_.size(); ++i) {
+      if (!matched_tracks[i]) {
+        tracked_entities_[i].missed_frames++;
+      }
+    }
+
+    tracked_entities_.erase(
+      std::remove_if(
+        tracked_entities_.begin(),
+        tracked_entities_.end(),
+        [this](const TrackedEntity &track) {
+          return track.missed_frames > entity_tracking_max_missed_frames_;
+        }),
+      tracked_entities_.end());
+
+    std::vector<DetectedEntity> smoothed;
+    smoothed.reserve(tracked_entities_.size());
+    for (const auto &track : tracked_entities_) {
+      smoothed.push_back(track.entity);
+    }
+    return smoothed;
+  }
+
   void publishDetectedEntities(const std::vector<DetectedEntity> &entities)
   {
     auto pub_start = std::chrono::high_resolution_clock::now();
@@ -1441,6 +1586,21 @@ if (ids.empty()) {
       return;
     }
 
+    std::lock_guard<std::mutex> lock(debug_frame_mutex_);
+    debug_frame_ = image.clone();
+  }
+
+  void displayTick()
+  {
+    cv::Mat image;
+    {
+      std::lock_guard<std::mutex> lock(debug_frame_mutex_);
+      if (debug_frame_.empty()) {
+        return;
+      }
+      image = debug_frame_.clone();
+    }
+
     cv::Mat resized;
     cv::resize(image, resized, cv::Size(1280, 720));
     cv::imshow("camera_localization_debug", resized);
@@ -1454,12 +1614,20 @@ if (ids.empty()) {
   // ROS
   rclcpp::Publisher<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr pose_pub_;
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr detected_blocks_pub_;
-  rclcpp::TimerBase::SharedPtr timer_;
+  rclcpp::TimerBase::SharedPtr display_timer_;
 
   // Camera / calibration
   cv::VideoCapture cap_;
   cv::Mat camera_matrix_;
   cv::Mat dist_coeffs_;
+
+  // Background camera processing
+  std::atomic<bool> running_{false};
+  std::thread processing_thread_;
+
+  // Debug display is kept on the ROS executor thread for OpenCV GUI stability.
+  std::mutex debug_frame_mutex_;
+  cv::Mat debug_frame_;
 
   // ArUco
   cv::Ptr<cv::aruco::Dictionary> dictionary_;
@@ -1494,6 +1662,18 @@ if (ids.empty()) {
   cv::Vec3d active_tvec_{0.0, 0.0, 0.0};
   std::chrono::steady_clock::time_point last_pose_update_time_{};
   double pose_update_interval_s_{5.0};
+  std::chrono::steady_clock::time_point last_block_rescue_time_{};
+  std::chrono::steady_clock::time_point last_bev_block_rescue_time_{};
+  double block_rescue_period_s_{0.5};
+  double bev_block_rescue_period_s_{1.0};
+
+  // EMA tracking for the JSON detection stream consumed by strategy and obstacle publishing.
+  std::vector<TrackedEntity> tracked_entities_;
+  bool enable_entity_tracking_{true};
+  double entity_tracking_match_gate_m_{0.12};
+  double entity_tracking_ema_alpha_{0.5};
+  double entity_tracking_yaw_alpha_{0.5};
+  int entity_tracking_max_missed_frames_{5};
   
   // Diagnostics: frame counting and timing
   uint64_t frame_counter_{0};
@@ -1569,6 +1749,7 @@ if (ids.empty()) {
   double detector_max_marker_perimeter_rate_{4.0};
   double detector_error_correction_rate_{0.35};
   bool detector_use_corner_refinement_subpix_{true};
+  double detect_downscale_{0.5};
 
   bool enable_table_marker_rescue_pass_{true};
   double rescue_clahe_clip_limit_{2.0};

@@ -1,0 +1,14 @@
+# Goal
+float64 timeout_sec      # max seconds to attempt docking (0 = no timeout)
+---
+# Result
+bool success
+string message
+float64 final_error_m    # final position error in meters
+---
+# Feedback
+float64 dx               # remaining x offset (m) in base_link
+float64 dy               # remaining y offset (m) in base_link
+float64 yaw_deg          # remaining yaw error (deg)
+float64 error_m          # combined position error magnitude (m)
+int32 state              # 0=searching, 1=candidate, 2=locked, 3=converging, 4=aligned

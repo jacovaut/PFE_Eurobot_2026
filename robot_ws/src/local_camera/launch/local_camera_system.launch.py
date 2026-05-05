@@ -32,16 +32,15 @@ def generate_launch_description():
             name='joint_state_publisher',
             output='screen',
         ),
-        # Node(
-        #     package='rviz2',
-        #     executable='rviz2',
-        #     name='rviz2',
-        #     output='screen',
-        #     arguments=['-d', os.path.join(pkg_path, 'rviz', 'local_camera.rviz')],
-        # ),
         Node(
             package='local_camera',
-            executable='merged_local_pickup_node',
+            executable='dock_action_server',
+            name='dock_action_server',
+            output='screen',
+        ),
+        Node(
+            package='local_camera',
+            executable='ros_node',
             name='merged_local_pickup_node',
             output='screen',
             parameters=[{

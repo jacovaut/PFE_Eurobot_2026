@@ -30,6 +30,9 @@ class CameraMapVisualizer(Node):
         self.detected_obstacle_point_spacing_m = float(
             self.declare_parameter('detected_obstacle_point_spacing_m', 0.05).value
         )
+        self.detected_obstacle_padding_m = float(
+            self.declare_parameter('detected_obstacle_padding_m', 0.06).value
+        )
         self.publish_period_s = float(self.declare_parameter('publish_period_s', 0.25).value)
 
         self.nids_noms = list(self.declare_parameter('nids_noms', ['nid_jaune', 'nid_bleu']).value)
@@ -52,6 +55,15 @@ class CameraMapVisualizer(Node):
         self.zones_interdites_point_spacing_m = float(
             self.declare_parameter('zones_interdites_point_spacing_m', 0.05).value
         )
+
+        self.arena_x_min = float(self.declare_parameter('arena_x_min', 0.0).value)
+        self.arena_x_max = float(self.declare_parameter('arena_x_max', 3.0).value)
+        self.arena_y_min = float(self.declare_parameter('arena_y_min', 0.0).value)
+        self.arena_y_max = float(self.declare_parameter('arena_y_max', 2.0).value)
+        self.arena_wall_spacing_m = float(self.declare_parameter('arena_wall_spacing_m', 0.05).value)
+        self.arena_wall_z_m = float(self.declare_parameter('arena_wall_z_m', 0.05).value)
+
+        self._wall_points: List[List[float]] = self._build_wall_points()
 
         self.tf_broadcaster = TransformBroadcaster(self)
         self.marker_pub = self.create_publisher(MarkerArray, self.marker_topic, 10)
@@ -200,10 +212,28 @@ class CameraMapVisualizer(Node):
 
         if self.publish_block_obstacles:
             header = Header()
-            header.stamp = now
+            header.stamp = rclpy.time.Time().to_msg()
             header.frame_id = self.map_frame
-            cloud = point_cloud2.create_cloud_xyz32(header, obstacle_points)
+            cloud = point_cloud2.create_cloud_xyz32(header, obstacle_points + self._wall_points)
             self.block_pc_pub.publish(cloud)
+
+    def _build_wall_points(self) -> List[List[float]]:
+        pts: List[List[float]] = []
+        spacing = max(self.arena_wall_spacing_m, 0.02)
+        z = self.arena_wall_z_m
+        x_min, x_max = self.arena_x_min, self.arena_x_max
+        y_min, y_max = self.arena_y_min, self.arena_y_max
+        x = x_min
+        while x <= x_max + 1e-6:
+            pts.append([x, y_min, z])
+            pts.append([x, y_max, z])
+            x += spacing
+        y = y_min
+        while y <= y_max + 1e-6:
+            pts.append([x_min, y, z])
+            pts.append([x_max, y, z])
+            y += spacing
+        return pts
 
     def _append_zone_markers(
         self,
@@ -297,8 +327,9 @@ class CameraMapVisualizer(Node):
         center_x = float(obstacle.get('x', 0.0))
         center_y = float(obstacle.get('y', 0.0))
         center_z = float(obstacle.get('z', max(self.block_obstacle_height_m * 0.5, 0.03)))
-        size_x = max(float(obstacle.get('size_x_m', 0.12)), 0.03)
-        size_y = max(float(obstacle.get('size_y_m', 0.05)), 0.03)
+        padding = max(self.detected_obstacle_padding_m, 0.0)
+        size_x = max(float(obstacle.get('size_x_m', 0.12)) + 2.0 * padding, 0.03)
+        size_y = max(float(obstacle.get('size_y_m', 0.05)) + 2.0 * padding, 0.03)
         yaw = float(obstacle.get('yaw', 0.0))
         spacing = max(self.detected_obstacle_point_spacing_m, 0.02)
 
