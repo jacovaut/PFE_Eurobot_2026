@@ -1,9 +1,9 @@
 Localization lag diagnostic report
-Generated: 2026-05-05T15:36:35-03:00
+Generated: 2026-05-05T15:50:03-03:00
 Workspace: /home/isaac/PFE_Eurobot_2026/server_ws
 Duration per streaming check: 8s
 ROS_DISTRO: jazzy
-ROS_DOMAIN_ID: unset
+ROS_DOMAIN_ID: 0
 RMW_IMPLEMENTATION: unset
 
 Before sending this report, also note RViz Fixed Frame manually: map / odom / base_link
@@ -13,7 +13,6 @@ ros2 node list
 ================================================================================
 COMMAND: ros2 node list
 WARNING: Be aware that there are nodes in the graph that share an exact name, which can have unintended side effects.
-/alignment_controller
 /behavior_server
 /bt_navigator
 /bt_navigator_navigate_through_poses_rclcpp_node
@@ -35,24 +34,21 @@ WARNING: Be aware that there are nodes in the graph that share an exact name, wh
 /local_costmap/local_costmap
 /map_server
 /merged_local_pickup_node
-/motion_arbiter
 /odrive_node
 /planner_server
 /robot_state_publisher
 /robot_state_publisher
 /robot_state_publisher
 /rviz
-/serial_bridge
 /smoother_server
-/swerve_mapper_node
+/teleop_twist_keyboard
 /ticks_listener
-/transform_listener_impl_565a6684b770
-/transform_listener_impl_572220357d20
-/transform_listener_impl_5ba71351cb00
-/transform_listener_impl_5f090322fb60
-/transform_listener_impl_5f59aef89ed0
+/transform_listener_impl_5687ad9cf890
+/transform_listener_impl_5a1aa2743790
+/transform_listener_impl_5fdd12ba6330
+/transform_listener_impl_6173f2a2e730
+/transform_listener_impl_704fc0001740
 /velocity_smoother
-/vision_node
 /waypoint_follower
 EXIT_STATUS: 0
 
@@ -179,14 +175,14 @@ QoS profile:
 
 Subscription count: 2
 
-Node name: _ros2cli_46258
+Node name: ticks_listener
 Node namespace: /
 Topic type: custom_msgs/msg/DeadwheelTicks
 Topic type hash: RIHS01_8521b090ca80068ebdc683090545eb092378a4fa2694505fdbda0192241b7135
 Endpoint type: SUBSCRIPTION
-GID: 01.0f.ed.52.b2.b4.0d.1f.00.00.00.00.00.00.07.04
+GID: 01.0f.ed.52.3a.c0.22.d5.00.00.00.00.00.00.15.04
 QoS profile:
-  Reliability: RELIABLE
+  Reliability: BEST_EFFORT
   History (Depth): UNKNOWN
   Durability: VOLATILE
   Lifespan: Infinite
@@ -194,14 +190,14 @@ QoS profile:
   Liveliness: AUTOMATIC
   Liveliness lease duration: Infinite
 
-Node name: ticks_listener
+Node name: _ros2cli_49497
 Node namespace: /
 Topic type: custom_msgs/msg/DeadwheelTicks
 Topic type hash: RIHS01_8521b090ca80068ebdc683090545eb092378a4fa2694505fdbda0192241b7135
 Endpoint type: SUBSCRIPTION
-GID: 01.0f.ed.52.ba.b3.ce.e7.00.00.00.00.00.00.15.04
+GID: 01.0f.ed.52.59.c1.a7.00.00.00.00.00.00.00.07.04
 QoS profile:
-  Reliability: BEST_EFFORT
+  Reliability: RELIABLE
   History (Depth): UNKNOWN
   Durability: VOLATILE
   Lifespan: Infinite
@@ -224,7 +220,7 @@ Node namespace: /
 Topic type: nav_msgs/msg/Odometry
 Topic type hash: RIHS01_3cc97dc7fb7502f8714462c526d369e35b603cfc34d946e3f2eda2766dfec6e0
 Endpoint type: PUBLISHER
-GID: 01.0f.ed.52.ba.b3.ce.e7.00.00.00.00.00.00.14.03
+GID: 01.0f.ed.52.3a.c0.22.d5.00.00.00.00.00.00.14.03
 QoS profile:
   Reliability: RELIABLE
   History (Depth): UNKNOWN
@@ -236,14 +232,14 @@ QoS profile:
 
 Subscription count: 2
 
-Node name: _ros2cli_46256
+Node name: ekf_local_node
 Node namespace: /
 Topic type: nav_msgs/msg/Odometry
 Topic type hash: RIHS01_3cc97dc7fb7502f8714462c526d369e35b603cfc34d946e3f2eda2766dfec6e0
 Endpoint type: SUBSCRIPTION
-GID: 01.0f.ed.52.b0.b4.a5.04.00.00.00.00.00.00.07.04
+GID: 01.0f.ed.52.3c.c0.fa.d0.00.00.00.00.00.00.25.04
 QoS profile:
-  Reliability: RELIABLE
+  Reliability: BEST_EFFORT
   History (Depth): UNKNOWN
   Durability: VOLATILE
   Lifespan: Infinite
@@ -251,14 +247,14 @@ QoS profile:
   Liveliness: AUTOMATIC
   Liveliness lease duration: Infinite
 
-Node name: ekf_local_node
+Node name: _ros2cli_49495
 Node namespace: /
 Topic type: nav_msgs/msg/Odometry
 Topic type hash: RIHS01_3cc97dc7fb7502f8714462c526d369e35b603cfc34d946e3f2eda2766dfec6e0
 Endpoint type: SUBSCRIPTION
-GID: 01.0f.ed.52.bb.b3.64.62.00.00.00.00.00.00.25.04
+GID: 01.0f.ed.52.57.c1.e0.41.00.00.00.00.00.00.07.04
 QoS profile:
-  Reliability: BEST_EFFORT
+  Reliability: RELIABLE
   History (Depth): UNKNOWN
   Durability: VOLATILE
   Lifespan: Infinite
@@ -281,7 +277,7 @@ Node namespace: /
 Topic type: nav_msgs/msg/Odometry
 Topic type hash: RIHS01_3cc97dc7fb7502f8714462c526d369e35b603cfc34d946e3f2eda2766dfec6e0
 Endpoint type: PUBLISHER
-GID: 01.0f.ed.52.bb.b3.64.62.00.00.00.00.00.00.26.03
+GID: 01.0f.ed.52.3c.c0.fa.d0.00.00.00.00.00.00.26.03
 QoS profile:
   Reliability: RELIABLE
   History (Depth): UNKNOWN
@@ -293,12 +289,42 @@ QoS profile:
 
 Subscription count: 4
 
+Node name: ekf_global_node
+Node namespace: /
+Topic type: nav_msgs/msg/Odometry
+Topic type hash: RIHS01_3cc97dc7fb7502f8714462c526d369e35b603cfc34d946e3f2eda2766dfec6e0
+Endpoint type: SUBSCRIPTION
+GID: 01.0f.ed.52.3f.c0.7a.ac.00.00.00.00.00.00.25.04
+QoS profile:
+  Reliability: BEST_EFFORT
+  History (Depth): UNKNOWN
+  Durability: VOLATILE
+  Lifespan: Infinite
+  Deadline: Infinite
+  Liveliness: AUTOMATIC
+  Liveliness lease duration: Infinite
+
+Node name: _ros2cli_49496
+Node namespace: /
+Topic type: nav_msgs/msg/Odometry
+Topic type hash: RIHS01_3cc97dc7fb7502f8714462c526d369e35b603cfc34d946e3f2eda2766dfec6e0
+Endpoint type: SUBSCRIPTION
+GID: 01.0f.ed.52.58.c1.b2.9c.00.00.00.00.00.00.07.04
+QoS profile:
+  Reliability: RELIABLE
+  History (Depth): UNKNOWN
+  Durability: VOLATILE
+  Lifespan: Infinite
+  Deadline: Infinite
+  Liveliness: AUTOMATIC
+  Liveliness lease duration: Infinite
+
 Node name: controller_server
 Node namespace: /
 Topic type: nav_msgs/msg/Odometry
 Topic type hash: RIHS01_3cc97dc7fb7502f8714462c526d369e35b603cfc34d946e3f2eda2766dfec6e0
 Endpoint type: SUBSCRIPTION
-GID: 01.0f.ed.52.0a.b3.04.4f.00.00.00.00.00.00.61.04
+GID: 01.0f.ed.52.b4.bf.22.91.00.00.00.00.00.00.61.04
 QoS profile:
   Reliability: BEST_EFFORT
   History (Depth): UNKNOWN
@@ -313,37 +339,7 @@ Node namespace: /
 Topic type: nav_msgs/msg/Odometry
 Topic type hash: RIHS01_3cc97dc7fb7502f8714462c526d369e35b603cfc34d946e3f2eda2766dfec6e0
 Endpoint type: SUBSCRIPTION
-GID: 01.0f.ed.52.0e.b3.b9.a4.00.00.00.00.00.00.21.04
-QoS profile:
-  Reliability: BEST_EFFORT
-  History (Depth): UNKNOWN
-  Durability: VOLATILE
-  Lifespan: Infinite
-  Deadline: Infinite
-  Liveliness: AUTOMATIC
-  Liveliness lease duration: Infinite
-
-Node name: _ros2cli_46257
-Node namespace: /
-Topic type: nav_msgs/msg/Odometry
-Topic type hash: RIHS01_3cc97dc7fb7502f8714462c526d369e35b603cfc34d946e3f2eda2766dfec6e0
-Endpoint type: SUBSCRIPTION
-GID: 01.0f.ed.52.b1.b4.48.c9.00.00.00.00.00.00.07.04
-QoS profile:
-  Reliability: BEST_EFFORT
-  History (Depth): UNKNOWN
-  Durability: VOLATILE
-  Lifespan: Infinite
-  Deadline: Infinite
-  Liveliness: AUTOMATIC
-  Liveliness lease duration: Infinite
-
-Node name: ekf_global_node
-Node namespace: /
-Topic type: nav_msgs/msg/Odometry
-Topic type hash: RIHS01_3cc97dc7fb7502f8714462c526d369e35b603cfc34d946e3f2eda2766dfec6e0
-Endpoint type: SUBSCRIPTION
-GID: 01.0f.ed.52.bc.b3.8b.e9.00.00.00.00.00.00.25.04
+GID: 01.0f.ed.52.b8.bf.95.d9.00.00.00.00.00.00.21.04
 QoS profile:
   Reliability: BEST_EFFORT
   History (Depth): UNKNOWN
@@ -368,7 +364,7 @@ Node namespace: /
 Topic type: geometry_msgs/msg/PoseWithCovarianceStamped
 Topic type hash: RIHS01_26432f9803e43727d3c8f668d1fdb3c630f548af631e2f4e31382371bfea3b6e
 Endpoint type: PUBLISHER
-GID: 01.0f.ed.52.f0.b3.5e.42.00.00.00.00.00.00.14.03
+GID: 01.0f.ed.52.a0.c0.c4.b5.00.00.00.00.00.00.14.03
 QoS profile:
   Reliability: RELIABLE
   History (Depth): UNKNOWN
@@ -380,12 +376,12 @@ QoS profile:
 
 Subscription count: 2
 
-Node name: _ros2cli_46261
+Node name: ekf_global_node
 Node namespace: /
 Topic type: geometry_msgs/msg/PoseWithCovarianceStamped
 Topic type hash: RIHS01_26432f9803e43727d3c8f668d1fdb3c630f548af631e2f4e31382371bfea3b6e
 Endpoint type: SUBSCRIPTION
-GID: 01.0f.ed.52.b5.b4.87.f4.00.00.00.00.00.00.07.04
+GID: 01.0f.ed.52.3f.c0.7a.ac.00.00.00.00.00.00.26.04
 QoS profile:
   Reliability: BEST_EFFORT
   History (Depth): UNKNOWN
@@ -395,12 +391,12 @@ QoS profile:
   Liveliness: AUTOMATIC
   Liveliness lease duration: Infinite
 
-Node name: ekf_global_node
+Node name: _ros2cli_49499
 Node namespace: /
 Topic type: geometry_msgs/msg/PoseWithCovarianceStamped
 Topic type hash: RIHS01_26432f9803e43727d3c8f668d1fdb3c630f548af631e2f4e31382371bfea3b6e
 Endpoint type: SUBSCRIPTION
-GID: 01.0f.ed.52.bc.b3.8b.e9.00.00.00.00.00.00.26.04
+GID: 01.0f.ed.52.5b.c1.c6.59.00.00.00.00.00.00.07.04
 QoS profile:
   Reliability: BEST_EFFORT
   History (Depth): UNKNOWN
@@ -425,7 +421,7 @@ Node namespace: /
 Topic type: nav_msgs/msg/Odometry
 Topic type hash: RIHS01_3cc97dc7fb7502f8714462c526d369e35b603cfc34d946e3f2eda2766dfec6e0
 Endpoint type: PUBLISHER
-GID: 01.0f.ed.52.bc.b3.8b.e9.00.00.00.00.00.00.27.03
+GID: 01.0f.ed.52.3f.c0.7a.ac.00.00.00.00.00.00.27.03
 QoS profile:
   Reliability: RELIABLE
   History (Depth): UNKNOWN
@@ -497,7 +493,7 @@ Node namespace: /
 Topic type: tf2_msgs/msg/TFMessage
 Topic type hash: RIHS01_e369d0f05a23ae52508854b66f6aa0437f3449d652e8cbf22d5abe85d020f087
 Endpoint type: PUBLISHER
-GID: 01.0f.ed.52.bb.b3.64.62.00.00.00.00.00.00.1b.03
+GID: 01.0f.ed.52.3c.c0.fa.d0.00.00.00.00.00.00.1b.03
 QoS profile:
   Reliability: RELIABLE
   History (Depth): UNKNOWN
@@ -512,7 +508,7 @@ Node namespace: /
 Topic type: tf2_msgs/msg/TFMessage
 Topic type hash: RIHS01_e369d0f05a23ae52508854b66f6aa0437f3449d652e8cbf22d5abe85d020f087
 Endpoint type: PUBLISHER
-GID: 01.0f.ed.52.bc.b3.8b.e9.00.00.00.00.00.00.1b.03
+GID: 01.0f.ed.52.3f.c0.7a.ac.00.00.00.00.00.00.1b.03
 QoS profile:
   Reliability: RELIABLE
   History (Depth): UNKNOWN
@@ -527,7 +523,7 @@ Node namespace: /
 Topic type: tf2_msgs/msg/TFMessage
 Topic type hash: RIHS01_e369d0f05a23ae52508854b66f6aa0437f3449d652e8cbf22d5abe85d020f087
 Endpoint type: PUBLISHER
-GID: 01.0f.ed.52.fc.b3.c9.a5.00.00.00.00.00.00.14.03
+GID: 01.0f.ed.52.cc.c0.42.75.00.00.00.00.00.00.14.03
 QoS profile:
   Reliability: RELIABLE
   History (Depth): UNKNOWN
@@ -554,12 +550,57 @@ QoS profile:
   Liveliness: AUTOMATIC
   Liveliness lease duration: Infinite
 
-Node name: transform_listener_impl_572220357d20
+Node name: transform_listener_impl_5a1aa2743790
 Node namespace: /
 Topic type: tf2_msgs/msg/TFMessage
 Topic type hash: RIHS01_e369d0f05a23ae52508854b66f6aa0437f3449d652e8cbf22d5abe85d020f087
 Endpoint type: SUBSCRIPTION
-GID: 01.0f.ed.52.0a.b3.04.4f.00.00.00.00.00.00.3f.04
+GID: 01.0f.ed.52.3c.c0.fa.d0.00.00.00.00.00.00.18.04
+QoS profile:
+  Reliability: RELIABLE
+  History (Depth): UNKNOWN
+  Durability: VOLATILE
+  Lifespan: Infinite
+  Deadline: Infinite
+  Liveliness: AUTOMATIC
+  Liveliness lease duration: Infinite
+
+Node name: transform_listener_impl_5687ad9cf890
+Node namespace: /
+Topic type: tf2_msgs/msg/TFMessage
+Topic type hash: RIHS01_e369d0f05a23ae52508854b66f6aa0437f3449d652e8cbf22d5abe85d020f087
+Endpoint type: SUBSCRIPTION
+GID: 01.0f.ed.52.3f.c0.7a.ac.00.00.00.00.00.00.18.04
+QoS profile:
+  Reliability: RELIABLE
+  History (Depth): UNKNOWN
+  Durability: VOLATILE
+  Lifespan: Infinite
+  Deadline: Infinite
+  Liveliness: AUTOMATIC
+  Liveliness lease duration: Infinite
+
+Node name: transform_listener_impl_6173f2a2e730
+Node namespace: /
+Topic type: tf2_msgs/msg/TFMessage
+Topic type hash: RIHS01_e369d0f05a23ae52508854b66f6aa0437f3449d652e8cbf22d5abe85d020f087
+Endpoint type: SUBSCRIPTION
+GID: 01.0f.ed.52.95.bf.08.90.00.00.00.00.00.00.2c.04
+QoS profile:
+  Reliability: RELIABLE
+  History (Depth): UNKNOWN
+  Durability: VOLATILE
+  Lifespan: Infinite
+  Deadline: Infinite
+  Liveliness: AUTOMATIC
+  Liveliness lease duration: Infinite
+
+Node name: transform_listener_impl_704fc0001740
+Node namespace: /
+Topic type: tf2_msgs/msg/TFMessage
+Topic type hash: RIHS01_e369d0f05a23ae52508854b66f6aa0437f3449d652e8cbf22d5abe85d020f087
+Endpoint type: SUBSCRIPTION
+GID: 01.0f.ed.52.b4.bf.22.91.00.00.00.00.00.00.3f.04
 QoS profile:
   Reliability: RELIABLE
   History (Depth): UNKNOWN
@@ -574,7 +615,7 @@ Node namespace: /
 Topic type: tf2_msgs/msg/TFMessage
 Topic type hash: RIHS01_e369d0f05a23ae52508854b66f6aa0437f3449d652e8cbf22d5abe85d020f087
 Endpoint type: SUBSCRIPTION
-GID: 01.0f.ed.52.0b.b3.71.e0.00.00.00.00.00.00.1f.04
+GID: 01.0f.ed.52.b5.bf.e8.6d.00.00.00.00.00.00.1f.04
 QoS profile:
   Reliability: RELIABLE
   History (Depth): UNKNOWN
@@ -584,12 +625,12 @@ QoS profile:
   Liveliness: AUTOMATIC
   Liveliness lease duration: Infinite
 
-Node name: transform_listener_impl_5f090322fb60
+Node name: transform_listener_impl_5fdd12ba6330
 Node namespace: /
 Topic type: tf2_msgs/msg/TFMessage
 Topic type hash: RIHS01_e369d0f05a23ae52508854b66f6aa0437f3449d652e8cbf22d5abe85d020f087
 Endpoint type: SUBSCRIPTION
-GID: 01.0f.ed.52.0c.b3.b1.39.00.00.00.00.00.00.3f.04
+GID: 01.0f.ed.52.b6.bf.f2.6b.00.00.00.00.00.00.3f.04
 QoS profile:
   Reliability: RELIABLE
   History (Depth): UNKNOWN
@@ -604,7 +645,7 @@ Node namespace: /
 Topic type: tf2_msgs/msg/TFMessage
 Topic type hash: RIHS01_e369d0f05a23ae52508854b66f6aa0437f3449d652e8cbf22d5abe85d020f087
 Endpoint type: SUBSCRIPTION
-GID: 01.0f.ed.52.0d.b3.20.41.00.00.00.00.00.00.1f.04
+GID: 01.0f.ed.52.b7.bf.0b.37.00.00.00.00.00.00.1f.04
 QoS profile:
   Reliability: RELIABLE
   History (Depth): UNKNOWN
@@ -619,52 +660,7 @@ Node namespace: /
 Topic type: tf2_msgs/msg/TFMessage
 Topic type hash: RIHS01_e369d0f05a23ae52508854b66f6aa0437f3449d652e8cbf22d5abe85d020f087
 Endpoint type: SUBSCRIPTION
-GID: 01.0f.ed.52.0e.b3.b9.a4.00.00.00.00.00.00.1f.04
-QoS profile:
-  Reliability: RELIABLE
-  History (Depth): UNKNOWN
-  Durability: VOLATILE
-  Lifespan: Infinite
-  Deadline: Infinite
-  Liveliness: AUTOMATIC
-  Liveliness lease duration: Infinite
-
-Node name: transform_listener_impl_5f59aef89ed0
-Node namespace: /
-Topic type: tf2_msgs/msg/TFMessage
-Topic type hash: RIHS01_e369d0f05a23ae52508854b66f6aa0437f3449d652e8cbf22d5abe85d020f087
-Endpoint type: SUBSCRIPTION
-GID: 01.0f.ed.52.bb.b3.64.62.00.00.00.00.00.00.18.04
-QoS profile:
-  Reliability: RELIABLE
-  History (Depth): UNKNOWN
-  Durability: VOLATILE
-  Lifespan: Infinite
-  Deadline: Infinite
-  Liveliness: AUTOMATIC
-  Liveliness lease duration: Infinite
-
-Node name: transform_listener_impl_565a6684b770
-Node namespace: /
-Topic type: tf2_msgs/msg/TFMessage
-Topic type hash: RIHS01_e369d0f05a23ae52508854b66f6aa0437f3449d652e8cbf22d5abe85d020f087
-Endpoint type: SUBSCRIPTION
-GID: 01.0f.ed.52.bc.b3.8b.e9.00.00.00.00.00.00.18.04
-QoS profile:
-  Reliability: RELIABLE
-  History (Depth): UNKNOWN
-  Durability: VOLATILE
-  Lifespan: Infinite
-  Deadline: Infinite
-  Liveliness: AUTOMATIC
-  Liveliness lease duration: Infinite
-
-Node name: transform_listener_impl_5ba71351cb00
-Node namespace: /
-Topic type: tf2_msgs/msg/TFMessage
-Topic type hash: RIHS01_e369d0f05a23ae52508854b66f6aa0437f3449d652e8cbf22d5abe85d020f087
-Endpoint type: SUBSCRIPTION
-GID: 01.0f.ed.52.f6.b2.12.59.00.00.00.00.00.00.2c.04
+GID: 01.0f.ed.52.b8.bf.95.d9.00.00.00.00.00.00.1f.04
 QoS profile:
   Reliability: RELIABLE
   History (Depth): UNKNOWN
@@ -719,7 +715,7 @@ Node namespace: /
 Topic type: tf2_msgs/msg/TFMessage
 Topic type hash: RIHS01_e369d0f05a23ae52508854b66f6aa0437f3449d652e8cbf22d5abe85d020f087
 Endpoint type: PUBLISHER
-GID: 01.0f.ed.52.fc.b3.c9.a5.00.00.00.00.00.00.15.03
+GID: 01.0f.ed.52.cc.c0.42.75.00.00.00.00.00.00.15.03
 QoS profile:
   Reliability: RELIABLE
   History (Depth): UNKNOWN
@@ -746,12 +742,57 @@ QoS profile:
   Liveliness: AUTOMATIC
   Liveliness lease duration: Infinite
 
-Node name: transform_listener_impl_572220357d20
+Node name: transform_listener_impl_5a1aa2743790
 Node namespace: /
 Topic type: tf2_msgs/msg/TFMessage
 Topic type hash: RIHS01_e369d0f05a23ae52508854b66f6aa0437f3449d652e8cbf22d5abe85d020f087
 Endpoint type: SUBSCRIPTION
-GID: 01.0f.ed.52.0a.b3.04.4f.00.00.00.00.00.00.40.04
+GID: 01.0f.ed.52.3c.c0.fa.d0.00.00.00.00.00.00.19.04
+QoS profile:
+  Reliability: RELIABLE
+  History (Depth): UNKNOWN
+  Durability: TRANSIENT_LOCAL
+  Lifespan: Infinite
+  Deadline: Infinite
+  Liveliness: AUTOMATIC
+  Liveliness lease duration: Infinite
+
+Node name: transform_listener_impl_5687ad9cf890
+Node namespace: /
+Topic type: tf2_msgs/msg/TFMessage
+Topic type hash: RIHS01_e369d0f05a23ae52508854b66f6aa0437f3449d652e8cbf22d5abe85d020f087
+Endpoint type: SUBSCRIPTION
+GID: 01.0f.ed.52.3f.c0.7a.ac.00.00.00.00.00.00.19.04
+QoS profile:
+  Reliability: RELIABLE
+  History (Depth): UNKNOWN
+  Durability: TRANSIENT_LOCAL
+  Lifespan: Infinite
+  Deadline: Infinite
+  Liveliness: AUTOMATIC
+  Liveliness lease duration: Infinite
+
+Node name: transform_listener_impl_6173f2a2e730
+Node namespace: /
+Topic type: tf2_msgs/msg/TFMessage
+Topic type hash: RIHS01_e369d0f05a23ae52508854b66f6aa0437f3449d652e8cbf22d5abe85d020f087
+Endpoint type: SUBSCRIPTION
+GID: 01.0f.ed.52.95.bf.08.90.00.00.00.00.00.00.2d.04
+QoS profile:
+  Reliability: RELIABLE
+  History (Depth): UNKNOWN
+  Durability: TRANSIENT_LOCAL
+  Lifespan: Infinite
+  Deadline: Infinite
+  Liveliness: AUTOMATIC
+  Liveliness lease duration: Infinite
+
+Node name: transform_listener_impl_704fc0001740
+Node namespace: /
+Topic type: tf2_msgs/msg/TFMessage
+Topic type hash: RIHS01_e369d0f05a23ae52508854b66f6aa0437f3449d652e8cbf22d5abe85d020f087
+Endpoint type: SUBSCRIPTION
+GID: 01.0f.ed.52.b4.bf.22.91.00.00.00.00.00.00.40.04
 QoS profile:
   Reliability: RELIABLE
   History (Depth): UNKNOWN
@@ -766,7 +807,7 @@ Node namespace: /
 Topic type: tf2_msgs/msg/TFMessage
 Topic type hash: RIHS01_e369d0f05a23ae52508854b66f6aa0437f3449d652e8cbf22d5abe85d020f087
 Endpoint type: SUBSCRIPTION
-GID: 01.0f.ed.52.0b.b3.71.e0.00.00.00.00.00.00.20.04
+GID: 01.0f.ed.52.b5.bf.e8.6d.00.00.00.00.00.00.20.04
 QoS profile:
   Reliability: RELIABLE
   History (Depth): UNKNOWN
@@ -776,12 +817,12 @@ QoS profile:
   Liveliness: AUTOMATIC
   Liveliness lease duration: Infinite
 
-Node name: transform_listener_impl_5f090322fb60
+Node name: transform_listener_impl_5fdd12ba6330
 Node namespace: /
 Topic type: tf2_msgs/msg/TFMessage
 Topic type hash: RIHS01_e369d0f05a23ae52508854b66f6aa0437f3449d652e8cbf22d5abe85d020f087
 Endpoint type: SUBSCRIPTION
-GID: 01.0f.ed.52.0c.b3.b1.39.00.00.00.00.00.00.40.04
+GID: 01.0f.ed.52.b6.bf.f2.6b.00.00.00.00.00.00.40.04
 QoS profile:
   Reliability: RELIABLE
   History (Depth): UNKNOWN
@@ -796,7 +837,7 @@ Node namespace: /
 Topic type: tf2_msgs/msg/TFMessage
 Topic type hash: RIHS01_e369d0f05a23ae52508854b66f6aa0437f3449d652e8cbf22d5abe85d020f087
 Endpoint type: SUBSCRIPTION
-GID: 01.0f.ed.52.0d.b3.20.41.00.00.00.00.00.00.20.04
+GID: 01.0f.ed.52.b7.bf.0b.37.00.00.00.00.00.00.20.04
 QoS profile:
   Reliability: RELIABLE
   History (Depth): UNKNOWN
@@ -811,52 +852,7 @@ Node namespace: /
 Topic type: tf2_msgs/msg/TFMessage
 Topic type hash: RIHS01_e369d0f05a23ae52508854b66f6aa0437f3449d652e8cbf22d5abe85d020f087
 Endpoint type: SUBSCRIPTION
-GID: 01.0f.ed.52.0e.b3.b9.a4.00.00.00.00.00.00.20.04
-QoS profile:
-  Reliability: RELIABLE
-  History (Depth): UNKNOWN
-  Durability: TRANSIENT_LOCAL
-  Lifespan: Infinite
-  Deadline: Infinite
-  Liveliness: AUTOMATIC
-  Liveliness lease duration: Infinite
-
-Node name: transform_listener_impl_5f59aef89ed0
-Node namespace: /
-Topic type: tf2_msgs/msg/TFMessage
-Topic type hash: RIHS01_e369d0f05a23ae52508854b66f6aa0437f3449d652e8cbf22d5abe85d020f087
-Endpoint type: SUBSCRIPTION
-GID: 01.0f.ed.52.bb.b3.64.62.00.00.00.00.00.00.19.04
-QoS profile:
-  Reliability: RELIABLE
-  History (Depth): UNKNOWN
-  Durability: TRANSIENT_LOCAL
-  Lifespan: Infinite
-  Deadline: Infinite
-  Liveliness: AUTOMATIC
-  Liveliness lease duration: Infinite
-
-Node name: transform_listener_impl_565a6684b770
-Node namespace: /
-Topic type: tf2_msgs/msg/TFMessage
-Topic type hash: RIHS01_e369d0f05a23ae52508854b66f6aa0437f3449d652e8cbf22d5abe85d020f087
-Endpoint type: SUBSCRIPTION
-GID: 01.0f.ed.52.bc.b3.8b.e9.00.00.00.00.00.00.19.04
-QoS profile:
-  Reliability: RELIABLE
-  History (Depth): UNKNOWN
-  Durability: TRANSIENT_LOCAL
-  Lifespan: Infinite
-  Deadline: Infinite
-  Liveliness: AUTOMATIC
-  Liveliness lease duration: Infinite
-
-Node name: transform_listener_impl_5ba71351cb00
-Node namespace: /
-Topic type: tf2_msgs/msg/TFMessage
-Topic type hash: RIHS01_e369d0f05a23ae52508854b66f6aa0437f3449d652e8cbf22d5abe85d020f087
-Endpoint type: SUBSCRIPTION
-GID: 01.0f.ed.52.f6.b2.12.59.00.00.00.00.00.00.2d.04
+GID: 01.0f.ed.52.b8.bf.95.d9.00.00.00.00.00.00.20.04
 QoS profile:
   Reliability: RELIABLE
   History (Depth): UNKNOWN
@@ -872,26 +868,49 @@ EXIT_STATUS: 0
 topic hz /deadwheel_ticks
 ================================================================================
 COMMAND: timeout 8s ros2 topic hz /deadwheel_ticks
-WARNING: topic [/deadwheel_ticks] does not appear to be published yet
+average rate: 1.052
+	min: 0.217s max: 1.648s std dev: 0.58503s window: 3
+average rate: 0.998
+	min: 0.001s max: 2.159s std dev: 0.82169s window: 5
 EXIT_STATUS: 124 (timeout reached; this is normal for streaming ROS commands)
 
 ================================================================================
 topic hz /odom_deadwheels
 ================================================================================
 COMMAND: timeout 8s ros2 topic hz /odom_deadwheels
+WARNING: topic [/odom_deadwheels] does not appear to be published yet
+average rate: 0.942
+	min: 0.762s max: 1.361s std dev: 0.29965s window: 2
+average rate: 1.024
+	min: 0.525s max: 1.361s std dev: 0.34506s window: 4
 EXIT_STATUS: 124 (timeout reached; this is normal for streaming ROS commands)
 
 ================================================================================
 topic hz /odometry/local
 ================================================================================
 COMMAND: timeout 8s ros2 topic hz /odometry/local
-WARNING: topic [/odometry/local] does not appear to be published yet
+average rate: 8.893
+	min: 0.100s max: 0.138s std dev: 0.01192s window: 11
+average rate: 9.373
+	min: 0.040s max: 0.138s std dev: 0.01879s window: 21
+average rate: 9.641
+	min: 0.022s max: 0.138s std dev: 0.02339s window: 32
+average rate: 9.550
+	min: 0.022s max: 0.138s std dev: 0.02087s window: 42
 EXIT_STATUS: 124 (timeout reached; this is normal for streaming ROS commands)
 
 ================================================================================
 topic hz /camera/global_pose
 ================================================================================
 COMMAND: timeout 8s ros2 topic hz /camera/global_pose
+average rate: 5.229
+	min: 0.104s max: 0.316s std dev: 0.08356s window: 6
+average rate: 4.665
+	min: 0.104s max: 0.396s std dev: 0.10148s window: 11
+average rate: 4.627
+	min: 0.104s max: 0.396s std dev: 0.09883s window: 16
+average rate: 4.628
+	min: 0.104s max: 0.396s std dev: 0.09180s window: 21
 EXIT_STATUS: 124 (timeout reached; this is normal for streaming ROS commands)
 
 ================================================================================
@@ -899,31 +918,79 @@ topic hz /odometry/global
 ================================================================================
 COMMAND: timeout 8s ros2 topic hz /odometry/global
 WARNING: topic [/odometry/global] does not appear to be published yet
+average rate: 16.075
+	min: 0.019s max: 0.102s std dev: 0.03430s window: 18
+average rate: 16.037
+	min: 0.019s max: 0.102s std dev: 0.03498s window: 34
+average rate: 16.119
+	min: 0.019s max: 0.102s std dev: 0.03290s window: 51
+average rate: 15.951
+	min: 0.019s max: 0.103s std dev: 0.03340s window: 67
+average rate: 17.497
+	min: 0.017s max: 0.103s std dev: 0.03354s window: 91
+average rate: 21.372
+	min: 0.016s max: 0.103s std dev: 0.03211s window: 133
 EXIT_STATUS: 124 (timeout reached; this is normal for streaming ROS commands)
 
 ================================================================================
 topic delay /deadwheel_ticks
 ================================================================================
 COMMAND: timeout 8s ros2 topic delay /deadwheel_ticks
+WARNING: topic [/deadwheel_ticks] does not appear to be published yet
+average delay: 0.296
+	min: 0.296s max: 0.296s std dev: 0.00000s window: 1
+no new messages
+average delay: 0.651
+	min: 0.152s max: 1.779s std dev: 0.60183s window: 5
+average delay: 0.215
+	min: 0.024s max: 1.779s std dev: 0.40533s window: 19
+average delay: 0.077
+	min: 0.017s max: 1.779s std dev: 0.23001s window: 69
+average delay: 0.050
+	min: 0.017s max: 1.779s std dev: 0.16751s window: 134
 EXIT_STATUS: 124 (timeout reached; this is normal for streaming ROS commands)
 
 ================================================================================
 topic delay /odom_deadwheels
 ================================================================================
 COMMAND: timeout 8s ros2 topic delay /odom_deadwheels
+average delay: 0.001
+	min: 0.001s max: 0.001s std dev: 0.00000s window: 1
 EXIT_STATUS: 124 (timeout reached; this is normal for streaming ROS commands)
 
 ================================================================================
 topic delay /odometry/local
 ================================================================================
 COMMAND: timeout 8s ros2 topic delay /odometry/local
+WARNING: topic [/odometry/local] does not appear to be published yet
+average delay: 0.001
+	min: 0.001s max: 0.002s std dev: 0.00080s window: 3
+average delay: 0.057
+	min: 0.001s max: 0.333s std dev: 0.09942s window: 13
+average delay: 0.041
+	min: 0.000s max: 0.333s std dev: 0.08796s window: 18
+average delay: 0.072
+	min: 0.000s max: 0.530s std dev: 0.13735s window: 21
+average delay: 0.075
+	min: 0.000s max: 0.576s std dev: 0.14689s window: 32
+average delay: 0.059
+	min: 0.000s max: 0.576s std dev: 0.12146s window: 49
 EXIT_STATUS: 124 (timeout reached; this is normal for streaming ROS commands)
 
 ================================================================================
 topic delay /camera/global_pose
 ================================================================================
 COMMAND: timeout 8s ros2 topic delay /camera/global_pose
-WARNING: topic [/camera/global_pose] does not appear to be published yet
+average delay: 0.000
+	min: 0.000s max: 0.000s std dev: 0.00004s window: 3
+average delay: 0.001
+	min: 0.000s max: 0.001s std dev: 0.00013s window: 9
+average delay: 0.001
+	min: 0.000s max: 0.001s std dev: 0.00025s window: 15
+average delay: 0.001
+	min: 0.000s max: 0.001s std dev: 0.00024s window: 21
+average delay: 0.001
+	min: 0.000s max: 0.001s std dev: 0.00023s window: 26
 EXIT_STATUS: 124 (timeout reached; this is normal for streaming ROS commands)
 
 ================================================================================
@@ -931,19 +998,142 @@ topic delay /odometry/global
 ================================================================================
 COMMAND: timeout 8s ros2 topic delay /odometry/global
 WARNING: topic [/odometry/global] does not appear to be published yet
+average delay: 0.023
+	min: 0.001s max: 0.069s std dev: 0.02128s window: 18
+average delay: 0.037
+	min: 0.001s max: 0.235s std dev: 0.04547s window: 41
+average delay: 0.037
+	min: 0.001s max: 0.235s std dev: 0.03217s window: 87
+average delay: 0.037
+	min: 0.001s max: 0.235s std dev: 0.02690s window: 132
+average delay: 0.036
+	min: 0.001s max: 0.235s std dev: 0.02382s window: 175
+average delay: 0.036
+	min: 0.001s max: 0.235s std dev: 0.02180s window: 219
 EXIT_STATUS: 124 (timeout reached; this is normal for streaming ROS commands)
 
 ================================================================================
 topic echo --once /deadwheel_ticks
 ================================================================================
 COMMAND: timeout 4s ros2 topic echo /deadwheel_ticks --once
-EXIT_STATUS: 124 (timeout reached; this is normal for streaming ROS commands)
+header:
+  stamp:
+    sec: 1778007092
+    nanosec: 621983814
+  frame_id: ''
+t0: -341074
+t1: 1590
+t2: -153689
+---
+EXIT_STATUS: 0
 
 ================================================================================
 topic echo --once /odom_deadwheels
 ================================================================================
 COMMAND: timeout 4s ros2 topic echo /odom_deadwheels --once
-EXIT_STATUS: 124 (timeout reached; this is normal for streaming ROS commands)
+header:
+  stamp:
+    sec: 1778007094
+    nanosec: 143533814
+  frame_id: odom
+child_frame_id: base_link
+pose:
+  pose:
+    position:
+      x: 14.475672779710901
+      y: 12.716939846081805
+      z: 0.0
+    orientation:
+      x: 0.0
+      y: 0.0
+      z: -0.8419978026171219
+      w: 0.5394809546109467
+  covariance:
+  - 0.001
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.001
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.05
+twist:
+  twist:
+    linear:
+      x: 0.0
+      y: 0.0
+      z: 0.0
+    angular:
+      x: 0.0
+      y: 0.0
+      z: 0.0
+  covariance:
+  - 0.01
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.01
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.1
+---
+EXIT_STATUS: 0
 
 ================================================================================
 topic echo --once /odometry/local
@@ -955,29 +1145,310 @@ EXIT_STATUS: 124 (timeout reached; this is normal for streaming ROS commands)
 topic echo --once /camera/global_pose
 ================================================================================
 COMMAND: timeout 4s ros2 topic echo /camera/global_pose --once
-EXIT_STATUS: 124 (timeout reached; this is normal for streaming ROS commands)
+header:
+  stamp:
+    sec: 1778007102
+    nanosec: 252861103
+  frame_id: map
+pose:
+  pose:
+    position:
+      x: 1.827155806081881
+      y: 1.1298364838735393
+      z: 0.0
+    orientation:
+      x: 0.0
+      y: 0.0
+      z: 0.553468675840848
+      w: 0.8328699927737692
+  covariance:
+  - 0.01
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.01
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 1000.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 1000.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 1000.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.03
+---
+EXIT_STATUS: 0
 
 ================================================================================
 topic echo --once /odometry/global
 ================================================================================
 COMMAND: timeout 4s ros2 topic echo /odometry/global --once
-WARNING: topic [/odometry/global] does not appear to be published yet
-Could not determine the type for the passed topic
-EXIT_STATUS: 1
+header:
+  stamp:
+    sec: 1778007103
+    nanosec: 722330933
+  frame_id: map
+child_frame_id: base_link
+pose:
+  pose:
+    position:
+      x: 1.8267163531698534
+      y: 1.131953929046564
+      z: 0.0
+    orientation:
+      x: 0.0
+      y: 0.0
+      z: 0.4614580031428781
+      w: 0.8871620547202115
+  covariance:
+  - 0.006207468984608387
+  - 4.270804407848607e-17
+  - 0.0
+  - 0.0
+  - 0.0
+  - -3.6105559153344147e-10
+  - 4.270791082559149e-17
+  - 0.006207468984608006
+  - 0.0
+  - 0.0
+  - 0.0
+  - -3.251656785447455e-10
+  - 0.0
+  - 0.0
+  - 9.97220534456852e-07
+  - 1.2943385351998203e-19
+  - -1.6673625863634066e-19
+  - 0.0
+  - 0.0
+  - 0.0
+  - 1.2943385351998198e-19
+  - 9.972205344552706e-07
+  - -2.640163780403842e-29
+  - 0.0
+  - 0.0
+  - 0.0
+  - -1.6673625863634066e-19
+  - -2.6401647004755427e-29
+  - 9.97220534460835e-07
+  - 0.0
+  - -3.6105559153344075e-10
+  - -3.251656785447455e-10
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.011604440705895312
+twist:
+  twist:
+    linear:
+      x: 3.330028667168657e-06
+      y: 2.584381898604461e-06
+      z: 0.0
+    angular:
+      x: 0.0
+      y: 0.0
+      z: -0.0005530349133980304
+  covariance:
+  - 0.003743493650901055
+  - -1.5043706426111726e-19
+  - 0.0
+  - 0.0
+  - 0.0
+  - 2.695086944055633e-14
+  - -1.5038000131293694e-19
+  - 0.003743493650901055
+  - 0.0
+  - 0.0
+  - 0.0
+  - -5.2209335722186065e-14
+  - 0.0
+  - 0.0
+  - 9.972205344558074e-07
+  - 3.202681834192532e-28
+  - -2.068933802463251e-28
+  - 0.0
+  - 0.0
+  - 0.0
+  - 3.202681834192531e-28
+  - 9.97220529501137e-07
+  - 2.3914730289544623e-32
+  - 0.0
+  - 0.0
+  - 0.0
+  - -2.06893380246325e-28
+  - 2.3914730289533185e-32
+  - 9.986073629112525e-07
+  - 0.0
+  - 2.695086944055636e-14
+  - -5.2209335722186065e-14
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.001394997199689997
+---
+EXIT_STATUS: 0
 
 ================================================================================
 tf2_monitor odom base_link
 ================================================================================
 COMMAND: timeout 8s ros2 run tf2_ros tf2_monitor odom base_link
-[INFO] [1778006304.193142703] [tf2_monitor_main]: Waiting for transform odom ->  base_link: Invalid frame ID "odom" passed to canTransform argument target_frame - frame does not exist
-[INFO] [1778006305.193399059] [tf2_monitor_main]: Waiting for transform odom ->  base_link: Invalid frame ID "odom" passed to canTransform argument target_frame - frame does not exist
-[INFO] [1778006306.193658644] [tf2_monitor_main]: Waiting for transform odom ->  base_link: Invalid frame ID "odom" passed to canTransform argument target_frame - frame does not exist
-[INFO] [1778006307.193892000] [tf2_monitor_main]: Waiting for transform odom ->  base_link: Invalid frame ID "odom" passed to canTransform argument target_frame - frame does not exist
-[INFO] [1778006308.194156413] [tf2_monitor_main]: Waiting for transform odom ->  base_link: Invalid frame ID "odom" passed to canTransform argument target_frame - frame does not exist
-[INFO] [1778006309.194968081] [tf2_monitor_main]: Waiting for transform odom ->  base_link: Invalid frame ID "odom" passed to canTransform argument target_frame - frame does not exist
-[INFO] [1778006310.195378280] [tf2_monitor_main]: Waiting for transform odom ->  base_link: Invalid frame ID "odom" passed to canTransform argument target_frame - frame does not exist
-[INFO] [1778006311.195802191] [tf2_monitor_main]: Waiting for transform odom ->  base_link: Invalid frame ID "odom" passed to canTransform argument target_frame - frame does not exist
-[INFO] [1778006311.972289948] [rclcpp]: signal_handler(SIGINT/SIGTERM)
-[WARN] [1778006312.196274723] [tf2_monitor_main]: Transform Exception 
-terminate called after throwing an instance of 'rclcpp::exceptions::RCLError'
-  what():  failed to create guard condition: the given context is not valid, either rcl_init() was not called or rcl_shutdown() was called., at ./src/rcl/guard_condition.c:67
+[INFO] [1778007104.281851733] [tf2_monitor_main]: Waiting for transform odom ->  base_link: Invalid frame ID "odom" passed to canTransform argument target_frame - frame does not exist
+[INFO] [1778007105.282110739] [tf2_monitor_main]: Waiting for transform odom ->  base_link: Invalid frame ID "odom" passed to canTransform argument target_frame - frame does not exist
+[INFO] [1778007106.282363354] [tf2_monitor_main]: Waiting for transform odom ->  base_link: Could not find a connection between 'odom' and 'base_link' because they are not part of the same tree.Tf has two or more unconnected trees.
+Gathering data on odom -> base_link for 10 seconds...
+[INFO] [1778007111.971018167] [rclcpp]: signal_handler(SIGINT/SIGTERM)
+EXIT_STATUS: 124 (timeout reached; this is normal for streaming ROS commands)
+
+================================================================================
+tf2_monitor map odom
+================================================================================
+COMMAND: timeout 8s ros2 run tf2_ros tf2_monitor map odom
+[INFO] [1778007112.351878695] [tf2_monitor_main]: Waiting for transform map ->  odom: Invalid frame ID "map" passed to canTransform argument target_frame - frame does not exist
+[INFO] [1778007113.352508419] [tf2_monitor_main]: Waiting for transform map ->  odom: Invalid frame ID "map" passed to canTransform argument target_frame - frame does not exist
+[INFO] [1778007114.353710120] [tf2_monitor_main]: Waiting for transform map ->  odom: Invalid frame ID "map" passed to canTransform argument target_frame - frame does not exist
+Gathering data on map -> odom for 10 seconds...
+[INFO] [1778007119.986949265] [rclcpp]: signal_handler(SIGINT/SIGTERM)
+EXIT_STATUS: 124 (timeout reached; this is normal for streaming ROS commands)
+
+================================================================================
+tf2_monitor map base_link
+================================================================================
+COMMAND: timeout 8s ros2 run tf2_ros tf2_monitor map base_link
+[INFO] [1778007120.288627547] [tf2_monitor_main]: Waiting for transform map ->  base_link: Invalid frame ID "map" passed to canTransform argument target_frame - frame does not exist
+[INFO] [1778007121.288996114] [tf2_monitor_main]: Waiting for transform map ->  base_link: Could not find a connection between 'map' and 'base_link' because they are not part of the same tree.Tf has two or more unconnected trees.
+Gathering data on map -> base_link for 10 seconds...
+[INFO] [1778007127.992725369] [rclcpp]: signal_handler(SIGINT/SIGTERM)
+EXIT_STATUS: 124 (timeout reached; this is normal for streaming ROS commands)
+
+================================================================================
+tf2_echo odom base_link
+================================================================================
+COMMAND: timeout 4s ros2 run tf2_ros tf2_echo odom base_link
+[INFO] [1778007128.344671513] [tf2_echo]: Waiting for transform odom ->  base_link: Invalid frame ID "odom" passed to canTransform argument target_frame - frame does not exist
+At time 1778007129.215061814
+- Translation: [14.476, 12.717, 0.000]
+- Rotation: in Quaternion (xyzw) [0.000, 0.000, -0.842, 0.539]
+- Rotation: in RPY (radian) [0.000, 0.000, -2.002]
+- Rotation: in RPY (degree) [0.000, 0.000, -114.703]
+- Matrix:
+ -0.418  0.908  0.000 14.476
+ -0.908 -0.418 -0.000 12.717
+ -0.000  0.000  1.000  0.000
+  0.000  0.000  0.000  1.000
+At time 1778007130.280820748
+- Translation: [14.476, 12.717, 0.000]
+- Rotation: in Quaternion (xyzw) [0.000, 0.000, -0.842, 0.539]
+- Rotation: in RPY (radian) [0.000, 0.000, -2.002]
+- Rotation: in RPY (degree) [0.000, 0.000, -114.703]
+- Matrix:
+ -0.418  0.908  0.000 14.476
+ -0.908 -0.418 -0.000 12.717
+ -0.000  0.000  1.000  0.000
+  0.000  0.000  0.000  1.000
+At time 1778007130.944573814
+- Translation: [14.476, 12.717, 0.000]
+- Rotation: in Quaternion (xyzw) [0.000, 0.000, -0.842, 0.539]
+- Rotation: in RPY (radian) [0.000, 0.000, -2.002]
+- Rotation: in RPY (degree) [0.000, 0.000, -114.703]
+- Matrix:
+ -0.418  0.908  0.000 14.476
+ -0.908 -0.418 -0.000 12.717
+ -0.000  0.000  1.000  0.000
+  0.000  0.000  0.000  1.000
+[INFO] [1778007131.998316208] [rclcpp]: signal_handler(SIGINT/SIGTERM)
+EXIT_STATUS: 124 (timeout reached; this is normal for streaming ROS commands)
+
+================================================================================
+tf2_echo map odom
+================================================================================
+COMMAND: timeout 4s ros2 run tf2_ros tf2_echo map odom
+[INFO] [1778007132.309972731] [tf2_echo]: Waiting for transform map ->  odom: Invalid frame ID "map" passed to canTransform argument target_frame - frame does not exist
+At time 1778007134.205038814
+- Translation: [15.851, 14.344, 0.000]
+- Rotation: in Quaternion (xyzw) [0.000, 0.000, 1.000, -0.017]
+- Rotation: in RPY (radian) [0.000, -0.000, -3.107]
+- Rotation: in RPY (degree) [0.000, -0.000, -178.003]
+- Matrix:
+ -0.999  0.035  0.000 15.851
+ -0.035 -0.999  0.000 14.344
+  0.000  0.000  1.000  0.000
+  0.000  0.000  0.000  1.000
+At time 1778007135.247600080
+- Translation: [15.866, 14.328, 0.000]
+- Rotation: in Quaternion (xyzw) [0.000, 0.000, 1.000, -0.017]
+- Rotation: in RPY (radian) [0.000, -0.000, -3.108]
+- Rotation: in RPY (degree) [0.000, -0.000, -178.070]
+- Matrix:
+ -0.999  0.034  0.000 15.866
+ -0.034 -0.999  0.000 14.328
+  0.000  0.000  1.000  0.000
+  0.000  0.000  0.000  1.000
+[INFO] [1778007136.018199573] [rclcpp]: signal_handler(SIGINT/SIGTERM)
+EXIT_STATUS: 124 (timeout reached; this is normal for streaming ROS commands)
+
+================================================================================
+tf2_echo map base_link
+================================================================================
+COMMAND: timeout 4s ros2 run tf2_ros tf2_echo map base_link
+[INFO] [1778007136.384237574] [tf2_echo]: Waiting for transform map ->  base_link: Invalid frame ID "map" passed to canTransform argument target_frame - frame does not exist
+[INFO] [1778007138.337073740] [tf2_echo]: Waiting for transform map ->  base_link: Invalid frame ID "map" passed to canTransform argument target_frame - frame does not exist
+At time 1778007139.159105848
+- Translation: [1.827, 1.131, 0.000]
+- Rotation: in Quaternion (xyzw) [0.000, 0.000, 0.554, 0.832]
+- Rotation: in RPY (radian) [0.000, -0.000, 1.175]
+- Rotation: in RPY (degree) [0.000, -0.000, 67.342]
+- Matrix:
+  0.385 -0.923  0.000  1.827
+  0.923  0.385  0.000  1.131
+  0.000  0.000  1.000  0.000
+  0.000  0.000  0.000  1.000
+[INFO] [1778007140.036559101] [rclcpp]: signal_handler(SIGINT/SIGTERM)
+EXIT_STATUS: 124 (timeout reached; this is normal for streaming ROS commands)
+
+================================================================================
+EKF local parameters
+================================================================================
+COMMAND: timeout 3s ros2 param dump /ekf_local_node
+/ekf_local_node:
+  ros__parameters: {}
+
+EXIT_STATUS: 0
+
+================================================================================
+EKF global parameters
+================================================================================
+COMMAND: timeout 3s ros2 param dump /ekf_global_node
+/ekf_global_node:
+  ros__parameters: {}
+
+EXIT_STATUS: 0
+
+================================================================================
+camera global localization parameters
+================================================================================
+COMMAND: timeout 3s ros2 param dump /global_localization_node
+failed to check service availability: rcl node's context is invalid, at ./src/rcl/node.c:404
+EXIT_STATUS: 124 (timeout reached; this is normal for streaming ROS commands)
+
+Report written to: /home/isaac/PFE_Eurobot_2026/server_ws/localization_lag_report_20260505_155003.txt
