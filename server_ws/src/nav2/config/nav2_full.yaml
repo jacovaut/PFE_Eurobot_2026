@@ -49,7 +49,7 @@ controller_server:
     goal_checker:
       plugin: "nav2_controller::SimpleGoalChecker"
       stateful: true
-      xy_goal_tolerance: 0.05
+      xy_goal_tolerance: 0.08
       yaw_goal_tolerance: 0.52
 
     # Controller option A (recommended-to-start): DWB holonomic
@@ -87,11 +87,11 @@ controller_server:
       critics: ["ObstacleFootprint", "BaseObstacle", "PathAlign", "GoalAlign", "PathDist", "GoalDist", "RotateToGoal", "Oscillation"]
       ObstacleFootprint.scale: 32.0
       BaseObstacle.scale: 20.0
-      PathAlign.scale: 0.0
-      GoalAlign.scale: 0.0
-      PathDist.scale: 2.0
-      GoalDist.scale: 12.0
-      RotateToGoal.scale: 8.0
+      PathAlign.scale: 8.0
+      GoalAlign.scale: 6.0
+      PathDist.scale: 4.0
+      GoalDist.scale: 8.0
+      RotateToGoal.scale: 3.0
       RotateToGoal.slowing_factor: 3.0
       RotateToGoal.lookahead_time: -1.0
       Oscillation.scale: 3.0
