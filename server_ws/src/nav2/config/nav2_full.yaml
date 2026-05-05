@@ -18,12 +18,12 @@ planner_server:
     expected_planner_frequency: 5.0
     planner_plugins: ["GridBased"]
 
-    # Planner option A (simple): NavFn
     GridBased:
-      plugin: "nav2_navfn_planner::NavfnPlanner"
-      tolerance: 0.05
-      use_astar: true
-      allow_unknown: true
+      plugin: "nav2_theta_star_planner::ThetaStarPlanner"
+      how_many_corners: 8
+      w_euclidean: 1.0
+      w_traversal_cost: 2.0
+      w_heuristic_param: 1.0
 
 controller_server:
   ros__parameters:
@@ -87,12 +87,12 @@ controller_server:
       critics: ["ObstacleFootprint", "BaseObstacle", "PathAlign", "GoalAlign", "PathDist", "GoalDist", "RotateToGoal", "Oscillation"]
       ObstacleFootprint.scale: 32.0
       BaseObstacle.scale: 20.0
-      PathAlign.scale: 8.0
-      GoalAlign.scale: 6.0
-      PathDist.scale: 4.0
-      GoalDist.scale: 8.0
-      RotateToGoal.scale: 3.0
-      RotateToGoal.slowing_factor: 3.0
+      PathAlign.scale: 0.0
+      GoalAlign.scale: 0.0
+      PathDist.scale: 2.0
+      GoalDist.scale: 12.0
+      RotateToGoal.scale: 4.0
+      RotateToGoal.slowing_factor: 5.0
       RotateToGoal.lookahead_time: -1.0
       Oscillation.scale: 3.0
 
