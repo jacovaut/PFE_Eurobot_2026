@@ -6,12 +6,7 @@ from .math_utils import rotate_xy, angle_between, wrap_angle, rectangular_yaw_di
 def solve_pose(cup_subset, block_subset):
     n = len(cup_subset)
     if n == 1:
-        # Axis-parallel alignment: find minimum rotation to make robot X-axis
-        # parallel to block X-axis. Uses atan2(sin(2θ),cos(2θ))/2 which gives
-        # a smooth, continuous error in [-90°, 90°] with 180° symmetry — no
-        # discontinuous flips unlike the modulo approach.
-        yaw_rad = math.radians(block_subset[0][1].yaw_deg)
-        yaw = math.atan2(math.sin(2.0 * yaw_rad), math.cos(2.0 * yaw_rad)) / 2.0
+        yaw = 0.0
     else:
         (_, c1), (_, c2) = cup_subset[0], cup_subset[-1]
         (_, b1), (_, b2) = block_subset[0], block_subset[-1]

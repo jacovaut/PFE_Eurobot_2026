@@ -55,7 +55,7 @@ class DockActionServer(Node):
         super().__init__("dock_action_server")
 
         # ----- Parameters -----
-        self.declare_parameter("k_x",          2.5)
+        self.declare_parameter("k_x",          0.5)
         self.declare_parameter("k_y",          4.0)
         self.declare_parameter("k_theta",      3.0)
         self.declare_parameter("max_vx",       0.4)
