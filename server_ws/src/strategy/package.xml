@@ -1,15 +1,14 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>server_local_camera</name>
+  <name>strategy</name>
   <version>0.0.0</version>
-  <description>Server-side launch files for the robot local camera perception stack.</description>
-  <maintainer email="jacobgaudet13@gmail.com">jacob</maintainer>
+  <description>Strategy nodes: cluster analysis and match timer</description>
+  <maintainer email="pfe@todo.todo">pfe</maintainer>
   <license>TODO: License declaration</license>
 
-  <exec_depend>launch</exec_depend>
-  <exec_depend>launch_ros</exec_depend>
-  <exec_depend>local_camera</exec_depend>
+  <depend>rclpy</depend>
+  <depend>std_msgs</depend>
 
   <test_depend>ament_copyright</test_depend>
   <test_depend>ament_flake8</test_depend>

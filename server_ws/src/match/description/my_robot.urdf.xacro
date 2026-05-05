@@ -16,14 +16,14 @@
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <geometry>
-        <mesh filename="package://pfe/meshes/base_link-v5.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://match/meshes/base_link-v5.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </visual>
 
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <geometry>
-        <mesh filename="package://pfe/meshes/base_link-v5.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://match/meshes/base_link-v5.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </collision>
   </link>
@@ -48,7 +48,7 @@
       <origin xyz="9.349037100037094e-10 0.004999995232077037 0.03650000482135752"
               rpy="1.5707963267948963 1.5707963267948957 0"/>
       <geometry>
-        <mesh filename="package://pfe/meshes/arm_link-v1.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://match/meshes/arm_link-v1.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </visual>
 
@@ -56,7 +56,7 @@
       <origin xyz="9.349037100037094e-10 0.004999995232077037 0.03650000482135752"
               rpy="1.5707963267948963 1.5707963267948957 0"/>
       <geometry>
-        <mesh filename="package://pfe/meshes/arm_link-v1.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://match/meshes/arm_link-v1.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </collision>
   </link>
@@ -82,7 +82,7 @@
       <origin xyz="0.00861550378970137 0.01247089554740951 -0.07550000482135592"
               rpy="-1.5707963267948968 -1.5707963267947291 0"/>
       <geometry>
-        <mesh filename="package://pfe/meshes/flipper_link-v1.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://match/meshes/flipper_link-v1.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </visual>
 
@@ -90,7 +90,7 @@
       <origin xyz="0.00861550378970137 0.01247089554740951 -0.07550000482135592"
               rpy="-1.5707963267948968 -1.5707963267947291 0"/>
       <geometry>
-        <mesh filename="package://pfe/meshes/flipper_link-v1.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://match/meshes/flipper_link-v1.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </collision>
   </link>
@@ -107,12 +107,12 @@
   <link name="front_left_wheel_link">
     <visual>
       <geometry>
-        <mesh filename="package://pfe/meshes/wheel_link-v1.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://match/meshes/wheel_link-v1.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </visual>
     <collision>
       <geometry>
-        <mesh filename="package://pfe/meshes/wheel_link-v1.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://match/meshes/wheel_link-v1.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </collision>
   </link>
@@ -120,12 +120,12 @@
   <link name="rear_left_wheel_link">
     <visual>
       <geometry>
-        <mesh filename="package://pfe/meshes/wheel_link-v1.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://match/meshes/wheel_link-v1.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </visual>
     <collision>
       <geometry>
-        <mesh filename="package://pfe/meshes/wheel_link-v1.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://match/meshes/wheel_link-v1.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </collision>
   </link>
@@ -133,12 +133,12 @@
   <link name="rear_right_wheel_link">
     <visual>
       <geometry>
-        <mesh filename="package://pfe/meshes/wheel_link-v1.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://match/meshes/wheel_link-v1.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </visual>
     <collision>
       <geometry>
-        <mesh filename="package://pfe/meshes/wheel_link-v1.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://match/meshes/wheel_link-v1.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </collision>
   </link>
@@ -146,12 +146,12 @@
   <link name="front_right_wheel_link">
     <visual>
       <geometry>
-        <mesh filename="package://pfe/meshes/wheel_link-v1.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://match/meshes/wheel_link-v1.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </visual>
     <collision>
       <geometry>
-        <mesh filename="package://pfe/meshes/wheel_link-v1.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://match/meshes/wheel_link-v1.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </collision>
   </link>
@@ -202,7 +202,7 @@
       <origin xyz="-2.352010142203653e-10 4.813011784676747e-09 -0.001750004628485895"
               rpy="8.52607141014584e-18 -5.5511151231257815e-17 9.485990215114392e-16"/>
       <geometry>
-        <mesh filename="package://pfe/meshes/arducam_link-v3.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://match/meshes/arducam_link-v3.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </visual>
 
@@ -210,7 +210,7 @@
       <origin xyz="-2.352010142203653e-10 4.813011784676747e-09 -0.001750004628485895"
               rpy="8.52607141014584e-18 -5.5511151231257815e-17 9.485990215114392e-16"/>
       <geometry>
-        <mesh filename="package://pfe/meshes/arducam_link-v3.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://match/meshes/arducam_link-v3.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </collision>
   </link>
@@ -235,12 +235,12 @@
   <link name="cup_0">
     <visual>
       <geometry>
-        <mesh filename="package://pfe/meshes/suctioncup_link-v1.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://match/meshes/suctioncup_link-v1.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </visual>
     <collision>
       <geometry>
-        <mesh filename="package://pfe/meshes/suctioncup_link-v1.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://match/meshes/suctioncup_link-v1.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </collision>
   </link>
@@ -248,12 +248,12 @@
   <link name="cup_1">
     <visual>
       <geometry>
-        <mesh filename="package://pfe/meshes/suctioncup_link-v1.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://match/meshes/suctioncup_link-v1.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </visual>
     <collision>
       <geometry>
-        <mesh filename="package://pfe/meshes/suctioncup_link-v1.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://match/meshes/suctioncup_link-v1.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </collision>
   </link>
@@ -261,12 +261,12 @@
   <link name="cup_2">
     <visual>
       <geometry>
-        <mesh filename="package://pfe/meshes/suctioncup_link-v1.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://match/meshes/suctioncup_link-v1.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </visual>
     <collision>
       <geometry>
-        <mesh filename="package://pfe/meshes/suctioncup_link-v1.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://match/meshes/suctioncup_link-v1.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </collision>
   </link>
@@ -274,12 +274,12 @@
   <link name="cup_3">
     <visual>
       <geometry>
-        <mesh filename="package://pfe/meshes/suctioncup_link-v1.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://match/meshes/suctioncup_link-v1.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </visual>
     <collision>
       <geometry>
-        <mesh filename="package://pfe/meshes/suctioncup_link-v1.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://match/meshes/suctioncup_link-v1.stl" scale="0.001 0.001 0.001"/>
       </geometry>
     </collision>
   </link>
@@ -306,76 +306,6 @@
     <parent link="arm_link"/>
     <child link="cup_3"/>
     <origin xyz="-0.075 0.0105 0.0365" rpy="1.5707963267948966 0 0"/>
-  </joint>
-
-
-
-  <!-- ===================== DEADWHEEL ODOMETRY ===================== -->
-
-  <link name="deadwheel_right">
-    <visual>
-      <origin xyz="-0.01366075454561134 0 0" rpy="3.1415926535897927 -1.5707963267948957 0"/>
-      <geometry>
-        <mesh filename="package://pfe/meshes/deadwheel_link-v1.stl" scale="0.001 0.001 0.001"/>
-      </geometry>
-    </visual>
-    <collision>
-      <origin xyz="-0.01366075454561134 0 0" rpy="3.1415926535897927 -1.5707963267948957 0"/>
-      <geometry>
-        <mesh filename="package://pfe/meshes/deadwheel_link-v1.stl" scale="0.001 0.001 0.001"/>
-      </geometry>
-    </collision>
-  </link>
-
-  <link name="deadwheel_left">
-    <visual>
-      <origin xyz="0 0 0.01741075143684732" rpy="0 0 0"/>
-      <geometry>
-        <mesh filename="package://pfe/meshes/deadwheel_link-v1.stl" scale="0.001 0.001 0.001"/>
-      </geometry>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0.01741075143684732" rpy="0 0 0"/>
-      <geometry>
-        <mesh filename="package://pfe/meshes/deadwheel_link-v1.stl" scale="0.001 0.001 0.001"/>
-      </geometry>
-    </collision>
-  </link>
-
-  <link name="deadwheel_side">
-    <visual>
-      <origin xyz="0 0 -0.018660747990952988" rpy="0 0 0"/>
-      <geometry>
-        <mesh filename="package://pfe/meshes/deadwheel_link-v1.stl" scale="0.001 0.001 0.001"/>
-      </geometry>
-    </visual>
-    <collision>
-      <origin xyz="0 0 -0.018660747990952988" rpy="0 0 0"/>
-      <geometry>
-        <mesh filename="package://pfe/meshes/deadwheel_link-v1.stl" scale="0.001 0.001 0.001"/>
-      </geometry>
-    </collision>
-  </link>
-
-  <joint name="base_to_deadwheel_right" type="continuous">
-    <parent link="base_cad"/>
-    <child link="deadwheel_right"/>
-    <origin xyz="-0.1689 0.1848 0.0072" rpy="1.57079632679 0 3.14159265359"/>
-    <axis xyz="0 0 -1"/>
-  </joint>
-
-  <joint name="base_to_deadwheel_left" type="continuous">
-    <parent link="base_cad"/>
-    <child link="deadwheel_left"/>
-    <origin xyz="-0.1689 0.0352 0.0072" rpy="1.57079632679 0 3.14159265359"/>
-    <axis xyz="0 0 -1"/>
-  </joint>
-
-  <joint name="base_to_deadwheel_side" type="continuous">
-    <parent link="base_cad"/>
-    <child link="deadwheel_side"/>
-    <origin xyz="-0.1059 0.1100 0.0072" rpy="1.57079632679 0 -1.57079632679"/>
-    <axis xyz="-1 0 0"/>
   </joint>
 
 </robot>

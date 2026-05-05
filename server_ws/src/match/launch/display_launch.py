@@ -7,7 +7,7 @@ import os
 
 
 def generate_launch_description():
-    pkg_path = get_package_share_directory('pfe')
+    pkg_path = get_package_share_directory('match')
     urdf_file = os.path.join(pkg_path, 'urdf', 'my_robot.urdf.xacro')
 
     robot_description = ParameterValue(

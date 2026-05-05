@@ -2,7 +2,7 @@ from glob import glob
 import os
 from setuptools import find_packages, setup
 
-package_name = 'pfe'
+package_name = 'match'
 
 setup(
     name=package_name,
@@ -37,8 +37,7 @@ setup(
         'console_scripts': [
             'csi_camera_publisher_node = ros2_opencv.csi_camera_publisher:main',
             'merged_local_pickup_node = ros2_opencv.merged_local_pickup_node:main',
-            'cluster_analyze_node = pfe.strategy.clusterAnalyze:main',
-            'match_timer_node = pfe.match_timer:main',
+            'match_timer_node = match.match_timer:main',
         ],
     },
 )

@@ -179,21 +179,6 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
           Value: true
-        deadwheel_left:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        deadwheel_right:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        deadwheel_side:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
         flipper_link:
           Alpha: 1
           Show Axes: false

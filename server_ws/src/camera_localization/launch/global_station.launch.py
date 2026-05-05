@@ -112,7 +112,7 @@ def generate_launch_description():
 
         # Cluster analysis node: consumes /detected_blocks and publishes /cluster_info
         Node(
-            package='pfe',
+            package='strategy',
             executable='cluster_analyze_node',
             name='cluster_analyze_node',
             output='screen',
