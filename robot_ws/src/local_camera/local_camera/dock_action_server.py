@@ -72,7 +72,7 @@ class DockActionServer(Node):
         self.declare_parameter("control_rate",        50.0)
         self.declare_parameter("blind_commit_dist",   0.040)  # m: if last error < this when going blind, succeed
         self.declare_parameter("blind_hold_time",     1.0)    # s: how long to hold position waiting for pose to return
-        self.declare_parameter("orbit_radius",         0.65)   # m: fallback orbit radius (cup_0 TF used if available)
+        self.declare_parameter("orbit_radius",         0.65)   # m: distance from robot center to cup/block
         self.declare_parameter("orbit_speed",         0.12)   # m/s tangential orbit speed
         self.declare_parameter("orbit_k_r",           3.0)    # radial correction gain
         self.kx    = self.get_parameter("k_x").value
@@ -178,7 +178,7 @@ class DockActionServer(Node):
         phase        = "approach"           # approach | orbit | approach2
         stable_start: float | None = None   # position/angle stable timer
         blind_start:  float | None = None   # blind-hold timer
-        r_target      = 0.0                 # radial distance to maintain during orbit
+        r_target      = 20               # radial distance to maintain during orbit
         orbit_dir     = 1.0                 # +1 = CCW, -1 = CW (locked at orbit start)
 
         while rclpy.ok():
@@ -256,7 +256,7 @@ class DockActionServer(Node):
 
             dx     = pose.x
             dy     = pose.y
-            dtheta = pose.theta
+            dtheta = math.atan2(math.sin(pose.theta), math.cos(pose.theta))
             error  = math.hypot(dx, dy)
             self.last_good_error = error
 
@@ -279,13 +279,11 @@ class DockActionServer(Node):
                         stable_start = time.time()
                     if time.time() - stable_start >= self.stable_time_required:
                         self._stop()
-                        r_target = self.orbit_radius
-                        orbit_dir = 1.0 if dtheta >= 0 else -1.0
                         phase = "orbit"
                         stable_start = None
                         self.get_logger().info(
-                            f"[DOCK] Position reached, starting orbit "
-                            f"({'CCW' if orbit_dir>0 else 'CW'}, dtheta={math.degrees(dtheta):.1f}°)")
+                            f"[DOCK] Position reached, starting angular alignment "
+                            f"(dtheta={math.degrees(dtheta):.1f}°)")
                 else:
                     stable_start = None
                     vx = clamp(self.kx * dx, -self.max_vx, self.max_vx)
@@ -303,6 +301,14 @@ class DockActionServer(Node):
                 ang_err = dtheta
                 in_ang       = abs(ang_err) < self.tol_theta
                 in_ang_loose = abs(ang_err) < self.tol_theta * 2.0
+
+                # Lock orbit direction on first entry (r_target == 0.0 is the sentinel)
+                if r_target == 0.0:
+                    orbit_dir = math.copysign(1.0, ang_err) if abs(ang_err) > 1e-6 else 1.0
+                    r_target  = self.orbit_radius
+                    self.get_logger().info(
+                        f"[DOCK] Orbit locked: dir={'+CCW' if orbit_dir > 0 else '-CW'} "
+                        f"r={r_target:.3f}m ang={math.degrees(ang_err):.1f}°")
 
                 if stable_start is not None:
                     # Already in confirmation window — hold still
@@ -325,12 +331,17 @@ class DockActionServer(Node):
                         f"waiting {self.stable_time_required:.1f}s to confirm")
                     vx = vy = w = 0.0
                 else:
-                    # Orbit in the locked direction
-                    r_orb     = max(r_target, 0.05)
-                    omega_orb = self.orbit_speed / r_orb
+                    # Circular orbit: to keep the block fixed in the robot frame while
+                    # rotating at rate w, the robot must slide laterally at vy = -R * w.
+                    # With w = orbit_dir * (v/R):  vy = -R * orbit_dir * (v/R) = -orbit_dir * v
+                    # This makes cmd.linear.y = -vy = orbit_dir * v, same sign as w — matching
+                    # the test_orbit.py physics (both cmd.linear.y and cmd.angular.z same sign).
+                    # orbit_dir > 0 → CCW orbit (w > 0, cmd.linear.y > 0)
+                    # orbit_dir < 0 → CW  orbit (w < 0, cmd.linear.y < 0)
+                    orbit_omega = self.orbit_speed / self.orbit_radius
                     vx = 0.0
-                    vy = self.orbit_speed * orbit_dir
-                    w  = clamp(-omega_orb * orbit_dir, -self.max_w, self.max_w)
+                    vy = -orbit_dir * self.orbit_speed
+                    w  = clamp(orbit_dir * orbit_omega, -self.max_w, self.max_w)
 
             # ==================
             # PHASE: APPROACH2
