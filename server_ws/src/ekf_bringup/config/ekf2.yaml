@@ -30,7 +30,7 @@ ekf_global_node:
       false, false, false    # ax, ay, az
     ]
     odom0_differential: true
-    odom0_relative: false
+    odom0_relative: true
 
     # Input 2: absolute global pose from overhead camera
     pose0: /camera/global_pose
