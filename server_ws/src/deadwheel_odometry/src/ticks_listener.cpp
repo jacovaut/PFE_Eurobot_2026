@@ -4,7 +4,6 @@
 #include <cstdlib>
 #include <nav_msgs/msg/odometry.hpp>
 #include <tf2/LinearMath/Quaternion.h>
-#include <mutex>
 //#include <tf2_ros/transform_broadcaster.h>
 //#include <geometry_msgs/msg/transform_stamped.hpp>
 
@@ -21,7 +20,6 @@ class TicksListener : public rclcpp::Node
 
     double x__{0.0}, y__{0.0}, theta__{0.0};
     double vx{0}, vy{0}, omega{0};
-    std::mutex mtx_;
 
     //Constantes, à ajouter les bonnes valeurs
     const double ENCODER_TICKS_PER_REVOLUTION [3] = {4096, 4096, 4096};
@@ -155,28 +153,28 @@ class TicksListener : public rclcpp::Node
       subscription_ = this->create_subscription<custom_msgs::msg::DeadwheelTicks>(
       "deadwheel_ticks", rclcpp::SensorDataQoS().keep_last(1), [this](custom_msgs::msg::DeadwheelTicks::SharedPtr msg)
       {
-        std::lock_guard<std::mutex> lock(mtx_);
-
         const rclcpp::Time receive_stamp = this->now();
         rclcpp::Time source_stamp;
         bool source_stamp_is_ros_synced{false};
         if (!getMessageStamp(msg, receive_stamp, source_stamp, source_stamp_is_ros_synced)) {
           return;
         }
-        rclcpp::Time odom_stamp = source_stamp_is_ros_synced ? source_stamp : receive_stamp;
 
         if (!initialized_) {
           prevTicks[0] = msg->t0;
           prevTicks[1] = msg->t1;
           prevTicks[2] = msg->t2;
-          prev_stamp_ = odom_stamp;
+          prev_stamp_ = source_stamp;
           prev_receive_stamp_ = receive_stamp;
           initialized_ = true;
-          publishOdom(odom_stamp);
+          publishOdom(receive_stamp);
           return;
         }
 
-        double dt = (odom_stamp - prev_stamp_).seconds();
+        // Use source_stamp for dt: ESP clock is internally consistent even when
+        // offset from ROS time, so integration stays accurate across bursts.
+        // Use receive_stamp for the EKF header: all ROS nodes share the same clock.
+        double dt = (source_stamp - prev_stamp_).seconds();
         const double receive_dt = (receive_stamp - prev_receive_stamp_).seconds();
 
         if ((dt <= 1e-6 || !std::isfinite(dt)) && receive_dt > 1e-6 && std::isfinite(receive_dt)) {
@@ -188,7 +186,6 @@ class TicksListener : public rclcpp::Node
             dt,
             receive_dt);
           dt = receive_dt;
-          odom_stamp = receive_stamp;
         }
 
         if (dt <= 1e-6 || !std::isfinite(dt)) {
@@ -196,7 +193,7 @@ class TicksListener : public rclcpp::Node
           return;
         }
 
-        prev_stamp_ = odom_stamp;
+        prev_stamp_ = source_stamp;
         prev_receive_stamp_ = receive_stamp;
 
         // calculs des delta ticks
@@ -224,7 +221,7 @@ class TicksListener : public rclcpp::Node
           vx = 0.0;
           vy = 0.0;
           omega = 0.0;
-          publishOdom(odom_stamp);
+          publishOdom(receive_stamp);
           return;
         }
 
@@ -283,7 +280,7 @@ class TicksListener : public rclcpp::Node
         x__, y__
         );
 
-        publishOdom(odom_stamp);
+        publishOdom(receive_stamp);
       }
     ); 
   }
