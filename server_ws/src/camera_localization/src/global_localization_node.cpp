@@ -487,10 +487,11 @@ private:
     }
     
     auto read_end = std::chrono::high_resolution_clock::now();
+    const rclcpp::Time frame_stamp = now();
     double read_ms = std::chrono::duration<double, std::milli>(read_end - tick_start).count();
     last_frame_read_ms_ = read_ms;
     
-    processFrame(frame);
+    processFrame(frame, frame_stamp);
     
     auto process_end = std::chrono::high_resolution_clock::now();
     double process_ms = std::chrono::duration<double, std::milli>(process_end - read_end).count();
@@ -515,7 +516,7 @@ private:
     }
   }
 
-  void processFrame(const cv::Mat &frame)
+  void processFrame(const cv::Mat &frame, const rclcpp::Time &frame_stamp)
   {
     cv::Mat gray;
     cv::cvtColor(frame, gray, cv::COLOR_BGR2GRAY);
@@ -790,7 +791,7 @@ if (ids.empty()) {
         robot_entity.size_y_m = 0.0;
         robot_entity.is_dynamic = true;
 
-        publishPose(t_map_base, yaw_map_base);
+        publishPose(t_map_base, yaw_map_base, frame_stamp);
         have_robot_pose = true;
       }
     }
@@ -1469,10 +1470,13 @@ if (ids.empty()) {
     return true;
   }
 
-  void publishPose(const cv::Vec3d &t_map_base, double yaw_map_base)
+  void publishPose(
+    const cv::Vec3d &t_map_base,
+    double yaw_map_base,
+    const rclcpp::Time &stamp)
   {
     geometry_msgs::msg::PoseWithCovarianceStamped msg;
-    msg.header.stamp = now();
+    msg.header.stamp = stamp;
     msg.header.frame_id = map_frame_;
 
     msg.pose.pose.position.x = t_map_base[0];

@@ -3,6 +3,9 @@ ekf_local_node:
     frequency: 50.0
     sensor_timeout: 0.1
     two_d_mode: true
+    predict_to_current_time: true
+    transform_time_offset: 0.05
+    transform_timeout: 0.0
 
     # Frames
     map_frame: map              # unused for local-only, but required param

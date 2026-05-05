@@ -1,8 +1,13 @@
 ekf_global_node:
   ros__parameters:
     frequency: 50.0
-    sensor_timeout: 0.3
+    sensor_timeout: 0.1
     two_d_mode: true
+    predict_to_current_time: true
+    transform_time_offset: 0.05
+    transform_timeout: 0.0
+    smooth_lagged_data: true
+    history_length: 0.5
     publish_tf: true
     publish_acceleration: false
     print_diagnostics: true
@@ -31,8 +36,8 @@ ekf_global_node:
       false, false, true,    # vroll, vpitch, vyaw
       false, false, false    # ax, ay, az
     ]
-    odom0_differential: true
-    odom0_relative: true
+    odom0_differential: false
+    odom0_relative: false
     odom0_nodelay: true
 
     # Input 2: absolute global pose from overhead camera
