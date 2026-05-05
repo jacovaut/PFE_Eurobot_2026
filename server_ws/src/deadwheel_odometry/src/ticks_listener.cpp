@@ -31,6 +31,9 @@ class TicksListener : public rclcpp::Node
     const double SDEADWHEEL_CIRCUMFERENCE = (M_PI) * SDEADWHEEL_DIAMETER;
     const double DEADWHEEL_DISTANCE = 0.1496; //distance entre les deux deadwheel principaux, anciennement 0.1446
     const double OFFSET = -0.063; //distance entre le side deadwheel et le centre de rotation du robot
+    const double RIGHT_DEADWHEEL_SIGN = -1.0;
+    const double LEFT_DEADWHEEL_SIGN = -1.0;
+    const double SIDE_DEADWHEEL_SIGN = 1.0;
 
     int64_t prevTicks[3] = {0, 0, 0};
     bool initialized_{false};
@@ -230,11 +233,11 @@ class TicksListener : public rclcpp::Node
         prevTicks[2] = ticks2;
 
         //calculs des déplacements selon les axes du robot
-        double rightDist = static_cast<double>(dRTicks) * DEADWHEEL_CIRCUMFERENCE / ENCODER_TICKS_PER_REVOLUTION[0];
-        double leftDist = static_cast<double>(dLTicks) * DEADWHEEL_CIRCUMFERENCE / ENCODER_TICKS_PER_REVOLUTION[1];
+        double rightDist = RIGHT_DEADWHEEL_SIGN * static_cast<double>(dRTicks) * DEADWHEEL_CIRCUMFERENCE / ENCODER_TICKS_PER_REVOLUTION[0];
+        double leftDist = LEFT_DEADWHEEL_SIGN * static_cast<double>(dLTicks) * DEADWHEEL_CIRCUMFERENCE / ENCODER_TICKS_PER_REVOLUTION[1];
         double dxr = 0.5 * (rightDist + leftDist);
         double dangle = (rightDist - leftDist) / DEADWHEEL_DISTANCE;
-        double dyr = (static_cast<double>(dSTicks) * SDEADWHEEL_CIRCUMFERENCE / ENCODER_TICKS_PER_REVOLUTION[2]) - OFFSET * dangle;
+        double dyr = (SIDE_DEADWHEEL_SIGN * static_cast<double>(dSTicks) * SDEADWHEEL_CIRCUMFERENCE / ENCODER_TICKS_PER_REVOLUTION[2]) - OFFSET * dangle;
         double avgangle = theta__ + dangle/2; 
 
         //calculs des déplacements selon le world
