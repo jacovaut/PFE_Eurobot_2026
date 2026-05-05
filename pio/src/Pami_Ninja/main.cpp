@@ -18,9 +18,32 @@ int motorSpeeds[4] = {0, 0, 0, 0};
 
 // Valve and pump states
 bool valveState = false;
+bool pumpState = false;
 
 // Encoder reading control
 bool encoderReadingEnabled = false;
+
+// Keyboard control - track currently pressed keys
+bool keyPressed[256] = {false};  // Track state of each ASCII key
+unsigned long keyLastReceived[256] = {0};  // Track last time each key was received
+
+// Key press/release timeout (in milliseconds)
+#define KEY_TIMEOUT 150  // If key not received for 150ms, consider it released
+
+// Maximum speed for keyboard control
+#define MAX_KEYBOARD_SPEED 200
+
+
+// Functions declaration
+void setMecanumSpeeds(float vx, float vy, float omega);
+void setMotor(int motor, int speed);
+void setServo(int servo, int angle);
+void setPump(bool state);
+void setValve(bool state);
+void resetEncoders();
+void printKeyboardHelp();
+void processKeyboardInput();
+
 
 void setup() {
   Serial.begin(115200);
@@ -75,6 +98,26 @@ void setup() {
   Serial.println("Robot initialized");
 }
 
+
+void loop() {
+  // Print encoder values (if enabled)
+  if (encoderReadingEnabled) {
+    Serial.print("Encoders: ");
+    Serial.print(encoder1.getCount());
+    Serial.print(", ");
+    Serial.print(encoder2.getCount());
+    Serial.print(", ");
+    Serial.print(encoder3.getCount());
+    Serial.print(", ");
+    Serial.println(encoder4.getCount());
+  }
+
+  // Process keyboard input - hold keys for continuous movement
+  processKeyboardInput();
+
+  delay(100);
+}
+
 void setMotor(int motor, int speed) {
   int in1, in2, ch_in1, ch_in2;
 
@@ -123,6 +166,7 @@ void setServo(int servo, int angle) {
 }
 
 void setPump(bool state) {
+  pumpState = state;
   digitalWrite(PUMP_PIN, state ? HIGH : LOW);
 }
 
@@ -137,6 +181,90 @@ void resetEncoders() {
   encoder3.clearCount();
   encoder4.clearCount();
   Serial.println("All encoders reset");
+}
+
+void printKeyboardHelp() {
+  Serial.println("\n========================================");
+  Serial.println("KEYBOARD CONTROL - Hold keys to move");
+  Serial.println("========================================");
+  Serial.println("MOVEMENT:");
+  Serial.println("  W - Forward");
+  Serial.println("  S - Backward");
+  Serial.println("  A - Strafe Left");
+  Serial.println("  D - Strafe Right");
+  Serial.println("  Q - Rotate Counter-Clockwise");
+  Serial.println("  E - Rotate Clockwise");
+  Serial.println("  SPACE - Stop all motion");
+  Serial.println("\nBLOCK HANDLING:");
+  Serial.println("  P - Pick up block");
+  Serial.println("  R - Release block");
+  Serial.println("\nSERVO CONTROL:");
+  Serial.println("  U - Raise servo");
+  Serial.println("  O - Lower servo");
+  Serial.println("\nPUMP CONTROL:");
+  Serial.println("  J - Pump Toggle ON/OFF");
+  Serial.println("\nENCODER CONTROL:");
+  Serial.println("  N - Encoder Toggle ON/OFF");
+  Serial.println("  L - Reset Encoders");
+  Serial.println("========================================\n");
+}
+
+void processKeyboardInput() {
+  unsigned long now = millis();
+  
+  // Check if there's data available to read
+  if (Serial.available()) {
+    char key = Serial.read();
+    key = toupper(key);  // Convert to uppercase
+    
+    if (key >= 32 && key <= 126) {  // Valid ASCII range
+      keyPressed[key] = true;  // Mark key as pressed
+      keyLastReceived[key] = now;  // Update timestamp
+    }
+  }
+  
+  // Check for key timeouts (key release detection)
+  if (keyPressed[KEY_FORWARD] && (now - keyLastReceived[KEY_FORWARD] > KEY_TIMEOUT)) {
+    keyPressed[KEY_FORWARD] = false;
+  }
+  if (keyPressed[KEY_BACKWARD] && (now - keyLastReceived[KEY_BACKWARD] > KEY_TIMEOUT)) {
+    keyPressed[KEY_BACKWARD] = false;
+  }
+  if (keyPressed[KEY_LEFT] && (now - keyLastReceived[KEY_LEFT] > KEY_TIMEOUT)) {
+    keyPressed[KEY_LEFT] = false;
+  }
+  if (keyPressed[KEY_RIGHT] && (now - keyLastReceived[KEY_RIGHT] > KEY_TIMEOUT)) {
+    keyPressed[KEY_RIGHT] = false;
+  }
+  if (keyPressed[KEY_ROTATE_CW] && (now - keyLastReceived[KEY_ROTATE_CW] > KEY_TIMEOUT)) {
+    keyPressed[KEY_ROTATE_CW] = false;
+  }
+  if (keyPressed[KEY_ROTATE_CCW] && (now - keyLastReceived[KEY_ROTATE_CCW] > KEY_TIMEOUT)) {
+    keyPressed[KEY_ROTATE_CCW] = false;
+  }
+  
+  // Process movement keys
+  if (keyPressed[KEY_FORWARD]) {
+    setMecanumSpeeds(MAX_KEYBOARD_SPEED / 255.0, 0, 0);
+  }
+  else if (keyPressed[KEY_BACKWARD]) {
+    setMecanumSpeeds(-MAX_KEYBOARD_SPEED / 255.0, 0, 0);
+  }
+  else if (keyPressed[KEY_LEFT]) {
+    setMecanumSpeeds(0, MAX_KEYBOARD_SPEED / 255.0, 0);
+  }
+  else if (keyPressed[KEY_RIGHT]) {
+    setMecanumSpeeds(0, -MAX_KEYBOARD_SPEED / 255.0, 0);
+  }
+  else if (keyPressed[KEY_ROTATE_CW]) {
+    setMecanumSpeeds(0, 0, MAX_KEYBOARD_SPEED / 255.0);
+  }
+  else if (keyPressed[KEY_ROTATE_CCW]) {
+    setMecanumSpeeds(0, 0, -MAX_KEYBOARD_SPEED / 255.0);
+  }
+  else {
+    setMecanumSpeeds(0, 0, 0);
+  }
 }
 
 void setMecanumSpeeds(float vx, float vy, float omega) {
@@ -161,173 +289,9 @@ void setMecanumSpeeds(float vx, float vy, float omega) {
   setMotor(2, pwm2);
   setMotor(3, pwm3);
   setMotor(4, pwm4);
-  Serial.printf("Set PWM: FL=%d, FR=%d, RL=%d, RR=%d\n", pwm1, pwm2, pwm3, pwm4);
-}
-
-
-void loop() {
-  // Print encoder values (if enabled)
-  if (encoderReadingEnabled) {
-    Serial.print("Encoders: ");
-    Serial.print(encoder1.getCount());
-    Serial.print(", ");
-    Serial.print(encoder2.getCount());
-    Serial.print(", ");
-    Serial.print(encoder3.getCount());
-    Serial.print(", ");
-    Serial.println(encoder4.getCount());
+  if(pwm1 == 0 && pwm2 == 0 && pwm3 == 0 && pwm4 == 0) {
+    Serial.println("Stopping all motors");
+  } else {
+    Serial.printf("Setting motors - FL: %d, FR: %d, RL: %d, RR: %d\n", pwm1, pwm2, pwm3, pwm4);
   }
-
-  // Check for serial commands
-  if (Serial.available()) {
-    String command = Serial.readStringUntil('\n');
-    command.trim();
-
-    if (command.startsWith("f ")) {
-      // Forward: f <speed>
-      int speed = command.substring(2).toInt();
-      setMecanumSpeeds(speed / 255.0, 0, 0);
-      Serial.print("Moving forward at speed ");
-      Serial.println(speed);
-    } else if (command.startsWith("b ")) {
-      // Backward: b <speed>
-      int speed = command.substring(2).toInt();
-      setMecanumSpeeds(-speed / 255.0, 0, 0);
-      Serial.print("Moving backward at speed ");
-      Serial.println(speed);
-    } else if (command.startsWith("l ")) {
-      // Left strafe: l <speed>
-      int speed = command.substring(2).toInt();
-      setMecanumSpeeds(0, speed / 255.0, 0);
-      Serial.print("Strafing left at speed ");
-      Serial.println(speed);
-    } else if (command.startsWith("r ")) {
-      // Right strafe: r <speed>
-      int speed = command.substring(2).toInt();
-      setMecanumSpeeds(0, -speed / 255.0, 0);
-      Serial.print("Strafing right at speed ");
-      Serial.println(speed);
-    } else if (command.startsWith("cw ")) {
-      // Clockwise rotation: cw <speed>
-      int speed = command.substring(3).toInt();
-      setMecanumSpeeds(0, 0, speed / 255.0);
-      Serial.print("Rotating clockwise at speed ");
-      Serial.println(speed);
-
-    } else if (command.startsWith("ccw ")) {
-      // Counter-clockwise rotation: ccw <speed>
-      int speed = command.substring(4).toInt();
-      setMecanumSpeeds(0, 0, -speed / 255.0);
-      Serial.print("Rotating counter-clockwise at speed ");
-      Serial.println(speed);
-
-    } else if (command.startsWith("stop")) {
-      // Stop all motors, pump, and servos
-      setMecanumSpeeds(0, 0, 0);
-      setPump(false);
-      setServo(1, ARM_UP_ANGLE);
-      setServo(2, ARM_UP_ANGLE);
-      Serial.println("Stopped - Motors, pump, and servos OFF");
-
-    } else if (command.startsWith("s ")) {
-      // Servo command: s <angle>
-      int spaceIndex = command.indexOf(' ');
-      if (spaceIndex > 0) {
-        int angle = command.substring(spaceIndex + 1).toInt();
-        setServo(1, angle);
-        setServo(2, angle);
-        Serial.print("Set servo 1 and 2  to angle ");
-        Serial.println(angle);
-      }
-    } else if (command.startsWith("p ")) {
-      // Pump command: p on or p off
-      int spaceIndex = command.indexOf(' ');
-      if (spaceIndex > 0) {
-        String state = command.substring(spaceIndex + 1);
-        if (state == "on") {
-          setPump(true);
-          Serial.println("Pump ON");
-        } else if (state == "off") {
-          setPump(false);
-          Serial.println("Pump OFF");
-        } else {
-          Serial.println("Pump: use 'p on' or 'p off'");
-        }
-      }
-    } else if (command.startsWith("v ")) {
-      // Valve command: v on or v off
-      int spaceIndex = command.indexOf(' ');
-      if (spaceIndex > 0) {
-        String state = command.substring(spaceIndex + 1);
-        if (state == "on") {
-          setValve(true);
-          Serial.println("Valve ON");
-        } else if (state == "off") {
-          setValve(false);
-          Serial.println("Valve OFF");
-        } else {
-          Serial.println("Valve: use 'v on' or 'v off'");
-        }
-      }
-    } else if (command.startsWith("enc ")) {
-      // Encoder control: enc on/off or enc r for reset
-      int spaceIndex = command.indexOf(' ');
-      if (spaceIndex > 0) {
-        String state = command.substring(spaceIndex + 1);
-        if (state == "on") {
-          encoderReadingEnabled = true;
-          Serial.println("Encoder reading enabled");
-        } else if (state == "off") {
-          encoderReadingEnabled = false;
-          Serial.println("Encoder reading disabled");
-        } else if (state == "r") {
-          resetEncoders();
-        } else {
-          Serial.println("Encoder: use 'enc on', 'enc off', or 'enc r' to reset");
-        }
-      }
-    } else if (command.startsWith("test ")) {
-      // Test mode: send same speed to all motors (hardware test)
-      int speed = command.substring(5).toInt();
-      Serial.printf("TEST MODE: Setting all motors to speed %d\n", speed);
-      setMotor(1, speed);
-      setMotor(2, speed);
-      setMotor(3, speed);
-      setMotor(4, speed);
-      Serial.println("All motors set to same speed");
-    } else if (command == "pick") {
-      // Pick up block: lower servo, activate pump, wait, then lift
-      Serial.println("Picking up block...");
-      setServo(1, ARM_DOWN_ANGLE);
-      setServo(2, ARM_DOWN_ANGLE);
-      delay(ARM_MOVE_DELAY);  // Wait for servo to reach position
-      setValve(false);
-      setPump(true);
-      Serial.println("Pump activated");
-      delay(500);  // Wait 1 second for pump to compress
-      setServo(1, ARM_UP_ANGLE);
-      setServo(2, ARM_UP_ANGLE);
-      Serial.println("Block picked up");
-    }
-    
-    else if (command == "release") {
-      // Release block: lower servo, deactivate pump, activate valve, wait, then lift
-      Serial.println("Releasing block...");
-      setServo(1, ARM_DOWN_ANGLE);
-      setServo(2, ARM_DOWN_ANGLE);
-      delay(ARM_MOVE_DELAY);  // Wait for servo to reach position
-      setPump(false);
-      setValve(true);
-      Serial.println("Valve activated");
-      delay(500);  // Wait 1 second for block to release
-      setServo(1, ARM_UP_ANGLE);
-      setServo(2, ARM_UP_ANGLE);
-      Serial.println("Block released");
-    } else {
-      Serial.println("Unknown command. Use: f/b/l/r/cw/ccw <speed>, stop, s <angle>, p on/off, v on/off, enc on/off/r, pick, release");
-    }
-  }
-
-  delay(100);
 }
-

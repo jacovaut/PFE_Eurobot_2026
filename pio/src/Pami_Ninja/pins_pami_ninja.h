@@ -73,6 +73,27 @@
 #define WHEEL_RADIUS 0.06
 #define WHEELBASE_LENGTH 0.1
 #define WHEELBASE_WIDTH 0.1
-#define MAX_SPEED 255  // Max PWM value
+#define MAX_SPEED 100  // Max PWM value
+
+
+// Keyboard layout for robot control
+#define KEY_FORWARD 'W'
+#define KEY_BACKWARD 'S'
+#define KEY_LEFT 'A'
+#define KEY_RIGHT 'D'
+#define KEY_ROTATE_CW 'E'
+#define KEY_ROTATE_CCW 'Q'
+#define KEY_STOP ' '  // Space bar
+#define KEY_PICK 'P'
+#define KEY_RELEASE 'R'
+#define KEY_SERVO_UP 'U'
+#define KEY_SERVO_DOWN 'O'
+#define KEY_PUMP_TOGGLE 'J'
+#define KEY_ENC_TOGGLE 'N'
+#define KEY_ENC_RESET 'L'
+#define KEY_SPEED_UP '+'
+#define KEY_SPEED_DOWN '-'
+
+
 
 #endif
