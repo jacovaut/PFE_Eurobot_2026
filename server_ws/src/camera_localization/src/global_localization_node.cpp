@@ -19,6 +19,7 @@
 #include <iomanip>
 #include <chrono>
 #include <atomic>
+#include <condition_variable>
 #include <mutex>
 #include <thread>
 #include <ament_index_cpp/get_package_share_directory.hpp>
@@ -229,6 +230,7 @@ public:
     }
 
     running_.store(true, std::memory_order_release);
+    capture_thread_ = std::thread(&CameraLocalizationNode::cameraCaptureLoop, this);
     processing_thread_ = std::thread(&CameraLocalizationNode::processingLoop, this);
 
     RCLCPP_INFO(get_logger(), "global_localization_node started");
@@ -238,10 +240,14 @@ public:
   ~CameraLocalizationNode() override
   {
     running_.store(false, std::memory_order_release);
-    cap_.release();
+    latest_frame_cv_.notify_all();
+    if (capture_thread_.joinable()) {
+      capture_thread_.join();
+    }
     if (processing_thread_.joinable()) {
       processing_thread_.join();
     }
+    cap_.release();
     if (debug_view_) {
       cv::destroyAllWindows();
     }
@@ -466,53 +472,94 @@ private:
     dictionary_ = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_4X4_50);
   }
 
-  void processingLoop()
+  void cameraCaptureLoop()
   {
     while (running_.load(std::memory_order_acquire) && rclcpp::ok()) {
-      cameraTick();
+      const auto read_start = std::chrono::high_resolution_clock::now();
+
+      cv::Mat frame;
+      if (!cap_.read(frame) || frame.empty()) {
+        empty_frame_count_.fetch_add(1, std::memory_order_relaxed);
+        RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 2000, "Empty camera frame");
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        continue;
+      }
+
+      const rclcpp::Time frame_stamp = now();
+      const auto read_end = std::chrono::high_resolution_clock::now();
+      const double read_ms =
+        std::chrono::duration<double, std::milli>(read_end - read_start).count();
+      last_frame_read_ms_.store(read_ms, std::memory_order_relaxed);
+
+      {
+        std::lock_guard<std::mutex> lock(latest_frame_mutex_);
+        latest_frame_ = frame;
+        latest_frame_stamp_ = frame_stamp;
+        latest_frame_seq_++;
+      }
+      latest_frame_cv_.notify_one();
     }
   }
 
-  void cameraTick()
+  void processingLoop()
   {
-    auto tick_start = std::chrono::high_resolution_clock::now();
-    frame_counter_++;
+    uint64_t processed_frame_seq = 0;
+
+    while (running_.load(std::memory_order_acquire) && rclcpp::ok()) {
+      cv::Mat frame;
+      rclcpp::Time frame_stamp;
+
+      {
+        std::unique_lock<std::mutex> lock(latest_frame_mutex_);
+        latest_frame_cv_.wait(
+          lock,
+          [this, processed_frame_seq]() {
+            return !running_.load(std::memory_order_acquire) ||
+                   latest_frame_seq_ != processed_frame_seq;
+          });
+
+        if (!running_.load(std::memory_order_acquire) || latest_frame_.empty()) {
+          return;
+        }
+
+        frame = latest_frame_.clone();
+        frame_stamp = latest_frame_stamp_;
+        processed_frame_seq = latest_frame_seq_;
+      }
+
+      const auto process_start = std::chrono::high_resolution_clock::now();
+      frame_counter_.fetch_add(1, std::memory_order_relaxed);
+
+      processFrame(frame, frame_stamp);
     
-    cv::Mat frame;
-    if (!cap_.read(frame) || frame.empty()) {
-      empty_frame_count_++;
-      RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 2000, "Empty camera frame");
-      std::this_thread::sleep_for(std::chrono::milliseconds(1));
-      return;
-    }
+      const auto process_end = std::chrono::high_resolution_clock::now();
+      double process_ms =
+        std::chrono::duration<double, std::milli>(process_end - process_start).count();
+      last_frame_process_ms_ = process_ms;
     
-    auto read_end = std::chrono::high_resolution_clock::now();
-    const rclcpp::Time frame_stamp = now();
-    double read_ms = std::chrono::duration<double, std::milli>(read_end - tick_start).count();
-    last_frame_read_ms_ = read_ms;
-    
-    processFrame(frame, frame_stamp);
-    
-    auto process_end = std::chrono::high_resolution_clock::now();
-    double process_ms = std::chrono::duration<double, std::milli>(process_end - read_end).count();
-    last_frame_process_ms_ = process_ms;
-    double total_ms = std::chrono::duration<double, std::milli>(process_end - tick_start).count();
-    
-    if (frame_counter_ % 100 == 0) {
-      RCLCPP_INFO(get_logger(),
-        "[DIAGNOSTIC] Frames: %ld, Empty: %ld, Total: %.2f ms (read: %.2f ms, process: %.2f ms, json: %.2f ms, pub: %.2f ms)",
-        frame_counter_, empty_frame_count_, total_ms, read_ms, process_ms,
-        last_json_build_ms_, last_publish_ms_);
-      RCLCPP_INFO(get_logger(),
-        "[DETECTION] Initial: %d markers, Tables B4 rescue: %d, Tables after: %d, Rescue helped: %ld, solvePnP ok: %ld, fail: %ld",
-        last_initial_marker_count_, last_table_markers_before_rescue_,
-        last_table_markers_after_rescue_, rescue_pass_helped_,
-        successful_solvepnp_, failed_solvepnp_);
-      RCLCPP_INFO(get_logger(),
-        "[MARKER 20] before rescue: %ld, after rescue: %ld, recovered by rescue: %ld",
-        marker20_seen_before_rescue_,
-        marker20_seen_after_rescue_,
-        marker20_recovered_by_rescue_);
+      const uint64_t frame_count = frame_counter_.load(std::memory_order_relaxed);
+      if (frame_count % 100 == 0) {
+        RCLCPP_INFO(get_logger(),
+          "[DIAGNOSTIC] Frames: %lu, Empty: %lu, read: %.2f ms, process: %.2f ms, json: %.2f ms, pub: %.2f ms",
+          static_cast<unsigned long>(frame_count),
+          static_cast<unsigned long>(empty_frame_count_.load(std::memory_order_relaxed)),
+          last_frame_read_ms_.load(std::memory_order_relaxed),
+          process_ms,
+          last_json_build_ms_,
+          last_publish_ms_);
+        RCLCPP_INFO(get_logger(),
+          "[DETECTION] Initial: %d markers, Tables B4 rescue: %d, Tables after: %d, Rescue helped: %lu, solvePnP ok: %lu, fail: %lu",
+          last_initial_marker_count_, last_table_markers_before_rescue_,
+          last_table_markers_after_rescue_,
+          static_cast<unsigned long>(rescue_pass_helped_),
+          static_cast<unsigned long>(successful_solvepnp_),
+          static_cast<unsigned long>(failed_solvepnp_));
+        RCLCPP_INFO(get_logger(),
+          "[MARKER 20] before rescue: %lu, after rescue: %lu, recovered by rescue: %lu",
+          static_cast<unsigned long>(marker20_seen_before_rescue_),
+          static_cast<unsigned long>(marker20_seen_after_rescue_),
+          static_cast<unsigned long>(marker20_recovered_by_rescue_));
+      }
     }
   }
 
@@ -1627,7 +1674,13 @@ if (ids.empty()) {
 
   // Background camera processing
   std::atomic<bool> running_{false};
+  std::thread capture_thread_;
   std::thread processing_thread_;
+  std::mutex latest_frame_mutex_;
+  std::condition_variable latest_frame_cv_;
+  cv::Mat latest_frame_;
+  rclcpp::Time latest_frame_stamp_;
+  uint64_t latest_frame_seq_{0};
 
   // Debug display is kept on the ROS executor thread for OpenCV GUI stability.
   std::mutex debug_frame_mutex_;
@@ -1680,9 +1733,9 @@ if (ids.empty()) {
   int entity_tracking_max_missed_frames_{5};
   
   // Diagnostics: frame counting and timing
-  uint64_t frame_counter_{0};
-  uint64_t empty_frame_count_{0};
-  double last_frame_read_ms_{0.0};
+  std::atomic<uint64_t> frame_counter_{0};
+  std::atomic<uint64_t> empty_frame_count_{0};
+  std::atomic<double> last_frame_read_ms_{0.0};
   double last_frame_process_ms_{0.0};
   double last_json_build_ms_{0.0};
   double last_publish_ms_{0.0};
