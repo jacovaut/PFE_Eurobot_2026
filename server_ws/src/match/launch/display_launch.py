@@ -31,6 +31,7 @@ def generate_launch_description():
             package='joint_state_publisher',
             executable='joint_state_publisher',
             name='joint_state_publisher',
+            arguments=[urdf_file],
             output='screen'
         ),
 

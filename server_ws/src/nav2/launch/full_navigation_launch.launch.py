@@ -132,6 +132,17 @@ def generate_launch_description():
         actions=[
             SetParameter('use_sim_time', use_sim_time),
             Node(
+                package='nav2_map_server',
+                executable='map_server',
+                name='map_server',
+                output='screen',
+                arguments=['--ros-args', '--log-level', log_level],
+                parameters=[
+                    configured_params,
+                    {'yaml_filename': LaunchConfiguration('map')},
+                ],
+            ),
+            Node(
                 package='nav2_controller',
                 executable='controller_server',
                 output='screen',
@@ -215,17 +226,6 @@ def generate_launch_description():
                 arguments=['--ros-args', '--log-level', log_level],
                 parameters=[{'autostart': autostart}, {'node_names': lifecycle_nodes}],
             ),
-            Node(
-                package='nav2_map_server',
-                executable='map_server',
-                name='map_server',
-                output='screen',
-                arguments=['--ros-args', '--log-level', log_level],
-                parameters=[
-                    configured_params,
-                    {'yaml_filename': LaunchConfiguration('map')},
-                ],
-            ),
         ],
     )
 
@@ -286,20 +286,20 @@ def generate_launch_description():
                         remappings=remappings,
                     ),
                     ComposableNode(
-                        package='nav2_lifecycle_manager',
-                        plugin='nav2_lifecycle_manager::LifecycleManager',
-                        name='lifecycle_manager_navigation',
-                        parameters=[
-                            {'autostart': autostart, 'node_names': lifecycle_nodes}
-                        ],
-                    ),
-                    ComposableNode(
                         package='nav2_map_server',
                         plugin='nav2_map_server::MapServer',
                         name='map_server',
                         parameters=[
                             configured_params,
                             {'yaml_filename': LaunchConfiguration('map')},
+                        ],
+                    ),
+                    ComposableNode(
+                        package='nav2_lifecycle_manager',
+                        plugin='nav2_lifecycle_manager::LifecycleManager',
+                        name='lifecycle_manager_navigation',
+                        parameters=[
+                            {'autostart': autostart, 'node_names': lifecycle_nodes}
                         ],
                     ),
                 ],

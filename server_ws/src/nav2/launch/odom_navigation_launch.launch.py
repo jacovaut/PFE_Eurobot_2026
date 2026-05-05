@@ -132,6 +132,17 @@ def generate_launch_description():
         actions=[
             SetParameter('use_sim_time', use_sim_time),
             Node(
+                package='nav2_map_server',
+                executable='map_server',
+                name='map_server',
+                output='screen',
+                arguments=['--ros-args', '--log-level', log_level],
+                parameters=[
+                    configured_params,
+                    {'yaml_filename': LaunchConfiguration('map')},
+                ],
+            ),
+            Node(
                 package='nav2_controller',
                 executable='controller_server',
                 output='screen',
@@ -214,17 +225,6 @@ def generate_launch_description():
                 output='screen',
                 arguments=['--ros-args', '--log-level', log_level],
                 parameters=[{'autostart': autostart}, {'node_names': lifecycle_nodes}],
-            ),
-            Node(
-                package='nav2_map_server',
-                executable='map_server',
-                name='map_server',
-                output='screen',
-                arguments=['--ros-args', '--log-level', log_level],
-                parameters=[
-                    configured_params,
-                    {'yaml_filename': LaunchConfiguration('map')},
-                ],
             ),
         ],
     )
