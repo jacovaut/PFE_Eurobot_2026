@@ -85,9 +85,9 @@ void ArmMotor::runPID() {
     prev_error = error;
 
     if (error > 0) {
-        applyPWM(255);
+        applyPWM((int)output);   // PID going down
     } else {
-        applyPWM((int)output);
+        applyPWM(-255);          // full power going up (negative because reverse direction)
     }
 }
 
