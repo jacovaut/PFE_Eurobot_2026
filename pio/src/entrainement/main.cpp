@@ -358,8 +358,8 @@ void setSpeed(float new_vx, float new_vy, float new_w) {
     // get the wheel speeds in rad/s
     calculateWheelSpeeds(vx, vy, w, wheelSpeeds);
     
-    wheelSpeeds[1] *= -1; // invert FR wheel direction to match FL, RR, RL
-    wheelSpeeds[2] *= -1; // invert RR wheel direction to match FL, FR, RL    
+    wheelSpeeds[0] *= -1; // invert FR wheel direction to match FL, RR, RL
+    wheelSpeeds[3] *= -1; // invert RR wheel direction to match FL, FR, RL    
     
     for (int i = 0; i < 4; i++) {
         float speed = abs(wheelSpeeds[i]);

@@ -1,0 +1,12 @@
+# Goal
+uint8 count              # number of blocks to dispense
+float64 timeout_sec      # reserved timeout, 0 = no timeout
+---
+# Result
+bool success
+string message
+uint8 count
+---
+# Feedback
+uint8 count
+string state
