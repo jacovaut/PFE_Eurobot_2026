@@ -56,7 +56,7 @@ ekf_global_node:
     # Optional: reject obviously bad camera jumps
     pose0_queue_size: 5
     odom0_queue_size: 5
-    pose0_pose_rejection_threshold: 2.0
+    pose0_pose_rejection_threshold: 1.0
 
     # Start conservative; tune later
     process_noise_covariance: [0.05, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,

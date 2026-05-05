@@ -116,7 +116,7 @@ external_perception_node:
     # Measurement covariance
     position_variance_x: 0.01
     position_variance_y: 0.01
-    yaw_variance: 0.03
+    yaw_variance: 0.08
 
     # -----------------------------
     # World map (table marker poses in map frame)
