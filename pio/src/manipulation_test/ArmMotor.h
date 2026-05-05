@@ -37,7 +37,7 @@ private:
     static constexpr float INTEGRAL_MAX = 80.0f;
     static constexpr float DEADBAND     = 8.0f;
     static constexpr int   PWM_MAX      = 255;
-    static constexpr int   PWM_MIN      = 170;
+    static constexpr int   PWM_MIN      = 180;
 
     ESP32Encoder encoder;
 
