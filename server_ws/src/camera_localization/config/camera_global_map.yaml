@@ -85,7 +85,7 @@ global_localization_node:
     bev_block_rescue_scale_px_per_m: 1000.0
 
     # Snapshot-based pose stabilization
-    pose_update_interval_s: 5.0
+    pose_update_interval_s: 0.1
     block_rescue_period_s: 0.5
     bev_block_rescue_period_s: 1.0
 
