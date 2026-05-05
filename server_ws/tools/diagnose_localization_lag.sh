@@ -44,10 +44,10 @@ section_timeout() {
     echo "================================================================================"
     echo "$title"
     echo "================================================================================"
-    echo "COMMAND: timeout ${seconds}s $*"
+    echo "COMMAND: timeout -s INT -k 2s ${seconds}s $*"
   } | tee -a "$OUT"
 
-  timeout "${seconds}s" "$@" >> "$OUT" 2>&1
+  timeout -s INT -k 2s "${seconds}s" "$@" >> "$OUT" 2>&1
   local status=$?
   if [[ "$status" -eq 124 ]]; then
     echo "EXIT_STATUS: 124 (timeout reached; this is normal for streaming ROS commands)" | tee -a "$OUT"
@@ -58,17 +58,17 @@ section_timeout() {
 
 topic_hz() {
   local topic="$1"
-  section_timeout "$DURATION" "topic hz $topic" ros2 topic hz "$topic"
+  section_timeout "$DURATION" "topic hz $topic" ros2 topic hz "$topic" --qos-profile sensor_data
 }
 
 topic_delay() {
   local topic="$1"
-  section_timeout "$DURATION" "topic delay $topic" ros2 topic delay "$topic"
+  section_timeout "$DURATION" "topic delay $topic" ros2 topic delay "$topic" --qos-profile sensor_data
 }
 
 topic_echo_once() {
   local topic="$1"
-  section_timeout 4 "topic echo --once $topic" ros2 topic echo "$topic" --once
+  section_timeout 4 "topic echo --once $topic" ros2 topic echo "$topic" --once --qos-profile sensor_data
 }
 
 tf_monitor() {

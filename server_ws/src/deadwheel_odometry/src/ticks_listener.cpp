@@ -1,6 +1,7 @@
 #include <rclcpp/rclcpp.hpp>
 #include "custom_msgs/msg/deadwheel_ticks.hpp"
 #include <cmath>
+#include <cstdlib>
 #include <nav_msgs/msg/odometry.hpp>
 #include <tf2/LinearMath/Quaternion.h>
 #include <mutex>
@@ -40,6 +41,7 @@ class TicksListener : public rclcpp::Node
     rclcpp::Time prev_receive_stamp_;
     bool stamp_diagnostics_{false};
     double max_stamp_offset_sec_{1.0};
+    int64_t max_tick_delta_{50000};
 
     bool getMessageStamp(
       const custom_msgs::msg::DeadwheelTicks::SharedPtr& msg,
@@ -48,12 +50,14 @@ class TicksListener : public rclcpp::Node
       bool& source_stamp_is_ros_synced)
     {
       if (msg->header.stamp.sec == 0 && msg->header.stamp.nanosec == 0) {
+        source_stamp = receive_stamp;
+        source_stamp_is_ros_synced = false;
         RCLCPP_WARN_THROTTLE(
           this->get_logger(),
           *this->get_clock(),
           2000,
-          "deadwheel_ticks header stamp is zero; skipping message");
-        return false;
+          "deadwheel_ticks header stamp is zero; using receive time");
+        return true;
       }
 
       source_stamp = rclcpp::Time(msg->header.stamp);
@@ -64,7 +68,7 @@ class TicksListener : public rclcpp::Node
           this->get_logger(),
           *this->get_clock(),
           2000,
-          "deadwheel_ticks stamp is %.3f s from receive time; using it for dt only",
+          "deadwheel_ticks stamp is %.3f s from receive time; using receive time",
           offset);
       }
 
@@ -134,6 +138,7 @@ class TicksListener : public rclcpp::Node
       const double initial_yaw_deg = this->declare_parameter<double>("initial_yaw_deg", 0.0);
       stamp_diagnostics_ = this->declare_parameter<bool>("stamp_diagnostics", false);
       max_stamp_offset_sec_ = this->declare_parameter<double>("max_stamp_offset_sec", 1.0);
+      max_tick_delta_ = this->declare_parameter<int64_t>("max_tick_delta", 50000);
 
       x__ = initial_x;
       y__ = initial_y;
@@ -158,28 +163,40 @@ class TicksListener : public rclcpp::Node
         if (!getMessageStamp(msg, receive_stamp, source_stamp, source_stamp_is_ros_synced)) {
           return;
         }
-        const rclcpp::Time odom_stamp = source_stamp_is_ros_synced ? source_stamp : receive_stamp;
+        rclcpp::Time odom_stamp = source_stamp_is_ros_synced ? source_stamp : receive_stamp;
 
         if (!initialized_) {
           prevTicks[0] = msg->t0;
           prevTicks[1] = msg->t1;
           prevTicks[2] = msg->t2;
-          prev_stamp_ = source_stamp;
+          prev_stamp_ = odom_stamp;
           prev_receive_stamp_ = receive_stamp;
           initialized_ = true;
           publishOdom(odom_stamp);
           return;
         }
 
-        double dt = (source_stamp - prev_stamp_).seconds();
+        double dt = (odom_stamp - prev_stamp_).seconds();
         const double receive_dt = (receive_stamp - prev_receive_stamp_).seconds();
+
+        if ((dt <= 1e-6 || !std::isfinite(dt)) && receive_dt > 1e-6 && std::isfinite(receive_dt)) {
+          RCLCPP_WARN_THROTTLE(
+            this->get_logger(),
+            *this->get_clock(),
+            1000,
+            "deadwheel_ticks source dt %.9f is invalid/repeated; using receive dt %.9f",
+            dt,
+            receive_dt);
+          dt = receive_dt;
+          odom_stamp = receive_stamp;
+        }
 
         if (dt <= 1e-6 || !std::isfinite(dt)) {
           RCLCPP_WARN(this->get_logger(), "Bad dt (%.9f), skipping", dt);
           return;
         }
 
-        prev_stamp_ = source_stamp;
+        prev_stamp_ = odom_stamp;
         prev_receive_stamp_ = receive_stamp;
 
         // calculs des delta ticks
@@ -189,6 +206,28 @@ class TicksListener : public rclcpp::Node
         int64_t dRTicks = ticks0 - prevTicks[0];
         int64_t dLTicks = ticks1 - prevTicks[1];
         int64_t dSTicks = ticks2 - prevTicks[2];
+
+        if (std::llabs(dRTicks) > max_tick_delta_ ||
+            std::llabs(dLTicks) > max_tick_delta_ ||
+            std::llabs(dSTicks) > max_tick_delta_) {
+          RCLCPP_WARN(
+            this->get_logger(),
+            "Deadwheel tick jump/reset detected; rebasing prev ticks and skipping integration. "
+            "delta=[%lld,%lld,%lld] limit=%lld",
+            static_cast<long long>(dRTicks),
+            static_cast<long long>(dLTicks),
+            static_cast<long long>(dSTicks),
+            static_cast<long long>(max_tick_delta_));
+          prevTicks[0] = ticks0;
+          prevTicks[1] = ticks1;
+          prevTicks[2] = ticks2;
+          vx = 0.0;
+          vy = 0.0;
+          omega = 0.0;
+          publishOdom(odom_stamp);
+          return;
+        }
+
         prevTicks[0] = ticks0;
         prevTicks[1] = ticks1;
         prevTicks[2] = ticks2;
