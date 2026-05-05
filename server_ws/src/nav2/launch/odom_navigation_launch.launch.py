@@ -42,10 +42,9 @@ def generate_launch_description():
     map_yaml = LaunchConfiguration('map')
 
     lifecycle_nodes = [
-        'map_server',
+        'planner_server',
         'controller_server',
         'smoother_server',
-        'planner_server',
         'behavior_server',
         'velocity_smoother',
         'bt_navigator',
@@ -141,6 +140,14 @@ def generate_launch_description():
                     configured_params,
                     {'yaml_filename': LaunchConfiguration('map')},
                 ],
+            ),
+            Node(
+                package='nav2_lifecycle_manager',
+                executable='lifecycle_manager',
+                name='lifecycle_manager_map_server',
+                output='screen',
+                arguments=['--ros-args', '--log-level', log_level],
+                parameters=[{'autostart': autostart}, {'node_names': ['map_server']}],
             ),
             Node(
                 package='nav2_controller',
