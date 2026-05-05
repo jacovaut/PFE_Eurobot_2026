@@ -41,8 +41,9 @@
 //  TUNABLE CONSTANTS
 // ============================================================
 
-#define ARM_DOWN_ANGLE   95     // Degrees: arms fully lowered
-#define ARM_UP_ANGLE     55     // Degrees: arms fully raised
+#define ARM_DOWN_ANGLE   85     // Degrees: arms fully lowered
+#define ARM_UP_ANGLE    120
+     // Degrees: arms fully raised
 #define ARM_MOVE_DELAY   100    // ms to wait for servo to reach position
 
 #define MAX_PWM          255    // Maximum motor PWM (0-255)

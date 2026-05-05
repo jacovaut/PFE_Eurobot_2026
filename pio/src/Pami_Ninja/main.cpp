@@ -222,9 +222,12 @@ void loop() {
       Serial.println(speed);
 
     } else if (command.startsWith("stop")) {
-      // Stop all motors
+      // Stop all motors, pump, and servos
       setMecanumSpeeds(0, 0, 0);
-      Serial.println("Stopped");
+      setPump(false);
+      setServo(1, ARM_UP_ANGLE);
+      setServo(2, ARM_UP_ANGLE);
+      Serial.println("Stopped - Motors, pump, and servos OFF");
 
     } else if (command.startsWith("s ")) {
       // Servo command: s <angle>
