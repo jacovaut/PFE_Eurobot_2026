@@ -7,8 +7,11 @@ WS_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 OUT="${2:-$WS_DIR/localization_lag_report_$(date +%Y%m%d_%H%M%S).txt}"
 
 if [[ -f "$WS_DIR/install/setup.bash" ]]; then
+  # colcon's setup.bash references COLCON_TRACE without guarding against set -u
+  set +u
   # shellcheck disable=SC1091
   source "$WS_DIR/install/setup.bash"
+  set -u
 else
   echo "WARN: $WS_DIR/install/setup.bash was not found. Run from a built workspace or source ROS manually." >&2
 fi
