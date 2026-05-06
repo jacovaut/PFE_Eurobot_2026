@@ -41,8 +41,9 @@
 //  TUNABLE CONSTANTS
 // ============================================================
 
-#define ARM_DOWN_ANGLE   95     // Degrees: arms fully lowered
-#define ARM_UP_ANGLE     55     // Degrees: arms fully raised
+#define ARM_DOWN_ANGLE   85     // Degrees: arms fully lowered
+#define ARM_UP_ANGLE    120
+     // Degrees: arms fully raised
 #define ARM_MOVE_DELAY   100    // ms to wait for servo to reach position
 
 #define MAX_PWM          255    // Maximum motor PWM (0-255)
@@ -72,6 +73,27 @@
 #define WHEEL_RADIUS 0.06
 #define WHEELBASE_LENGTH 0.1
 #define WHEELBASE_WIDTH 0.1
-#define MAX_SPEED 255  // Max PWM value
+#define MAX_SPEED 100  // Max PWM value
+
+
+// Keyboard layout for robot control
+#define KEY_FORWARD 'W'
+#define KEY_BACKWARD 'S'
+#define KEY_LEFT 'A'
+#define KEY_RIGHT 'D'
+#define KEY_ROTATE_CW 'E'
+#define KEY_ROTATE_CCW 'Q'
+#define KEY_STOP ' '  // Space bar
+#define KEY_PICK 'P'
+#define KEY_RELEASE 'R'
+#define KEY_SERVO_UP 'U'
+#define KEY_SERVO_DOWN 'O'
+#define KEY_PUMP_TOGGLE 'J'
+#define KEY_ENC_TOGGLE 'N'
+#define KEY_ENC_RESET 'L'
+#define KEY_SPEED_UP '+'
+#define KEY_SPEED_DOWN '-'
+
+
 
 #endif
