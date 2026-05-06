@@ -217,6 +217,7 @@ global_costmap:
           clearing: false
           marking: true
           data_type: "PointCloud2"
+          observation_persistence: 2.0
           raytrace_max_range: 5.0
           raytrace_min_range: 0.0
           obstacle_max_range: 5.0
@@ -266,6 +267,7 @@ local_costmap:
           clearing: false
           marking: true
           data_type: "PointCloud2"
+          observation_persistence: 2.0
           raytrace_max_range: 5.0
           raytrace_min_range: 0.0
           obstacle_max_range: 5.0
