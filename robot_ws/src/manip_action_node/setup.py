@@ -29,6 +29,7 @@ setup(
         'console_scripts': [
             'dispense_action = manip_action_node.dispense_action:main',
             'pick_action = manip_action_node.pick_action:main',
+            'pami_keyboard = manip_action_node.pami_keyboard:main',
             'therm_action = manip_action_node.therm_action:main',
         ],
     },

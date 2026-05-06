@@ -41,10 +41,12 @@
 //  TUNABLE CONSTANTS
 // ============================================================
 
-#define ARM_DOWN_ANGLE   85     // Degrees: arms fully lowered
-#define ARM_UP_ANGLE     120
+#define ARM_DOWN_ANGLE   70     // Degrees: arms fully lowered
+#define ARM_UP_ANGLE     150
      // Degrees: arms fully raised
 #define ARM_MOVE_DELAY   100    // ms to wait for servo to reach position
+#define ARM_SWEEP_STEP   2      // Degrees per step for continuous servo sweep
+#define ARM_SWEEP_DELAY  15     // ms between sweep steps
 
 #define MAX_PWM          255    // Maximum motor PWM (0-255)
 #define STICK_DEADZONE   10     // Ignore stick noise within ±this range
@@ -84,6 +86,7 @@
 #define KEY_RELEASE 'R'
 #define KEY_SERVO_UP 'U'
 #define KEY_SERVO_DOWN 'O'
+#define KEY_SERVO_SWEEP 'I'
 #define KEY_PUMP_TOGGLE 'J'
 #define KEY_ENC_TOGGLE 'N'
 #define KEY_ENC_RESET 'L'
