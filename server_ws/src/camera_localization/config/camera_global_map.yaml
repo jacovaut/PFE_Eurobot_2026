@@ -31,6 +31,7 @@ global_localization_node:
     map_frame: "map"
     pose_topic: "/camera/global_pose"
     detected_blocks_topic: "/detected_blocks"
+    detected_enemy_topic: "/detected_enemy"
 
     # Marker setup
     robot_marker_id: 1
@@ -81,7 +82,7 @@ global_localization_node:
     # 4th pass: bird's-eye-view rescue (requires valid camera pose)
     # Warps image to a top-down table view to eliminate perspective distortion
     # at borders. BEV scale: 1000 px/m = 1px per mm (3cm marker = 30px).
-    enable_bev_block_rescue_pass: true
+    enable_bev_block_rescue_pass: false
     bev_block_rescue_scale_px_per_m: 1000.0
 
     # Snapshot-based pose stabilization
@@ -94,7 +95,7 @@ global_localization_node:
     entity_tracking_match_gate_m: 0.12
     entity_tracking_ema_alpha: 0.5
     entity_tracking_yaw_alpha: 0.5
-    entity_tracking_max_missed_frames: 5
+    entity_tracking_max_missed_frames: 3
 
     # base_link -> robot ArUco transform, measured on the robot.
     # X is forward from base_link, Y is left, Z is up, yaw is radians.
@@ -160,9 +161,13 @@ external_perception_node:
 
 camera_map_visualizer_node:
   ros__parameters:
+    detected_blocks_topic: "/detected_blocks"
+    detected_enemy_topic: "/detected_enemy"
     publish_period_s: 0.10
-    dynamic_obstacle_stale_timeout_s: 0.75
-    dynamic_obstacle_max_miss_count: 10
+    dynamic_obstacle_stale_timeout_s: 2.0
+    dynamic_obstacle_max_miss_count: 3
+    enemy_stale_timeout_s: 1.0
+    enemy_max_miss_count: 2
     stamp_obstacle_cloud_with_now: true
     detected_obstacle_point_spacing_m: 0.04
     detected_obstacle_padding_m: 0.0
