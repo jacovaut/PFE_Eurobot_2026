@@ -69,7 +69,45 @@ void timer_callback(rcl_timer_t* timer, int64_t last_call_time) {
   }
 }
 
+int chooseControlMethod() {
+#if PAMI_CONTROL_METHOD == PAMI_CONTROL_SERIAL
+  return PAMI_CONTROL_SERIAL;
+#elif PAMI_CONTROL_METHOD == PAMI_CONTROL_ROS
+  return PAMI_CONTROL_ROS;
+#else
+  const unsigned long timeoutMs = 10000;
+  const unsigned long start = millis();
+
+  Serial.println("\n========================================");
+  Serial.println("PAMI NINJA CONTROL MODE");
+  Serial.println("========================================");
+  Serial.println("Press S: Serial keyboard only");
+  Serial.println("Press R: ROS / micro-ROS WiFi");
+  Serial.println("Default: ROS after 10 seconds");
+  Serial.println("========================================");
+
+  while (millis() - start < timeoutMs) {
+    if (Serial.available()) {
+      char key = toupper(Serial.read());
+      if (key == 'S') {
+        Serial.println("Selected: serial keyboard only");
+        return PAMI_CONTROL_SERIAL;
+      }
+      if (key == 'R') {
+        Serial.println("Selected: ROS / micro-ROS WiFi");
+        return PAMI_CONTROL_ROS;
+      }
+    }
+    delay(10);
+  }
+
+  Serial.println("No mode selected: defaulting to ROS / micro-ROS WiFi");
+  return PAMI_CONTROL_ROS;
+#endif
+}
+
 void setupMicroRos() {
+#if PAMI_CONTROL_METHOD != PAMI_CONTROL_SERIAL
   allocator = rcl_get_default_allocator();
 
   set_microros_wifi_transports(
@@ -79,6 +117,12 @@ void setupMicroRos() {
     MICROROS_AGENT_PORT
   );
 
+  Serial.printf(
+    "micro-ROS WiFi target: ssid=%s agent=%s:%u\n",
+    MICROROS_WIFI_SSID,
+    MICROROS_AGENT_IP.toString().c_str(),
+    MICROROS_AGENT_PORT
+  );
   Serial.println("Waiting for micro-ROS agent...");
   while (rmw_uros_ping_agent(1000, 1) != RMW_RET_OK) {
     delay(1000);
@@ -144,6 +188,9 @@ void setupMicroRos() {
     &keyboard_callback,
     ON_NEW_DATA
   ));
+#else
+  Serial.println("micro-ROS disabled: using serial keyboard control only");
+#endif
 }
 
 void setup() {
@@ -190,8 +237,14 @@ void setup() {
   servo1.attach(SERVO_LEFT_PIN);
   servo2.attach(SERVO_RIGHT_PIN);
 
+  activeControlMethod = chooseControlMethod();
   printKeyboardHelp();
-  setupMicroRos();
+
+  if (activeControlMethod == PAMI_CONTROL_ROS) {
+    setupMicroRos();
+  } else {
+    Serial.println("Pami Ninja control method: serial keyboard");
+  }
 
   xTaskCreatePinnedToCore(
     core1,
@@ -203,17 +256,21 @@ void setup() {
     1
   );
 
-  xTaskCreatePinnedToCore(
-    core2,
-    "ROS",
-    6000,
-    NULL,
-    1,
-    &core2_handle,
-    0
-  );
+  if (activeControlMethod == PAMI_CONTROL_ROS) {
+    xTaskCreatePinnedToCore(
+      core2,
+      "ROS",
+      6000,
+      NULL,
+      1,
+      &core2_handle,
+      0
+    );
 
-  Serial.println("Pami Ninja micro-ROS initialized");
+    Serial.println("Pami Ninja micro-ROS initialized");
+  } else {
+    Serial.println("Pami Ninja serial control initialized");
+  }
 }
 
 void loop() {
@@ -242,8 +299,10 @@ void core1(void* pvParameters) {
 
     if (serialMovementActive()) {
       applySerialMovementControl();
-    } else {
+    } else if (activeControlMethod == PAMI_CONTROL_ROS) {
       setMecanumSpeeds(local.vx, local.vy, local.w);
+    } else {
+      setMecanumSpeeds(0, 0, 0);
     }
     applySerialActionControl();
 
@@ -270,10 +329,14 @@ void core1(void* pvParameters) {
 void core2(void* pvParameters) {
   (void)pvParameters;
 
+#if PAMI_CONTROL_METHOD != PAMI_CONTROL_SERIAL
   for (;;) {
     RCSOFTCHECK(rclc_executor_spin_some(&executor, 0));
     vTaskDelay(1);
   }
+#else
+  vTaskDelete(NULL);
+#endif
 }
 
 void printKeyboardHelp() {
@@ -294,13 +357,18 @@ void printKeyboardHelp() {
   Serial.println("SERVO:");
   Serial.println("  U - Raise servos");
   Serial.println("  O - Lower servos");
+  Serial.println("  I - Toggle continuous servo sweep");
   Serial.println("PUMP / ENCODERS / SPEED:");
   Serial.println("  J - Toggle pump");
   Serial.println("  N - Toggle encoder print");
   Serial.println("  L - Reset encoders");
   Serial.println("  + - Increase serial speed");
   Serial.println("  - - Decrease serial speed");
-  Serial.println("ROS cmd_vel is used whenever no serial movement key is active.");
+  if (activeControlMethod == PAMI_CONTROL_ROS) {
+    Serial.println("ROS cmd_vel is used whenever no serial movement key is active.");
+  } else {
+    Serial.println("Serial-only mode: release movement keys to stop.");
+  }
   Serial.println("========================================\n");
 }
 
@@ -320,7 +388,7 @@ void processSerialKeyboardInput() {
     KEY_FORWARD, KEY_BACKWARD, KEY_LEFT, KEY_RIGHT,
     KEY_ROTATE_CW, KEY_ROTATE_CCW, KEY_STOP,
     KEY_PICK, KEY_RELEASE, KEY_SERVO_UP, KEY_SERVO_DOWN,
-    KEY_PUMP_TOGGLE, KEY_ENC_TOGGLE, KEY_ENC_RESET,
+    KEY_SERVO_SWEEP, KEY_PUMP_TOGGLE, KEY_ENC_TOGGLE, KEY_ENC_RESET,
     KEY_SPEED_UP, KEY_SPEED_DOWN
   };
 
@@ -365,9 +433,12 @@ void applySerialActionControl() {
 
   static unsigned long lastServoUpTime = 0;
   static unsigned long lastServoDownTime = 0;
+  static unsigned long lastServoSweepTime = 0;
   const unsigned long SERVO_DEBOUNCE = 200;
+  const unsigned long SERVO_SWEEP_DEBOUNCE = 300;
 
   if (keyPressed[(uint8_t)KEY_SERVO_UP] && (now - lastServoUpTime > SERVO_DEBOUNCE)) {
+    servoSweepEnabled = false;
     currentServoAngle = constrain(currentServoAngle + SERVO_INCREMENT, 0, 180);
     setServo(1, currentServoAngle);
     setServo(2, currentServoAngle);
@@ -376,12 +447,21 @@ void applySerialActionControl() {
   }
 
   if (keyPressed[(uint8_t)KEY_SERVO_DOWN] && (now - lastServoDownTime > SERVO_DEBOUNCE)) {
+    servoSweepEnabled = false;
     currentServoAngle = constrain(currentServoAngle - SERVO_INCREMENT, 0, 180);
     setServo(1, currentServoAngle);
     setServo(2, currentServoAngle);
     Serial.printf("Servos DOWN - Angle: %d\n", currentServoAngle);
     lastServoDownTime = now;
   }
+
+  if (keyPressed[(uint8_t)KEY_SERVO_SWEEP] && (now - lastServoSweepTime > SERVO_SWEEP_DEBOUNCE)) {
+    toggleServoSweep();
+    keyPressed[(uint8_t)KEY_SERVO_SWEEP] = false;
+    lastServoSweepTime = millis();
+  }
+
+  updateServoSweep();
 
   static unsigned long lastPickTime = 0;
   static unsigned long lastReleaseTime = 0;
@@ -572,6 +652,51 @@ void releaseBlock() {
   delay(ARM_MOVE_DELAY);
 
   Serial.println("RELEASE: Complete - block released");
+}
+
+void toggleServoSweep() {
+  const int minAngle = ARM_DOWN_ANGLE < ARM_UP_ANGLE ? ARM_DOWN_ANGLE : ARM_UP_ANGLE;
+  const int maxAngle = ARM_DOWN_ANGLE > ARM_UP_ANGLE ? ARM_DOWN_ANGLE : ARM_UP_ANGLE;
+
+  servoSweepEnabled = !servoSweepEnabled;
+
+  if (servoSweepEnabled) {
+    currentServoAngle = constrain(currentServoAngle, minAngle, maxAngle);
+    servoSweepDirection = currentServoAngle >= maxAngle ? -1 : 1;
+    lastServoSweepStepTime = 0;
+    Serial.printf("SERVO SWEEP: ON (%d <-> %d)\n", minAngle, maxAngle);
+  } else {
+    Serial.printf("SERVO SWEEP: OFF at %d\n", currentServoAngle);
+  }
+}
+
+void updateServoSweep() {
+  if (!servoSweepEnabled) {
+    return;
+  }
+
+  unsigned long now = millis();
+  if (now - lastServoSweepStepTime < ARM_SWEEP_DELAY) {
+    return;
+  }
+
+  const int minAngle = ARM_DOWN_ANGLE < ARM_UP_ANGLE ? ARM_DOWN_ANGLE : ARM_UP_ANGLE;
+  const int maxAngle = ARM_DOWN_ANGLE > ARM_UP_ANGLE ? ARM_DOWN_ANGLE : ARM_UP_ANGLE;
+  const int step = ARM_SWEEP_STEP > 0 ? ARM_SWEEP_STEP : 1;
+
+  currentServoAngle += servoSweepDirection * step;
+
+  if (currentServoAngle >= maxAngle) {
+    currentServoAngle = maxAngle;
+    servoSweepDirection = -1;
+  } else if (currentServoAngle <= minAngle) {
+    currentServoAngle = minAngle;
+    servoSweepDirection = 1;
+  }
+
+  setServo(1, currentServoAngle);
+  setServo(2, currentServoAngle);
+  lastServoSweepStepTime = now;
 }
 
 void togglePump() {

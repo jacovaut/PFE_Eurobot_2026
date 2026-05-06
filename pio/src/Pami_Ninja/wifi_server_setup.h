@@ -12,11 +12,28 @@
 #include <geometry_msgs/msg/twist.h>
 #include <std_msgs/msg/string.h>
 
+// Select how the robot is controlled.
+#define PAMI_CONTROL_SERIAL 0
+#define PAMI_CONTROL_ROS 1
+#define PAMI_CONTROL_PROMPT 2
+
+#ifndef PAMI_CONTROL_METHOD
+#define PAMI_CONTROL_METHOD PAMI_CONTROL_PROMPT
+#endif
+
+#if PAMI_CONTROL_METHOD != PAMI_CONTROL_SERIAL && \
+    PAMI_CONTROL_METHOD != PAMI_CONTROL_ROS && \
+    PAMI_CONTROL_METHOD != PAMI_CONTROL_PROMPT
+#error "PAMI_CONTROL_METHOD must be PAMI_CONTROL_SERIAL, PAMI_CONTROL_ROS, or PAMI_CONTROL_PROMPT"
+#endif
+
+int activeControlMethod = PAMI_CONTROL_METHOD;
+
 // micro-ROS WiFi configuration copied from entrainement/main.cpp.
 char MICROROS_WIFI_SSID[] = "GRUM";
 char MICROROS_WIFI_PASSWORD[] = "GELE>GMEC";
-IPAddress MICROROS_AGENT_IP(192, 168, 1, 131);
-const uint16_t MICROROS_AGENT_PORT = 8888;
+IPAddress MICROROS_AGENT_IP(192, 168, 1, 208);
+const uint16_t MICROROS_AGENT_PORT = 8895;
 
 TaskHandle_t core1_handle = NULL;
 TaskHandle_t core2_handle = NULL;
@@ -50,6 +67,9 @@ bool pumpState = false;
 bool encoderReadingEnabled = false;
 
 int currentServoAngle = 90;
+bool servoSweepEnabled = false;
+int servoSweepDirection = 1;
+unsigned long lastServoSweepStepTime = 0;
 const int SERVO_INCREMENT = 10;
 
 int currentMaxSpeed = 100;
@@ -80,6 +100,7 @@ void error_loop();
 void cmdvel_callback(const void* msgin);
 void keyboard_callback(const void* msgin);
 void timer_callback(rcl_timer_t* timer, int64_t last_call_time);
+int chooseControlMethod();
 void setupMicroRos();
 void core1(void* pvParameters);
 void core2(void* pvParameters);
@@ -97,6 +118,8 @@ void setValve(bool state);
 void resetEncoders();
 void pickupBlock();
 void releaseBlock();
+void toggleServoSweep();
+void updateServoSweep();
 void togglePump();
 void toggleEncoderReading();
 void setSpeed(int speed);
