@@ -23,15 +23,26 @@ bool pumpState = false;
 // Encoder reading control
 bool encoderReadingEnabled = false;
 
+// Servo angle tracking for incremental movement
+int currentServoAngle = 90;  // Start at middle position
+const int SERVO_INCREMENT = 2;  // Degrees per increment
+const unsigned long SERVO_UPDATE_PERIOD = 50;  // milliseconds between angle updates
+unsigned long lastServoUpdateTime = 0;
+
+// Speed control for robot movement
+int currentMaxSpeed = 200;  // Start at default speed
+const int MIN_SPEED = 50;  // Minimum speed
+const int MAX_SPEED_LIMIT = 255;  // Maximum speed (PWM limit)
+const int SPEED_INCREMENT = 10;  // Speed change per keypress
+unsigned long lastSpeedChangeTime = 0;
+const unsigned long SPEED_CHANGE_DEBOUNCE = 200;  // milliseconds between speed changes
+
 // Keyboard control - track currently pressed keys
 bool keyPressed[256] = {false};  // Track state of each ASCII key
 unsigned long keyLastReceived[256] = {0};  // Track last time each key was received
 
 // Key press/release timeout (in milliseconds)
 #define KEY_TIMEOUT 150  // If key not received for 150ms, consider it released
-
-// Maximum speed for keyboard control
-#define MAX_KEYBOARD_SPEED 200
 
 
 // Functions declaration
@@ -43,6 +54,11 @@ void setValve(bool state);
 void resetEncoders();
 void printKeyboardHelp();
 void processKeyboardInput();
+void pickupBlock();
+void releaseBlock();
+void togglePump();
+void toggleEncoderReading();
+void setSpeed(int speed);
 
 
 void setup() {
@@ -101,7 +117,7 @@ void setup() {
 
 void loop() {
   // Print encoder values (if enabled)
-  if (encoderReadingEnabled) {
+  if (encoderReadingEnabled && millis() % 1000 < 50) {  // Print every second (with a small window to avoid flooding)
     Serial.print("Encoders: ");
     Serial.print(encoder1.getCount());
     Serial.print(", ");
@@ -115,7 +131,7 @@ void loop() {
   // Process keyboard input - hold keys for continuous movement
   processKeyboardInput();
 
-  delay(100);
+  delay(10);
 }
 
 void setMotor(int motor, int speed) {
@@ -153,7 +169,6 @@ void setMotor(int motor, int speed) {
     // Stop: PWM to 0, both pins LOW
     ledcWrite(ch_in1, 0);       // Set IN1 to 0
     ledcWrite(ch_in2, 0);       // Set IN2 to 0
-    Serial.printf("Motor %d - IN1: 0, IN2: 0\n", motor);
   }
 }
 
@@ -196,16 +211,19 @@ void printKeyboardHelp() {
   Serial.println("  E - Rotate Clockwise");
   Serial.println("  SPACE - Stop all motion");
   Serial.println("\nBLOCK HANDLING:");
-  Serial.println("  P - Pick up block");
-  Serial.println("  R - Release block");
+  Serial.println("  P - Pick up block (macro: lower → pump ON → raise)");
+  Serial.println("  R - Release block (macro: lower → pump OFF → raise)");
   Serial.println("\nSERVO CONTROL:");
-  Serial.println("  U - Raise servo");
-  Serial.println("  O - Lower servo");
-  Serial.println("\nPUMP CONTROL:");
-  Serial.println("  J - Pump Toggle ON/OFF");
+  Serial.println("  U - Raise servos (hold)");
+  Serial.println("  O - Lower servos (hold)");
+  Serial.println("\nPUMP & SOLENOID:");
+  Serial.println("  J - Toggle Pump ON/OFF");
+  Serial.println("\nSPEED CONTROL:");
+  Serial.println("  + - Increase speed (50-255)");
+  Serial.println("  - - Decrease speed (50-255)");
   Serial.println("\nENCODER CONTROL:");
-  Serial.println("  N - Encoder Toggle ON/OFF");
-  Serial.println("  L - Reset Encoders");
+  Serial.println("  N - Toggle Encoder Reading ON/OFF");
+  Serial.println("  L - Reset All Encoders");
   Serial.println("========================================\n");
 }
 
@@ -245,25 +263,98 @@ void processKeyboardInput() {
   
   // Process movement keys
   if (keyPressed[KEY_FORWARD]) {
-    setMecanumSpeeds(MAX_KEYBOARD_SPEED / 255.0, 0, 0);
+    setMecanumSpeeds(currentMaxSpeed / 255.0, 0, 0);
   }
   else if (keyPressed[KEY_BACKWARD]) {
-    setMecanumSpeeds(-MAX_KEYBOARD_SPEED / 255.0, 0, 0);
+    setMecanumSpeeds(-currentMaxSpeed / 255.0, 0, 0);
   }
   else if (keyPressed[KEY_LEFT]) {
-    setMecanumSpeeds(0, MAX_KEYBOARD_SPEED / 255.0, 0);
+    setMecanumSpeeds(0, currentMaxSpeed / 255.0, 0);
   }
   else if (keyPressed[KEY_RIGHT]) {
-    setMecanumSpeeds(0, -MAX_KEYBOARD_SPEED / 255.0, 0);
+    setMecanumSpeeds(0, -currentMaxSpeed / 255.0, 0);
   }
   else if (keyPressed[KEY_ROTATE_CW]) {
-    setMecanumSpeeds(0, 0, MAX_KEYBOARD_SPEED / 255.0);
+    setMecanumSpeeds(0, 0, currentMaxSpeed / 255.0);
   }
   else if (keyPressed[KEY_ROTATE_CCW]) {
-    setMecanumSpeeds(0, 0, -MAX_KEYBOARD_SPEED / 255.0);
+    setMecanumSpeeds(0, 0, -currentMaxSpeed / 255.0);
   }
   else {
     setMecanumSpeeds(0, 0, 0);
+  }
+
+  // Servo control - continuous movement with incremental angle changes
+  if (keyPressed[KEY_SERVO_UP]) {
+    if (now - lastServoUpdateTime >= SERVO_UPDATE_PERIOD) {
+      currentServoAngle = constrain(currentServoAngle + SERVO_INCREMENT, 0, 180);
+      setServo(1, currentServoAngle);
+      setServo(2, currentServoAngle);
+      Serial.printf("Servos UP - Angle: %d\n", currentServoAngle);
+      lastServoUpdateTime = now;
+    }
+  }
+  else if (keyPressed[KEY_SERVO_DOWN]) {
+    if (now - lastServoUpdateTime >= SERVO_UPDATE_PERIOD) {
+      currentServoAngle = constrain(currentServoAngle - SERVO_INCREMENT, 0, 180);
+      setServo(1, currentServoAngle);
+      setServo(2, currentServoAngle);
+      Serial.printf("Servos DOWN - Angle: %d\n", currentServoAngle);
+      lastServoUpdateTime = now;
+    }
+  }
+
+  // Block handling - one-shot execution
+  static unsigned long lastPickTime = 0;
+  static unsigned long lastReleaseTime = 0;
+  const unsigned long MIN_ACTION_INTERVAL = 2500;  // Minimum time between pick/release actions
+
+  if (keyPressed[KEY_PICK] && (now - lastPickTime > MIN_ACTION_INTERVAL)) {
+    pickupBlock();
+    lastPickTime = now;
+  }
+
+  if (keyPressed[KEY_RELEASE] && (now - lastReleaseTime > MIN_ACTION_INTERVAL)) {
+    releaseBlock();
+    lastReleaseTime = now;
+  }
+
+  // Pump toggle
+  static unsigned long lastPumpToggleTime = 0;
+  const unsigned long PUMP_TOGGLE_DEBOUNCE = 300;
+
+  if (keyPressed[KEY_PUMP_TOGGLE] && (now - lastPumpToggleTime > PUMP_TOGGLE_DEBOUNCE)) {
+    togglePump();
+    lastPumpToggleTime = now;
+  }
+
+  // Encoder reading toggle
+  static unsigned long lastEncToggleTime = 0;
+  const unsigned long ENC_TOGGLE_DEBOUNCE = 300;
+
+  if (keyPressed[KEY_ENC_TOGGLE] && (now - lastEncToggleTime > ENC_TOGGLE_DEBOUNCE)) {
+    toggleEncoderReading();
+    lastEncToggleTime = now;
+  }
+
+  // Encoder reset
+  static unsigned long lastEncResetTime = 0;
+  const unsigned long ENC_RESET_DEBOUNCE = 300;
+
+  if (keyPressed[KEY_ENC_RESET] && (now - lastEncResetTime > ENC_RESET_DEBOUNCE)) {
+    resetEncoders();
+    lastEncResetTime = now;
+  }
+
+  // Speed control
+  if (keyPressed[KEY_SPEED_UP] && (now - lastSpeedChangeTime > SPEED_CHANGE_DEBOUNCE)) {
+    setSpeed(currentMaxSpeed + SPEED_INCREMENT);
+    lastSpeedChangeTime = now;
+  }
+
+  if (keyPressed[KEY_SPEED_DOWN] && (now - lastSpeedChangeTime > SPEED_CHANGE_DEBOUNCE)) {
+    setSpeed(currentMaxSpeed - SPEED_INCREMENT);
+    lastSpeedChangeTime = now;
   }
 }
 
@@ -294,4 +385,90 @@ void setMecanumSpeeds(float vx, float vy, float omega) {
   } else {
     Serial.printf("Setting motors - FL: %d, FR: %d, RL: %d, RR: %d\n", pwm1, pwm2, pwm3, pwm4);
   }
+}
+
+// ============================================================
+//  PUMP AND BLOCK HANDLING MACROS
+// ============================================================
+
+/**
+ * Pick up block sequence:
+ * 1. Lower servos to ARM_DOWN_ANGLE
+ * 2. Wait for ARM_MOVE_DELAY for servos to reach position
+ * 3. Activate pump
+ * 4. Wait for pump to suction (PUMP_SUCTION_TIME)
+ * 5. Raise servos to ARM_UP_ANGLE
+ */
+void pickupBlock() {
+  Serial.println("PICKUP: Lowering servos...");
+  setServo(1, ARM_DOWN_ANGLE);
+  setServo(2, ARM_DOWN_ANGLE);
+  currentServoAngle = ARM_DOWN_ANGLE;  // Update tracked angle
+  delay(ARM_MOVE_DELAY);
+
+  Serial.println("PICKUP: Activating pump...");
+  setPump(true);
+  delay(300);  // Wait for pump to build suction
+
+  Serial.println("PICKUP: Raising servos...");
+  setServo(1, ARM_UP_ANGLE);
+  setServo(2, ARM_UP_ANGLE);
+  currentServoAngle = ARM_UP_ANGLE;  // Update tracked angle
+  delay(ARM_MOVE_DELAY);
+
+  Serial.println("PICKUP: Complete - block secured");
+}
+
+/**
+ * Release block sequence:
+ * 1. Lower servos to ARM_DOWN_ANGLE
+ * 2. Wait for ARM_MOVE_DELAY for servos to reach position
+ * 3. Deactivate pump
+ * 4. Wait for block to drop (PUMP_RELEASE_WAIT)
+ * 5. Raise servos to ARM_UP_ANGLE
+ */
+void releaseBlock() {
+  Serial.println("RELEASE: Lowering servos...");
+  setServo(1, ARM_DOWN_ANGLE);
+  setServo(2, ARM_DOWN_ANGLE);
+  currentServoAngle = ARM_DOWN_ANGLE;  // Update tracked angle
+  delay(ARM_MOVE_DELAY);
+
+  Serial.println("RELEASE: Deactivating pump...");
+  setPump(false);
+  delay(300);  // Wait for block to drop
+
+  Serial.println("RELEASE: Raising servos...");
+  setServo(1, ARM_UP_ANGLE);
+  setServo(2, ARM_UP_ANGLE);
+  currentServoAngle = ARM_UP_ANGLE;  // Update tracked angle
+  delay(ARM_MOVE_DELAY);
+
+  Serial.println("RELEASE: Complete - block released");
+}
+
+/**
+ * Toggle pump on/off and print status
+ */
+void togglePump() {
+  pumpState = !pumpState;
+  setPump(pumpState);
+  Serial.printf("PUMP: %s\n", pumpState ? "ON" : "OFF");
+}
+
+/**
+ * Toggle encoder reading on/off and print status
+ */
+void toggleEncoderReading() {
+  encoderReadingEnabled = !encoderReadingEnabled;
+  Serial.printf("ENCODER READING: %s\n", encoderReadingEnabled ? "ON" : "OFF");
+}
+
+/**
+ * Set the maximum speed for robot movement
+ * Constrains speed between MIN_SPEED and MAX_SPEED_LIMIT
+ */
+void setSpeed(int speed) {
+  currentMaxSpeed = constrain(speed, MIN_SPEED, MAX_SPEED_LIMIT);
+  Serial.printf("SPEED: %d/255\n", currentMaxSpeed);
 }
