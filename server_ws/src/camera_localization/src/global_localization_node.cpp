@@ -805,14 +805,6 @@ if (ids.empty()) {
         cv::Mat Rcv_camera_marker;
         cv::Rodrigues(rvec_camera_marker, Rcv_camera_marker);
 
-        // Fix Z-axis ambiguity: marker Z should point toward camera (positive Z in camera frame).
-        // If it points away (R's 3rd column Z < 0), flip by rotating 180° around X.
-        if (Rcv_camera_marker.at<double>(2, 2) < 0) {
-          Rcv_camera_marker.col(1) *= -1.0;
-          Rcv_camera_marker.col(2) *= -1.0;
-          cv::Rodrigues(Rcv_camera_marker, rvec_camera_marker);
-        }
-
         const cv::Matx33d R_camera_marker(Rcv_camera_marker);
         const cv::Matx33d R_map_marker = R_map_camera * R_camera_marker;
         const cv::Vec3d t_map_marker = R_map_camera * tvec_camera_marker + t_map_camera;
@@ -826,20 +818,34 @@ if (ids.empty()) {
         const cv::Matx33d R_aruco_base = R_base_aruco.t();
         const cv::Vec3d t_aruco_base = -(R_aruco_base * t_base_aruco);
 
-        const cv::Matx33d R_map_base = R_map_marker * R_aruco_base;
+        cv::Matx33d R_map_base = R_map_marker * R_aruco_base;
         t_map_base = R_map_marker * t_aruco_base + t_map_marker;
+
+        // The robot is always flat on the table so base_link z must point up.
+        // If R_map_base(2,2) < 0 the marker was detected with z flipped.
+        // Correct by applying Rx(180°) — flip columns 1 and 2 — which brings
+        // z back up. The yaw extracted by atan2 from row 0/1 is preserved
+        // correctly for the Rx-ambiguity case; for the rarer Ry case the flip
+        // restores both z and yaw simultaneously.
+        if (R_map_base(2, 2) < 0.0) {
+          R_map_base(0, 1) *= -1.0;  R_map_base(0, 2) *= -1.0;
+          R_map_base(1, 1) *= -1.0;  R_map_base(1, 2) *= -1.0;
+          R_map_base(2, 1) *= -1.0;  R_map_base(2, 2) *= -1.0;
+        }
+
         yaw_map_base = std::atan2(R_map_base(1, 0), R_map_base(0, 0));
 
-        robot_entity.marker_id = robot_marker_id_;
-        robot_entity.color = "robot";
-        robot_entity.position_map = cv::Vec3d(t_map_base[0], t_map_base[1], t_map_base[2]);
-        robot_entity.yaw_rad = yaw_map_base;
-        robot_entity.size_x_m = 0.0;
-        robot_entity.size_y_m = 0.0;
-        robot_entity.is_dynamic = true;
+        if (have_robot_pose) {
+          robot_entity.marker_id = robot_marker_id_;
+          robot_entity.color = "robot";
+          robot_entity.position_map = cv::Vec3d(t_map_base[0], t_map_base[1], t_map_base[2]);
+          robot_entity.yaw_rad = yaw_map_base;
+          robot_entity.size_x_m = 0.0;
+          robot_entity.size_y_m = 0.0;
+          robot_entity.is_dynamic = true;
 
-        publishPose(t_map_base, yaw_map_base, frame_stamp);
-        have_robot_pose = true;
+          publishPose(t_map_base, yaw_map_base, frame_stamp);
+        }
       }
     }
 
