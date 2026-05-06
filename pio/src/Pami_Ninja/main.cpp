@@ -2,71 +2,119 @@
 #include <ESP32Encoder.h>
 #include <ESP32Servo.h>
 #include "pins_pami_ninja.h"
+#include "wifi_server_setup.h"
 
-// Encoder objects
 ESP32Encoder encoder1;
 ESP32Encoder encoder2;
 ESP32Encoder encoder3;
 ESP32Encoder encoder4;
 
-// Servo objects
 Servo servo1;
 Servo servo2;
 
-// Track motor speeds
 int motorSpeeds[4] = {0, 0, 0, 0};
-int previousMotorSpeeds[4] = {0, 0, 0, 0};  // Track previous speeds for change detection
+int previousMotorSpeeds[4] = {0, 0, 0, 0};
 
-// Valve and pump states
-bool valveState = false;
-bool pumpState = false;
+void error_loop() {
+  pinMode(2, OUTPUT);
+  while (true) {
+    digitalWrite(2, !digitalRead(2));
+    delay(100);
+  }
+}
 
-// Encoder reading control
-bool encoderReadingEnabled = false;
+void cmdvel_callback(const void* msgin) {
+  const geometry_msgs__msg__Twist* msg =
+    static_cast<const geometry_msgs__msg__Twist*>(msgin);
 
-// Servo angle tracking for incremental movement
-int currentServoAngle = 90;  // Start at middle position
-const int SERVO_INCREMENT = 10;  // Degrees per increment
-const unsigned long SERVO_UPDATE_PERIOD = 50;  // milliseconds between angle updates
-unsigned long lastServoUpdateTime = 0;
+  cmdvel.seq++;
+  cmdvel.vx = msg->linear.x;
+  cmdvel.vy = msg->linear.y;
+  cmdvel.w = msg->angular.z;
+  lastCmdVelTime = millis();
+  cmdvelReceived = true;
+  cmdvel.seq++;
+}
 
-// Speed control for robot movement
-int currentMaxSpeed = 100;  // Start at default speed for linear motion (vx, vy)
-int currentOmegaSpeed = 90;  // Separate speed for rotational motion (omega)
-const int MIN_SPEED = 50;  // Minimum speed
-const int MAX_SPEED_LIMIT = MAX_SPEED;  // Maximum speed (PWM limit)
-const int SPEED_INCREMENT = 5;  // Speed change per keypress
-unsigned long lastSpeedChangeTime = 0;
-const unsigned long SPEED_CHANGE_DEBOUNCE = 200;  // milliseconds between speed changes
+void timer_callback(rcl_timer_t* timer, int64_t last_call_time) {
+  RCLC_UNUSED(last_call_time);
 
-// Keyboard control - track currently pressed keys
-bool keyPressed[256] = {false};  // Track state of each ASCII key
-unsigned long keyLastReceived[256] = {0};  // Track last time each key was received
+  if (timer == NULL) {
+    return;
+  }
 
-// Key press/release timeout (in milliseconds)
-#define KEY_TIMEOUT 150  // If key not received for 150ms, consider it released
+  if (cmdvelReceived && (millis() - lastCmdVelTime > CMDVEL_TIMEOUT_MS)) {
+    cmdvel.seq++;
+    cmdvel.vx = 0.0f;
+    cmdvel.vy = 0.0f;
+    cmdvel.w = 0.0f;
+    cmdvelReceived = false;
+    cmdvel.seq++;
+    Serial.println("cmd_vel timeout: stopping motors");
+  }
+}
 
+void setupMicroRos() {
+  allocator = rcl_get_default_allocator();
 
-// Functions declaration
-void setMecanumSpeeds(float vx, float vy, float omega);
-void setMotor(int motor, int speed);
-void setServo(int servo, int angle);
-void setPump(bool state);
-void setValve(bool state);
-void resetEncoders();
-void printKeyboardHelp();
-void processKeyboardInput();
-void pickupBlock();
-void releaseBlock();
-void togglePump();
-void toggleEncoderReading();
-void setSpeed(int speed);
+  set_microros_wifi_transports(
+    MICROROS_WIFI_SSID,
+    MICROROS_WIFI_PASSWORD,
+    MICROROS_AGENT_IP,
+    MICROROS_AGENT_PORT
+  );
 
+  Serial.println("Waiting for micro-ROS agent...");
+  while (rmw_uros_ping_agent(1000, 1) != RMW_RET_OK) {
+    delay(1000);
+  }
+  Serial.println("micro-ROS agent connected");
+
+  RCCHECK(rclc_support_init(&support, 0, NULL, &allocator));
+
+  RCCHECK(rclc_node_init_default(
+    &node,
+    "pami_ninja_node",
+    "",
+    &support
+  ));
+
+  RCCHECK(rclc_subscription_init_default(
+    &cmdvel_sub,
+    &node,
+    ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, Twist),
+    "cmd_vel_smoothed"
+  ));
+
+  RCCHECK(rclc_timer_init_default2(
+    &timer,
+    &support,
+    RCL_MS_TO_NS(100),
+    timer_callback,
+    true
+  ));
+
+  RCCHECK(rclc_executor_init(
+    &executor,
+    &support.context,
+    2,
+    &allocator
+  ));
+
+  RCCHECK(rclc_executor_add_timer(&executor, &timer));
+
+  RCCHECK(rclc_executor_add_subscription(
+    &executor,
+    &cmdvel_sub,
+    &cmdvel_msg,
+    &cmdvel_callback,
+    ON_NEW_DATA
+  ));
+}
 
 void setup() {
   Serial.begin(115200);
 
-  // Motor pins
   pinMode(MOTOR_FL_IN1, OUTPUT);
   pinMode(MOTOR_FL_IN2, OUTPUT);
   pinMode(MOTOR_FR_IN1, OUTPUT);
@@ -76,15 +124,12 @@ void setup() {
   pinMode(MOTOR_RR_IN1, OUTPUT);
   pinMode(MOTOR_RR_IN2, OUTPUT);
 
-  // Pump
   pinMode(PUMP_PIN, OUTPUT);
   digitalWrite(PUMP_PIN, LOW);
 
-  // Valve (Solenoid)
   pinMode(SOLENOID_PIN, OUTPUT);
   digitalWrite(SOLENOID_PIN, LOW);
 
-  // PWM setup for all 8 motor control pins (IN1 and IN2 for each motor)
   ledcSetup(CH_FL_IN1, PWM_FREQ, PWM_RES);
   ledcSetup(CH_FL_IN2, PWM_FREQ, PWM_RES);
   ledcSetup(CH_FR_IN1, PWM_FREQ, PWM_RES);
@@ -94,7 +139,6 @@ void setup() {
   ledcSetup(CH_RR_IN1, PWM_FREQ, PWM_RES);
   ledcSetup(CH_RR_IN2, PWM_FREQ, PWM_RES);
 
-  // Attach PWM pins for both IN1 and IN2
   ledcAttachPin(MOTOR_FL_IN1, CH_FL_IN1);
   ledcAttachPin(MOTOR_FL_IN2, CH_FL_IN2);
   ledcAttachPin(MOTOR_FR_IN1, CH_FR_IN1);
@@ -104,89 +148,288 @@ void setup() {
   ledcAttachPin(MOTOR_RR_IN1, CH_RR_IN1);
   ledcAttachPin(MOTOR_RR_IN2, CH_RR_IN2);
 
-  // Encoders
   encoder1.attachHalfQuad(ENC_FL_A, ENC_FL_B);
   encoder2.attachHalfQuad(ENC_FR_A, ENC_FR_B);
   encoder3.attachHalfQuad(ENC_RL_A, ENC_RL_B);
   encoder4.attachHalfQuad(ENC_RR_A, ENC_RR_B);
 
-  // Servos
   servo1.attach(SERVO_LEFT_PIN);
   servo2.attach(SERVO_RIGHT_PIN);
-  Serial.println("Robot initialized");
+
+  printKeyboardHelp();
+  setupMicroRos();
+
+  xTaskCreatePinnedToCore(
+    core1,
+    "Control",
+    12000,
+    NULL,
+    3,
+    &core1_handle,
+    1
+  );
+
+  xTaskCreatePinnedToCore(
+    core2,
+    "ROS",
+    6000,
+    NULL,
+    1,
+    &core2_handle,
+    0
+  );
+
+  Serial.println("Pami Ninja micro-ROS initialized");
 }
 
-
 void loop() {
-  // Print encoder values (if enabled) - only display if values changed
-  if (encoderReadingEnabled) {
-    static long lastEnc1 = 0, lastEnc2 = 0, lastEnc3 = 0, lastEnc4 = 0;
-    
-    long enc1 = encoder1.getCount();
-    long enc2 = encoder2.getCount();
-    long enc3 = encoder3.getCount();
-    long enc4 = encoder4.getCount();
-    
-    if (enc1 != lastEnc1 || enc2 != lastEnc2 || enc3 != lastEnc3 || enc4 != lastEnc4) {
-      Serial.print("Encoders: ");
-      Serial.print(enc1);
-      Serial.print(", ");
-      Serial.print(enc2);
-      Serial.print(", ");
-      Serial.print(enc3);
-      Serial.print(", ");
-      Serial.println(enc4);
-      
-      lastEnc1 = enc1;
-      lastEnc2 = enc2;
-      lastEnc3 = enc3;
-      lastEnc4 = enc4;
+  vTaskDelay(portMAX_DELAY);
+}
+
+void core1(void* pvParameters) {
+  (void)pvParameters;
+
+  const TickType_t period = pdMS_TO_TICKS(5);
+  TickType_t lastWake = xTaskGetTickCount();
+  CmdVel local;
+  uint32_t s1;
+  uint32_t s2;
+
+  for (;;) {
+    processSerialKeyboardInput();
+
+    do {
+      s1 = cmdvel.seq;
+      local.vx = cmdvel.vx;
+      local.vy = cmdvel.vy;
+      local.w = cmdvel.w;
+      s2 = cmdvel.seq;
+    } while (s1 != s2 || (s1 & 1));
+
+    if (serialMovementActive()) {
+      applySerialMovementControl();
+    } else {
+      setMecanumSpeeds(local.vx, local.vy, local.w);
+    }
+    applySerialActionControl();
+
+    if (encoderReadingEnabled) {
+      static long lastEnc1 = 0, lastEnc2 = 0, lastEnc3 = 0, lastEnc4 = 0;
+      long enc1 = encoder1.getCount();
+      long enc2 = encoder2.getCount();
+      long enc3 = encoder3.getCount();
+      long enc4 = encoder4.getCount();
+
+      if (enc1 != lastEnc1 || enc2 != lastEnc2 || enc3 != lastEnc3 || enc4 != lastEnc4) {
+        Serial.printf("Encoders: %ld, %ld, %ld, %ld\n", enc1, enc2, enc3, enc4);
+        lastEnc1 = enc1;
+        lastEnc2 = enc2;
+        lastEnc3 = enc3;
+        lastEnc4 = enc4;
+      }
+    }
+
+    vTaskDelayUntil(&lastWake, period);
+  }
+}
+
+void core2(void* pvParameters) {
+  (void)pvParameters;
+
+  for (;;) {
+    RCSOFTCHECK(rclc_executor_spin_some(&executor, 0));
+    vTaskDelay(1);
+  }
+}
+
+void printKeyboardHelp() {
+  Serial.println("\n========================================");
+  Serial.println("SERIAL KEYBOARD CONTROL");
+  Serial.println("========================================");
+  Serial.println("MOVEMENT:");
+  Serial.println("  W - Forward");
+  Serial.println("  S - Backward");
+  Serial.println("  A - Strafe Left");
+  Serial.println("  D - Strafe Right");
+  Serial.println("  Q - Rotate Counter-Clockwise");
+  Serial.println("  E - Rotate Clockwise");
+  Serial.println("  SPACE - Stop all motion");
+  Serial.println("BLOCK HANDLING:");
+  Serial.println("  P - Pick up block");
+  Serial.println("  R - Release block");
+  Serial.println("SERVO:");
+  Serial.println("  U - Raise servos");
+  Serial.println("  O - Lower servos");
+  Serial.println("PUMP / ENCODERS / SPEED:");
+  Serial.println("  J - Toggle pump");
+  Serial.println("  N - Toggle encoder print");
+  Serial.println("  L - Reset encoders");
+  Serial.println("  + - Increase serial speed");
+  Serial.println("  - - Decrease serial speed");
+  Serial.println("ROS cmd_vel is used whenever no serial movement key is active.");
+  Serial.println("========================================\n");
+}
+
+void processSerialKeyboardInput() {
+  unsigned long now = millis();
+
+  while (Serial.available()) {
+    char key = toupper(Serial.read());
+
+    if (key >= 32 && key <= 126) {
+      keyPressed[(uint8_t)key] = true;
+      keyLastReceived[(uint8_t)key] = now;
     }
   }
 
-  // Process keyboard input - hold keys for continuous movement
-  processKeyboardInput();
+  const char trackedKeys[] = {
+    KEY_FORWARD, KEY_BACKWARD, KEY_LEFT, KEY_RIGHT,
+    KEY_ROTATE_CW, KEY_ROTATE_CCW, KEY_STOP,
+    KEY_PICK, KEY_RELEASE, KEY_SERVO_UP, KEY_SERVO_DOWN,
+    KEY_PUMP_TOGGLE, KEY_ENC_TOGGLE, KEY_ENC_RESET,
+    KEY_SPEED_UP, KEY_SPEED_DOWN
+  };
 
-  delay(10);
+  for (size_t i = 0; i < sizeof(trackedKeys); i++) {
+    uint8_t key = (uint8_t)trackedKeys[i];
+    if (keyPressed[key] && (now - keyLastReceived[key] > KEY_TIMEOUT)) {
+      keyPressed[key] = false;
+    }
+  }
+}
+
+bool serialMovementActive() {
+  return keyPressed[(uint8_t)KEY_FORWARD] ||
+         keyPressed[(uint8_t)KEY_BACKWARD] ||
+         keyPressed[(uint8_t)KEY_LEFT] ||
+         keyPressed[(uint8_t)KEY_RIGHT] ||
+         keyPressed[(uint8_t)KEY_ROTATE_CW] ||
+         keyPressed[(uint8_t)KEY_ROTATE_CCW] ||
+         keyPressed[(uint8_t)KEY_STOP];
+}
+
+void applySerialMovementControl() {
+  if (keyPressed[(uint8_t)KEY_STOP]) {
+    setMecanumSpeeds(0, 0, 0);
+  } else if (keyPressed[(uint8_t)KEY_FORWARD]) {
+    setMecanumSpeeds(currentMaxSpeed / 255.0, 0, 0);
+  } else if (keyPressed[(uint8_t)KEY_BACKWARD]) {
+    setMecanumSpeeds(-currentMaxSpeed / 255.0, 0, 0);
+  } else if (keyPressed[(uint8_t)KEY_LEFT]) {
+    setMecanumSpeeds(0, currentMaxSpeed / 255.0, 0);
+  } else if (keyPressed[(uint8_t)KEY_RIGHT]) {
+    setMecanumSpeeds(0, -currentMaxSpeed / 255.0, 0);
+  } else if (keyPressed[(uint8_t)KEY_ROTATE_CW]) {
+    setMecanumSpeeds(0, 0, currentOmegaSpeed / 255.0);
+  } else if (keyPressed[(uint8_t)KEY_ROTATE_CCW]) {
+    setMecanumSpeeds(0, 0, -currentOmegaSpeed / 255.0);
+  }
+}
+
+void applySerialActionControl() {
+  unsigned long now = millis();
+
+  static unsigned long lastServoUpTime = 0;
+  static unsigned long lastServoDownTime = 0;
+  const unsigned long SERVO_DEBOUNCE = 200;
+
+  if (keyPressed[(uint8_t)KEY_SERVO_UP] && (now - lastServoUpTime > SERVO_DEBOUNCE)) {
+    currentServoAngle = constrain(currentServoAngle + SERVO_INCREMENT, 0, 180);
+    setServo(1, currentServoAngle);
+    setServo(2, currentServoAngle);
+    Serial.printf("Servos UP - Angle: %d\n", currentServoAngle);
+    lastServoUpTime = now;
+  }
+
+  if (keyPressed[(uint8_t)KEY_SERVO_DOWN] && (now - lastServoDownTime > SERVO_DEBOUNCE)) {
+    currentServoAngle = constrain(currentServoAngle - SERVO_INCREMENT, 0, 180);
+    setServo(1, currentServoAngle);
+    setServo(2, currentServoAngle);
+    Serial.printf("Servos DOWN - Angle: %d\n", currentServoAngle);
+    lastServoDownTime = now;
+  }
+
+  static unsigned long lastPickTime = 0;
+  static unsigned long lastReleaseTime = 0;
+  const unsigned long MIN_ACTION_INTERVAL = 2500;
+
+  if (keyPressed[(uint8_t)KEY_PICK] && (now - lastPickTime > MIN_ACTION_INTERVAL)) {
+    pickupBlock();
+    lastPickTime = now;
+  }
+
+  if (keyPressed[(uint8_t)KEY_RELEASE] && (now - lastReleaseTime > MIN_ACTION_INTERVAL)) {
+    releaseBlock();
+    lastReleaseTime = now;
+  }
+
+  static unsigned long lastPumpToggleTime = 0;
+  const unsigned long PUMP_TOGGLE_DEBOUNCE = 300;
+
+  if (keyPressed[(uint8_t)KEY_PUMP_TOGGLE] && (now - lastPumpToggleTime > PUMP_TOGGLE_DEBOUNCE)) {
+    togglePump();
+    lastPumpToggleTime = now;
+  }
+
+  static unsigned long lastEncToggleTime = 0;
+  const unsigned long ENC_TOGGLE_DEBOUNCE = 300;
+
+  if (keyPressed[(uint8_t)KEY_ENC_TOGGLE] && (now - lastEncToggleTime > ENC_TOGGLE_DEBOUNCE)) {
+    toggleEncoderReading();
+    lastEncToggleTime = now;
+  }
+
+  static unsigned long lastEncResetTime = 0;
+  const unsigned long ENC_RESET_DEBOUNCE = 300;
+
+  if (keyPressed[(uint8_t)KEY_ENC_RESET] && (now - lastEncResetTime > ENC_RESET_DEBOUNCE)) {
+    resetEncoders();
+    lastEncResetTime = now;
+  }
+
+  static unsigned long lastSpeedChangeTime = 0;
+
+  if (keyPressed[(uint8_t)KEY_SPEED_UP] && (now - lastSpeedChangeTime > SPEED_CHANGE_DEBOUNCE)) {
+    setSpeed(currentMaxSpeed + SPEED_INCREMENT);
+    lastSpeedChangeTime = now;
+  }
+
+  if (keyPressed[(uint8_t)KEY_SPEED_DOWN] && (now - lastSpeedChangeTime > SPEED_CHANGE_DEBOUNCE)) {
+    setSpeed(currentMaxSpeed - SPEED_INCREMENT);
+    lastSpeedChangeTime = now;
+  }
 }
 
 void setMotor(int motor, int speed) {
-  int in1, in2, ch_in1, ch_in2;
+  int ch_in1;
+  int ch_in2;
 
   switch (motor) {
     case 1:
-      in1 = MOTOR_FL_IN1; in2 = MOTOR_FL_IN2; ch_in1 = CH_FL_IN1; ch_in2 = CH_FL_IN2; break;
+      ch_in1 = CH_FL_IN1; ch_in2 = CH_FL_IN2; break;
     case 2:
-      in1 = MOTOR_FR_IN1; in2 = MOTOR_FR_IN2; ch_in1 = CH_FR_IN1; ch_in2 = CH_FR_IN2; break;
+      ch_in1 = CH_FR_IN1; ch_in2 = CH_FR_IN2; break;
     case 3:
-      in1 = MOTOR_RL_IN1; in2 = MOTOR_RL_IN2; ch_in1 = CH_RL_IN1; ch_in2 = CH_RL_IN2; break;
+      ch_in1 = CH_RL_IN1; ch_in2 = CH_RL_IN2; break;
     case 4:
-      in1 = MOTOR_RR_IN1; in2 = MOTOR_RR_IN2; ch_in1 = CH_RR_IN1; ch_in2 = CH_RR_IN2; break;
+      ch_in1 = CH_RR_IN1; ch_in2 = CH_RR_IN2; break;
     default:
       return;
   }
 
-  // Only update and print if speed changed
   if (motorSpeeds[motor - 1] != speed) {
     motorSpeeds[motor - 1] = speed;
     int pwm = abs(speed);
 
     if (speed > 0) {
-      // Forward: PWM on IN1, LOW on IN2
-      ledcWrite(ch_in1, pwm);    // Write PWM to IN1 channel
-      ledcWrite(ch_in2, 0);       // Set IN2 to 0
-      Serial.printf("Motor %d - IN1: %d, IN2: 0\n", motor, pwm);
-
+      ledcWrite(ch_in1, pwm);
+      ledcWrite(ch_in2, 0);
     } else if (speed < 0) {
-      // Reverse: PWM on IN2, LOW on IN1
-      ledcWrite(ch_in1, 0);       // Set IN1 to 0
-      ledcWrite(ch_in2, pwm);     // Write PWM to IN2 channel
-      Serial.printf("Motor %d - IN1: 0, IN2: %d\n", motor, pwm);
-
+      ledcWrite(ch_in1, 0);
+      ledcWrite(ch_in2, pwm);
     } else {
-      // Stop: PWM to 0, both pins LOW
-      ledcWrite(ch_in1, 0);       // Set IN1 to 0
-      ledcWrite(ch_in2, 0);       // Set IN2 to 0
+      ledcWrite(ch_in1, 0);
+      ledcWrite(ch_in2, 0);
     }
   }
 }
@@ -217,208 +460,18 @@ void resetEncoders() {
   Serial.println("All encoders reset");
 }
 
-void printKeyboardHelp() {
-  Serial.println("\n========================================");
-  Serial.println("KEYBOARD CONTROL - Hold keys to move");
-  Serial.println("========================================");
-  Serial.println("MOVEMENT:");
-  Serial.println("  W - Forward");
-  Serial.println("  S - Backward");
-  Serial.println("  A - Strafe Left");
-  Serial.println("  D - Strafe Right");
-  Serial.println("  Q - Rotate Counter-Clockwise");
-  Serial.println("  E - Rotate Clockwise");
-  Serial.println("  SPACE - Stop all motion");
-  Serial.println("\nBLOCK HANDLING:");
-  Serial.println("  P - Pick up block (macro: lower → pump ON → raise)");
-  Serial.println("  R - Release block (macro: lower → pump OFF → raise)");
-  Serial.println("\nSERVO CONTROL:");
-  Serial.println("  U - Raise servos (hold)");
-  Serial.println("  O - Lower servos (hold)");
-  Serial.println("\nPUMP & SOLENOID:");
-  Serial.println("  J - Toggle Pump ON/OFF");
-  Serial.println("\nSPEED CONTROL:");
-  Serial.println("  + - Increase linear speed (50-255) [W/S/A/D]");
-  Serial.println("  - - Decrease linear speed (50-255) [W/S/A/D]");
-  Serial.println("  Note: Rotation speed (Q/E) is set separately to 150");
-  Serial.println("\nENCODER CONTROL:");
-  Serial.println("  N - Toggle Encoder Reading ON/OFF");
-  Serial.println("  L - Reset All Encoders");
-  Serial.println("========================================\n");
-}
-
-void processKeyboardInput() {
-  unsigned long now = millis();
-  
-  // Check if there's data available to read
-  if (Serial.available()) {
-    char key = Serial.read();
-    key = toupper(key);  // Convert to uppercase
-    
-    if (key >= 32 && key <= 126) {  // Valid ASCII range
-      keyPressed[key] = true;  // Mark key as pressed
-      keyLastReceived[key] = now;  // Update timestamp
-    }
-  }
-  
-  // Check for key timeouts (key release detection) for all keys
-  if (keyPressed[KEY_FORWARD] && (now - keyLastReceived[KEY_FORWARD] > KEY_TIMEOUT)) {
-    keyPressed[KEY_FORWARD] = false;
-  }
-  if (keyPressed[KEY_BACKWARD] && (now - keyLastReceived[KEY_BACKWARD] > KEY_TIMEOUT)) {
-    keyPressed[KEY_BACKWARD] = false;
-  }
-  if (keyPressed[KEY_LEFT] && (now - keyLastReceived[KEY_LEFT] > KEY_TIMEOUT)) {
-    keyPressed[KEY_LEFT] = false;
-  }
-  if (keyPressed[KEY_RIGHT] && (now - keyLastReceived[KEY_RIGHT] > KEY_TIMEOUT)) {
-    keyPressed[KEY_RIGHT] = false;
-  }
-  if (keyPressed[KEY_ROTATE_CW] && (now - keyLastReceived[KEY_ROTATE_CW] > KEY_TIMEOUT)) {
-    keyPressed[KEY_ROTATE_CW] = false;
-  }
-  if (keyPressed[KEY_ROTATE_CCW] && (now - keyLastReceived[KEY_ROTATE_CCW] > KEY_TIMEOUT)) {
-    keyPressed[KEY_ROTATE_CCW] = false;
-  }
-  if (keyPressed[KEY_SERVO_UP] && (now - keyLastReceived[KEY_SERVO_UP] > KEY_TIMEOUT)) {
-    keyPressed[KEY_SERVO_UP] = false;
-  }
-  if (keyPressed[KEY_SERVO_DOWN] && (now - keyLastReceived[KEY_SERVO_DOWN] > KEY_TIMEOUT)) {
-    keyPressed[KEY_SERVO_DOWN] = false;
-  }
-  if (keyPressed[KEY_PICK] && (now - keyLastReceived[KEY_PICK] > KEY_TIMEOUT)) {
-    keyPressed[KEY_PICK] = false;
-  }
-  if (keyPressed[KEY_RELEASE] && (now - keyLastReceived[KEY_RELEASE] > KEY_TIMEOUT)) {
-    keyPressed[KEY_RELEASE] = false;
-  }
-  if (keyPressed[KEY_PUMP_TOGGLE] && (now - keyLastReceived[KEY_PUMP_TOGGLE] > KEY_TIMEOUT)) {
-    keyPressed[KEY_PUMP_TOGGLE] = false;
-  }
-  if (keyPressed[KEY_ENC_TOGGLE] && (now - keyLastReceived[KEY_ENC_TOGGLE] > KEY_TIMEOUT)) {
-    keyPressed[KEY_ENC_TOGGLE] = false;
-  }
-  if (keyPressed[KEY_ENC_RESET] && (now - keyLastReceived[KEY_ENC_RESET] > KEY_TIMEOUT)) {
-    keyPressed[KEY_ENC_RESET] = false;
-  }
-  if (keyPressed[KEY_SPEED_UP] && (now - keyLastReceived[KEY_SPEED_UP] > KEY_TIMEOUT)) {
-    keyPressed[KEY_SPEED_UP] = false;
-  }
-  if (keyPressed[KEY_SPEED_DOWN] && (now - keyLastReceived[KEY_SPEED_DOWN] > KEY_TIMEOUT)) {
-    keyPressed[KEY_SPEED_DOWN] = false;
-  }
-  
-  // Process movement keys
-  if (keyPressed[KEY_FORWARD]) {
-    setMecanumSpeeds(currentMaxSpeed / 255.0, 0, 0);
-  }
-  else if (keyPressed[KEY_BACKWARD]) {
-    setMecanumSpeeds(-currentMaxSpeed / 255.0, 0, 0);
-  }
-  else if (keyPressed[KEY_LEFT]) {
-    setMecanumSpeeds(0, currentMaxSpeed / 255.0, 0);
-  }
-  else if (keyPressed[KEY_RIGHT]) {
-    setMecanumSpeeds(0, -currentMaxSpeed / 255.0, 0);
-  }
-  else if (keyPressed[KEY_ROTATE_CW]) {
-    setMecanumSpeeds(0, 0, currentOmegaSpeed / 255.0);
-  }
-  else if (keyPressed[KEY_ROTATE_CCW]) {
-    setMecanumSpeeds(0, 0, -currentOmegaSpeed / 255.0);
-  }
-  else {
-    setMecanumSpeeds(0, 0, 0);
-  }
-
-  // Servo control - one-shot per key press with debounce
-  static unsigned long lastServoUpTime = 0;
-  static unsigned long lastServoDownTime = 0;
-  const unsigned long SERVO_DEBOUNCE = 200;  // milliseconds between servo movements
-
-  if (keyPressed[KEY_SERVO_UP] && (now - lastServoUpTime > SERVO_DEBOUNCE)) {
-    currentServoAngle = constrain(currentServoAngle + SERVO_INCREMENT, 0, 180);
-    setServo(1, currentServoAngle);
-    setServo(2, currentServoAngle);
-    Serial.printf("Servos UP - Angle: %d\n", currentServoAngle);
-    lastServoUpTime = now;
-  }
-
-  if (keyPressed[KEY_SERVO_DOWN] && (now - lastServoDownTime > SERVO_DEBOUNCE)) {
-    currentServoAngle = constrain(currentServoAngle - SERVO_INCREMENT, 0, 180);
-    setServo(1, currentServoAngle);
-    setServo(2, currentServoAngle);
-    Serial.printf("Servos DOWN - Angle: %d\n", currentServoAngle);
-    lastServoDownTime = now;
-  }
-
-  // Block handling - one-shot execution
-  static unsigned long lastPickTime = 0;
-  static unsigned long lastReleaseTime = 0;
-  const unsigned long MIN_ACTION_INTERVAL = 2500;  // Minimum time between pick/release actions
-
-  if (keyPressed[KEY_PICK] && (now - lastPickTime > MIN_ACTION_INTERVAL)) {
-    pickupBlock();
-    lastPickTime = now;
-  }
-
-  if (keyPressed[KEY_RELEASE] && (now - lastReleaseTime > MIN_ACTION_INTERVAL)) {
-    releaseBlock();
-    lastReleaseTime = now;
-  }
-
-  // Pump toggle
-  static unsigned long lastPumpToggleTime = 0;
-  const unsigned long PUMP_TOGGLE_DEBOUNCE = 300;
-
-  if (keyPressed[KEY_PUMP_TOGGLE] && (now - lastPumpToggleTime > PUMP_TOGGLE_DEBOUNCE)) {
-    togglePump();
-    lastPumpToggleTime = now;
-  }
-
-  // Encoder reading toggle
-  static unsigned long lastEncToggleTime = 0;
-  const unsigned long ENC_TOGGLE_DEBOUNCE = 300;
-
-  if (keyPressed[KEY_ENC_TOGGLE] && (now - lastEncToggleTime > ENC_TOGGLE_DEBOUNCE)) {
-    toggleEncoderReading();
-    lastEncToggleTime = now;
-  }
-
-  // Encoder reset
-  static unsigned long lastEncResetTime = 0;
-  const unsigned long ENC_RESET_DEBOUNCE = 300;
-
-  if (keyPressed[KEY_ENC_RESET] && (now - lastEncResetTime > ENC_RESET_DEBOUNCE)) {
-    resetEncoders();
-    lastEncResetTime = now;
-  }
-
-  // Speed control
-  if (keyPressed[KEY_SPEED_UP] && (now - lastSpeedChangeTime > SPEED_CHANGE_DEBOUNCE)) {
-    setSpeed(currentMaxSpeed + SPEED_INCREMENT);
-    lastSpeedChangeTime = now;
-  }
-
-  if (keyPressed[KEY_SPEED_DOWN] && (now - lastSpeedChangeTime > SPEED_CHANGE_DEBOUNCE)) {
-    setSpeed(currentMaxSpeed - SPEED_INCREMENT);
-    lastSpeedChangeTime = now;
-  }
-}
-
 void setMecanumSpeeds(float vx, float vy, float omega) {
   float L = WHEELBASE_LENGTH / 2.0;
   float W = WHEELBASE_WIDTH / 2.0;
   float R = WHEEL_RADIUS;
- 
+
   float w1 = (vx - vy - (L + W) * omega) / R;
   float w2 = (vx + vy + (L + W) * omega) / R;
   float w3 = (vx + vy - (L + W) * omega) / R;
   float w4 = (vx - vy + (L + W) * omega) / R;
- 
+
   float scale = currentMaxSpeed / 1.0;
 
-  // Use proper rounding instead of truncation
   int pwm1 = constrain((int)round(w1 * scale), -currentMaxSpeed, currentMaxSpeed);
   int pwm2 = constrain((int)round(w2 * scale), -currentMaxSpeed, currentMaxSpeed);
   int pwm3 = constrain((int)round(w3 * scale), -currentMaxSpeed, currentMaxSpeed);
@@ -428,110 +481,76 @@ void setMecanumSpeeds(float vx, float vy, float omega) {
   setMotor(2, pwm2);
   setMotor(3, pwm3);
   setMotor(4, pwm4);
-  
-  // Only print summary if any motor speed changed
-  bool anyChanged = (pwm1 != previousMotorSpeeds[0] || pwm2 != previousMotorSpeeds[1] || 
+
+  bool anyChanged = (pwm1 != previousMotorSpeeds[0] || pwm2 != previousMotorSpeeds[1] ||
                      pwm3 != previousMotorSpeeds[2] || pwm4 != previousMotorSpeeds[3]);
-  
+
   if (anyChanged) {
     previousMotorSpeeds[0] = pwm1;
     previousMotorSpeeds[1] = pwm2;
     previousMotorSpeeds[2] = pwm3;
     previousMotorSpeeds[3] = pwm4;
-     if(vx != 0 || vy != 0 || omega != 0) {
-      Serial.printf("Raw wheel speeds: w1=%.3f, w2=%.3f, w3=%.3f, w4=%.3f\n", w1, w2, w3, w4);
-      Serial.printf("Calculating speeds for vx=%.2f, vy=%.2f, omega=%.2f\n", vx, vy, omega);
-    }
-    
-    if(pwm1 == 0 && pwm2 == 0 && pwm3 == 0 && pwm4 == 0) {
+
+    if (pwm1 == 0 && pwm2 == 0 && pwm3 == 0 && pwm4 == 0) {
       Serial.println("Stopping all motors");
     } else {
-      Serial.printf("Setting motors - FL: %d, FR: %d, RL: %d, RR: %d\n", pwm1, pwm2, pwm3, pwm4);
+      Serial.printf("cmd_vel vx=%.2f vy=%.2f w=%.2f -> FL:%d FR:%d RL:%d RR:%d\n",
+                    vx, vy, omega, pwm1, pwm2, pwm3, pwm4);
     }
   }
 }
 
-// ============================================================
-//  PUMP AND BLOCK HANDLING MACROS
-// ============================================================
-
-/**
- * Pick up block sequence:
- * 1. Lower servos to ARM_DOWN_ANGLE
- * 2. Wait for ARM_MOVE_DELAY for servos to reach position
- * 3. Activate pump
- * 4. Wait for pump to suction (PUMP_SUCTION_TIME)
- * 5. Raise servos to ARM_UP_ANGLE
- */
 void pickupBlock() {
   Serial.println("PICKUP: Lowering servos...");
   setServo(1, ARM_DOWN_ANGLE);
   setServo(2, ARM_DOWN_ANGLE);
-  currentServoAngle = ARM_DOWN_ANGLE;  // Update tracked angle
+  currentServoAngle = ARM_DOWN_ANGLE;
   delay(ARM_MOVE_DELAY);
 
   Serial.println("PICKUP: Activating pump...");
   setPump(true);
-  delay(300);  // Wait for pump to build suction
+  delay(300);
 
   Serial.println("PICKUP: Raising servos...");
   setServo(1, ARM_UP_ANGLE);
   setServo(2, ARM_UP_ANGLE);
-  currentServoAngle = ARM_UP_ANGLE;  // Update tracked angle
+  currentServoAngle = ARM_UP_ANGLE;
   delay(ARM_MOVE_DELAY);
 
   Serial.println("PICKUP: Complete - block secured");
 }
 
-/**
- * Release block sequence:
- * 1. Lower servos to ARM_DOWN_ANGLE
- * 2. Wait for ARM_MOVE_DELAY for servos to reach position
- * 3. Deactivate pump
- * 4. Wait for block to drop (PUMP_RELEASE_WAIT)
- * 5. Raise servos to ARM_UP_ANGLE
- */
 void releaseBlock() {
   Serial.println("RELEASE: Lowering servos...");
   setServo(1, ARM_DOWN_ANGLE);
   setServo(2, ARM_DOWN_ANGLE);
-  currentServoAngle = ARM_DOWN_ANGLE;  // Update tracked angle
+  currentServoAngle = ARM_DOWN_ANGLE;
   delay(ARM_MOVE_DELAY);
 
   Serial.println("RELEASE: Deactivating pump...");
   setPump(false);
-  delay(300);  // Wait for block to drop
+  delay(300);
 
   Serial.println("RELEASE: Raising servos...");
   setServo(1, ARM_UP_ANGLE);
   setServo(2, ARM_UP_ANGLE);
-  currentServoAngle = ARM_UP_ANGLE;  // Update tracked angle
+  currentServoAngle = ARM_UP_ANGLE;
   delay(ARM_MOVE_DELAY);
 
   Serial.println("RELEASE: Complete - block released");
 }
 
-/**
- * Toggle pump on/off and print status
- */
 void togglePump() {
   pumpState = !pumpState;
   setPump(pumpState);
   Serial.printf("PUMP: %s\n", pumpState ? "ON" : "OFF");
 }
 
-/**
- * Toggle encoder reading on/off and print status
- */
 void toggleEncoderReading() {
   encoderReadingEnabled = !encoderReadingEnabled;
   Serial.printf("ENCODER READING: %s\n", encoderReadingEnabled ? "ON" : "OFF");
 }
 
-/**
- * Set the maximum speed for robot movement
- * Constrains speed between MIN_SPEED and MAX_SPEED_LIMIT
- */
 void setSpeed(int speed) {
   currentMaxSpeed = constrain(speed, MIN_SPEED, MAX_SPEED_LIMIT);
   Serial.printf("SPEED: %d/255\n", currentMaxSpeed);

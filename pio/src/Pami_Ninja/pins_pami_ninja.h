@@ -49,10 +49,6 @@
 #define MAX_PWM          255    // Maximum motor PWM (0-255)
 #define STICK_DEADZONE   10     // Ignore stick noise within ±this range
 
-#define PWM_FREQ         5000   // Motor PWM frequency (Hz)
-#define PWM_RESOLUTION   8      // 8-bit resolution: 0-255
-
-// PWM frequency and resolution
 #define PWM_FREQ 1000
 #define PWM_RES 8
 
