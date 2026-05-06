@@ -242,7 +242,7 @@ class CameraMapVisualizer(Node):
             color=(0.95, 0.2, 0.2, 0.28),
         )
 
-        obstacle_points: List[List[float]] = []
+        block_points: List[List[float]] = []
         static_points: List[List[float]] = []
         enemy_points: List[List[float]] = []
         self._append_zone_obstacle_points(
@@ -294,9 +294,10 @@ class CameraMapVisualizer(Node):
             text.text = f"{block.get('color', 'unk')} #{i}"
             marker_array.markers.append(text)
 
-            self._append_detected_obstacle_points(obstacle_points, block)
             if str(block.get('color', 'unknown')).lower() == 'enemy_robot':
                 self._append_detected_obstacle_points(enemy_points, block)
+            else:
+                self._append_detected_obstacle_points(block_points, block)
 
         self.marker_pub.publish(marker_array)
 
@@ -304,7 +305,7 @@ class CameraMapVisualizer(Node):
             header = Header()
             header.stamp = now if self.stamp_obstacle_cloud_with_now else rclpy.time.Time().to_msg()
             header.frame_id = self.map_frame
-            dynamic_cloud = point_cloud2.create_cloud_xyz32(header, obstacle_points)
+            dynamic_cloud = point_cloud2.create_cloud_xyz32(header, block_points)
             self.block_pc_pub.publish(dynamic_cloud)
             static_obstacle_points = list(static_points)
             if self.publish_arena_walls_as_obstacles:
@@ -313,7 +314,11 @@ class CameraMapVisualizer(Node):
             self.static_pc_pub.publish(static_cloud)
             enemy_cloud = point_cloud2.create_cloud_xyz32(header, enemy_points)
             self.enemy_pc_pub.publish(enemy_cloud)
-            self.dynamic_grid_pub.publish(self._build_dynamic_obstacle_grid(blocks, header))
+            block_grid_obstacles = [
+                block for block in blocks
+                if str(block.get('color', 'unknown')).lower() != 'enemy_robot'
+            ]
+            self.dynamic_grid_pub.publish(self._build_dynamic_obstacle_grid(block_grid_obstacles, header))
 
     def _update_tracked_obstacles(self, detections: List[Dict[str, Any]]) -> None:
         match_gate = max(self.dynamic_obstacle_match_distance_m, 0.0)
