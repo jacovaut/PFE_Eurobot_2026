@@ -202,6 +202,8 @@ public:
       declare_parameter<double>("entity_tracking_yaw_alpha", 0.5);
     entity_tracking_max_missed_frames_ =
       declare_parameter<int>("entity_tracking_max_missed_frames", 5);
+    enemy_entity_tracking_max_missed_frames_ =
+      declare_parameter<int>("enemy_entity_tracking_max_missed_frames", 50);
 
     // ----------------------------
     // Publisher
@@ -930,14 +932,7 @@ if (ids.empty()) {
         enemy_detections.push_back(enemy_entity);
         break;
       }
-      auto _t0 = std::chrono::steady_clock::now();
       publishEnemyEntities(updateTrackedEnemyEntities(enemy_detections));
-      double _enemy_pub_ms = std::chrono::duration<double, std::milli>(
-        std::chrono::steady_clock::now() - _t0).count();
-      if (_enemy_pub_ms > 5.0) {
-        RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 1000,
-          "publishEnemyEntities took %.1f ms — possible DDS backpressure", _enemy_pub_ms);
-      }
     }
 
     // These passes are useful for obstacle/strategy output, but they are expensive.
@@ -1536,7 +1531,7 @@ if (ids.empty()) {
         tracked_enemy_entities_.begin(),
         tracked_enemy_entities_.end(),
         [this](const TrackedEntity &track) {
-          return track.missed_frames > entity_tracking_max_missed_frames_;
+          return track.missed_frames > enemy_entity_tracking_max_missed_frames_;
         }),
       tracked_enemy_entities_.end());
 
@@ -1898,6 +1893,7 @@ if (ids.empty()) {
   double entity_tracking_ema_alpha_{0.5};
   double entity_tracking_yaw_alpha_{0.5};
   int entity_tracking_max_missed_frames_{5};
+  int enemy_entity_tracking_max_missed_frames_{50};
   
   // Diagnostics: frame counting and timing
   std::atomic<uint64_t> frame_counter_{0};
