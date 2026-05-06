@@ -30,6 +30,7 @@ except Exception:
 
 import rclpy
 from geometry_msgs.msg import PoseWithCovarianceStamped, TransformStamped
+from nav2_msgs.srv import ClearEntireCostmap
 from rcl_interfaces.msg import ParameterType, ParameterValue
 from rclpy.node import Node
 from sensor_msgs.msg import PointCloud2
@@ -57,10 +58,10 @@ class CameraMapVisualizer(Node):
             self.declare_parameter('detected_obstacle_point_spacing_m', 0.05).value
         )
         self.detected_obstacle_padding_m = float(
-            self.declare_parameter('detected_obstacle_padding_m', 0.02).value
+            self.declare_parameter('detected_obstacle_padding_m', 0.0).value
         )
         self.enemy_robot_obstacle_padding_m = float(
-            self.declare_parameter('enemy_robot_obstacle_padding_m', 0.10).value
+            self.declare_parameter('enemy_robot_obstacle_padding_m', 0.0).value
         )
         self.publish_period_s = float(self.declare_parameter('publish_period_s', 0.25).value)
         self.dynamic_obstacle_stale_timeout_s = float(
@@ -91,7 +92,25 @@ class CameraMapVisualizer(Node):
             self.declare_parameter('zones_interdites_point_spacing_m', 0.05).value
         )
         self.static_obstacle_padding_m = float(
-            self.declare_parameter('static_obstacle_padding_m', 0.05).value
+            self.declare_parameter('static_obstacle_padding_m', 0.0).value
+        )
+        self.clear_costmaps_on_dynamic_obstacle_update = bool(
+            self.declare_parameter('clear_costmaps_on_dynamic_obstacle_update', True).value
+        )
+        self.dynamic_obstacle_clear_min_period_s = float(
+            self.declare_parameter('dynamic_obstacle_clear_min_period_s', 0.25).value
+        )
+        self.dynamic_obstacle_clear_distance_m = float(
+            self.declare_parameter('dynamic_obstacle_clear_distance_m', 0.02).value
+        )
+        self.dynamic_obstacle_clear_services = list(
+            self.declare_parameter(
+                'dynamic_obstacle_clear_services',
+                [
+                    '/global_costmap/clear_entirely_global_costmap',
+                    '/local_costmap/clear_entirely_local_costmap',
+                ],
+            ).value
         )
 
         self.arena_x_min = float(self.declare_parameter('arena_x_min', 0.0).value)
@@ -108,6 +127,12 @@ class CameraMapVisualizer(Node):
         self.block_pc_pub = self.create_publisher(PointCloud2, self.block_pointcloud_topic, 10)
         self.static_pc_pub = self.create_publisher(PointCloud2, self.static_pointcloud_topic, 10)
         self.enemy_pc_pub = self.create_publisher(PointCloud2, self.enemy_pointcloud_topic, 10)
+        self.clear_costmap_clients = [
+            self.create_client(ClearEntireCostmap, service_name)
+            for service_name in self.dynamic_obstacle_clear_services
+        ]
+        self._last_dynamic_obstacle_signature = None
+        self._last_dynamic_obstacle_clear_time = None
         self.latest_blocks: List[Dict[str, Any]] = []
         self.latest_blocks_time = self.get_clock().now()
         self.has_received_blocks = False
@@ -279,6 +304,57 @@ class CameraMapVisualizer(Node):
             self.static_pc_pub.publish(static_cloud)
             enemy_cloud = point_cloud2.create_cloud_xyz32(header, enemy_points)
             self.enemy_pc_pub.publish(enemy_cloud)
+            self._maybe_clear_dynamic_costmaps(blocks, now_time)
+
+    def _maybe_clear_dynamic_costmaps(self, blocks: List[Dict[str, Any]], now_time) -> None:
+        if not self.clear_costmaps_on_dynamic_obstacle_update:
+            return
+
+        signature = self._dynamic_obstacle_signature(blocks)
+        changed = signature != self._last_dynamic_obstacle_signature
+        if not changed:
+            return
+
+        if self._last_dynamic_obstacle_clear_time is not None:
+            elapsed_s = (
+                now_time - self._last_dynamic_obstacle_clear_time
+            ).nanoseconds * 1e-9
+            if elapsed_s < max(self.dynamic_obstacle_clear_min_period_s, 0.0):
+                return
+
+        any_called = False
+        all_called = True
+        for service_name, client in zip(self.dynamic_obstacle_clear_services, self.clear_costmap_clients):
+            if not client.service_is_ready():
+                all_called = False
+                self.get_logger().warn(
+                    f'Costmap clear service not ready: {service_name}',
+                    throttle_duration_sec=2.0,
+                )
+                continue
+            client.call_async(ClearEntireCostmap.Request())
+            any_called = True
+
+        if any_called:
+            self._last_dynamic_obstacle_clear_time = now_time
+            if all_called:
+                self._last_dynamic_obstacle_signature = signature
+
+    def _dynamic_obstacle_signature(self, blocks: List[Dict[str, Any]]):
+        distance_bin = max(self.dynamic_obstacle_clear_distance_m, 0.001)
+        yaw_bin = 0.10
+        signature = []
+        for block in blocks:
+            signature.append((
+                int(block.get('marker_id', -1)),
+                str(block.get('color', 'unknown')),
+                round(float(block.get('x', 0.0)) / distance_bin),
+                round(float(block.get('y', 0.0)) / distance_bin),
+                round(float(block.get('yaw', 0.0)) / yaw_bin),
+                round(float(block.get('size_x_m', 0.0)) / distance_bin),
+                round(float(block.get('size_y_m', 0.0)) / distance_bin),
+            ))
+        return tuple(sorted(signature))
 
     def _build_wall_points(self) -> List[List[float]]:
         pts: List[List[float]] = []

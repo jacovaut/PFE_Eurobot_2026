@@ -275,6 +275,7 @@ class DockActionServer(Node):
 
                 if in_pos:
                     vx = vy = 0.0
+                    w = clamp(-self.kt * dtheta, -self.max_w, self.max_w)
                     if stable_start is None:
                         stable_start = time.time()
                     if time.time() - stable_start >= self.stable_time_required:
@@ -288,7 +289,7 @@ class DockActionServer(Node):
                     stable_start = None
                     vx = clamp(self.kx * dx, -self.max_vx, self.max_vx)
                     vy = clamp(self.ky * dy, -self.max_vy, self.max_vy)
-                w = clamp(self.kt * dtheta, -self.max_w, self.max_w)
+                    w = 0.0  # no rotation during translation — orbit phase handles yaw
 
             # ==================
             # PHASE: ORBIT
@@ -341,7 +342,7 @@ class DockActionServer(Node):
                     orbit_omega = self.orbit_speed / self.orbit_radius
                     vx = 0.0
                     vy = -orbit_dir * self.orbit_speed
-                    w  = clamp(orbit_dir * orbit_omega, -self.max_w, self.max_w)
+                    w  = clamp(-orbit_dir * orbit_omega, -self.max_w, self.max_w)
 
             # ==================
             # PHASE: APPROACH2

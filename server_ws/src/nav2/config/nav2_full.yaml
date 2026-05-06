@@ -83,11 +83,23 @@ controller_server:
       plugin: "nav2_controller::SimpleGoalChecker"
       stateful: true
       xy_goal_tolerance: 0.08
-      yaw_goal_tolerance: 0.7
+      yaw_goal_tolerance: 0.52
 
     # Controller option A (recommended-to-start): DWB holonomic
     FollowPath:
-      plugin: "dwb_core::DWBLocalPlanner"
+      plugin: "nav2_rotation_shim_controller::RotationShimController"
+      primary_controller: "dwb_core::DWBLocalPlanner"
+      angular_dist_threshold: 0.79
+      angular_disengage_threshold: 0.52
+      forward_sampling_distance: 0.35
+      rotate_to_heading_angular_vel: 0.25
+      max_angular_accel: 0.5
+      simulate_ahead_time: 0.7
+      rotate_to_goal_heading: true
+      rotate_to_heading_once: false
+      closed_loop: true
+      use_path_orientations: false
+
       debug_trajectory_details: false
 
       # Holonomic mecanum: allow y velocity
@@ -117,16 +129,14 @@ controller_server:
       transform_tolerance: 0.5
       trans_stopped_velocity: 0.05
 
-      critics: ["ObstacleFootprint", "BaseObstacle", "PathAlign", "GoalAlign", "PathDist", "GoalDist", "RotateToGoal"]
+      critics: ["ObstacleFootprint", "BaseObstacle", "PathAlign", "GoalAlign", "PathDist", "GoalDist", "Oscillation"]
       ObstacleFootprint.scale: 32.0
       BaseObstacle.scale: 8.0
       PathAlign.scale: 0.0
       GoalAlign.scale: 0.0
       PathDist.scale: 2.0
       GoalDist.scale: 12.0
-      RotateToGoal.scale: 0.5
-      RotateToGoal.slowing_factor: 5.0
-      RotateToGoal.lookahead_time: -1.0
+      Oscillation.scale: 1.0
 
 bt_navigator:
   ros__parameters:

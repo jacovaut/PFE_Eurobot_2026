@@ -8,6 +8,7 @@
   <license>TODO: License declaration</license>
 
   <depend>nav2_bringup</depend>
+  <depend>nav2_rotation_shim_controller</depend>
   <depend>rclpy</depend>
   <depend>geometry_msgs</depend>
 
