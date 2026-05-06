@@ -48,6 +48,7 @@ class CameraMapVisualizer(Node):
         self.detected_blocks_topic = self.declare_parameter('detected_blocks_topic', '/detected_blocks').value
         self.marker_topic = self.declare_parameter('marker_topic', '/camera_map/markers').value
         self.block_pointcloud_topic = self.declare_parameter('block_pointcloud_topic', '/camera/block_obstacles').value
+        self.static_pointcloud_topic = self.declare_parameter('static_pointcloud_topic', '/camera/static_obstacles').value
         self.enemy_pointcloud_topic = self.declare_parameter('enemy_pointcloud_topic', '/camera/enemy_obstacles').value
         self.publish_block_obstacles = bool(self.declare_parameter('publish_block_obstacles', True).value)
         self.max_blocks_visualized = int(self.declare_parameter('max_blocks_visualized', 32).value)
@@ -89,6 +90,9 @@ class CameraMapVisualizer(Node):
         self.zones_interdites_point_spacing_m = float(
             self.declare_parameter('zones_interdites_point_spacing_m', 0.05).value
         )
+        self.static_obstacle_padding_m = float(
+            self.declare_parameter('static_obstacle_padding_m', 0.05).value
+        )
 
         self.arena_x_min = float(self.declare_parameter('arena_x_min', 0.0).value)
         self.arena_x_max = float(self.declare_parameter('arena_x_max', 3.0).value)
@@ -102,6 +106,7 @@ class CameraMapVisualizer(Node):
         self.tf_broadcaster = TransformBroadcaster(self)
         self.marker_pub = self.create_publisher(MarkerArray, self.marker_topic, 10)
         self.block_pc_pub = self.create_publisher(PointCloud2, self.block_pointcloud_topic, 10)
+        self.static_pc_pub = self.create_publisher(PointCloud2, self.static_pointcloud_topic, 10)
         self.enemy_pc_pub = self.create_publisher(PointCloud2, self.enemy_pointcloud_topic, 10)
         self.latest_blocks: List[Dict[str, Any]] = []
         self.latest_blocks_time = self.get_clock().now()
@@ -207,9 +212,10 @@ class CameraMapVisualizer(Node):
         )
 
         obstacle_points: List[List[float]] = []
+        static_points: List[List[float]] = []
         enemy_points: List[List[float]] = []
         self._append_zone_obstacle_points(
-            obstacle_points,
+            static_points,
             xs=self.zones_interdites_centre_x_m,
             ys=self.zones_interdites_centre_y_m,
             size_xs=self.zones_interdites_taille_x_m,
@@ -267,27 +273,39 @@ class CameraMapVisualizer(Node):
             header = Header()
             header.stamp = now if self.stamp_obstacle_cloud_with_now else rclpy.time.Time().to_msg()
             header.frame_id = self.map_frame
-            cloud = point_cloud2.create_cloud_xyz32(header, obstacle_points + self._wall_points)
-            self.block_pc_pub.publish(cloud)
+            dynamic_cloud = point_cloud2.create_cloud_xyz32(header, obstacle_points)
+            self.block_pc_pub.publish(dynamic_cloud)
+            static_cloud = point_cloud2.create_cloud_xyz32(header, static_points + self._wall_points)
+            self.static_pc_pub.publish(static_cloud)
             enemy_cloud = point_cloud2.create_cloud_xyz32(header, enemy_points)
             self.enemy_pc_pub.publish(enemy_cloud)
 
     def _build_wall_points(self) -> List[List[float]]:
         pts: List[List[float]] = []
-        spacing = max(self.arena_wall_spacing_m, 0.02)
+        spacing = max(self.arena_wall_spacing_m, 0.01)
         z = self.arena_wall_z_m
+        padding = max(self.static_obstacle_padding_m, 0.0)
         x_min, x_max = self.arena_x_min, self.arena_x_max
         y_min, y_max = self.arena_y_min, self.arena_y_max
-        x = x_min
-        while x <= x_max + 1e-6:
-            pts.append([x, y_min, z])
-            pts.append([x, y_max, z])
-            x += spacing
-        y = y_min
-        while y <= y_max + 1e-6:
-            pts.append([x_min, y, z])
-            pts.append([x_max, y, z])
-            y += spacing
+
+        x_steps = max(1, int(math.ceil((x_max - x_min) / spacing)))
+        pad_steps = max(1, int(math.ceil(max(padding, spacing) / spacing)))
+
+        for ix in range(x_steps + 1):
+            x = x_min + min(ix * spacing, x_max - x_min)
+            for ip in range(pad_steps + 1):
+                offset = min(ip * spacing, padding)
+                pts.append([x, y_min + offset, z])
+                pts.append([x, y_max - offset, z])
+
+        y_steps = max(1, int(math.ceil((y_max - y_min) / spacing)))
+        for iy in range(y_steps + 1):
+            y = y_min + min(iy * spacing, y_max - y_min)
+            for ip in range(pad_steps + 1):
+                offset = min(ip * spacing, padding)
+                pts.append([x_min + offset, y, z])
+                pts.append([x_max - offset, y, z])
+
         return pts
 
     def _append_zone_markers(
@@ -359,9 +377,11 @@ class CameraMapVisualizer(Node):
         spacing = max(self.zones_interdites_point_spacing_m, 0.02)
         point_z = max(self.block_obstacle_height_m * 0.5, 0.03)
 
+        padding = max(self.static_obstacle_padding_m, 0.0)
+
         for i in range(count):
-            size_x = max(float(size_xs[i]), spacing)
-            size_y = max(float(size_ys[i]), spacing)
+            size_x = max(float(size_xs[i]) + 2.0 * padding, spacing)
+            size_y = max(float(size_ys[i]) + 2.0 * padding, spacing)
             x_min = float(xs[i]) - (size_x * 0.5)
             y_min = float(ys[i]) - (size_y * 0.5)
 
