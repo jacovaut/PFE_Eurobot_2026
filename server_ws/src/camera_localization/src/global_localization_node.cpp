@@ -20,6 +20,7 @@
 #include <chrono>
 #include <atomic>
 #include <condition_variable>
+#include <limits>
 #include <mutex>
 #include <thread>
 #include <ament_index_cpp/get_package_share_directory.hpp>
@@ -789,26 +790,21 @@ if (ids.empty()) {
         get_logger(), *get_clock(), 1000,
         "Robot marker ID %d not visible", robot_marker_id_);
     } else {
-      const bool ok_robot = cv::solvePnP(
+      std::vector<cv::Mat> robot_rvec_candidates;
+      std::vector<cv::Mat> robot_tvec_candidates;
+      const bool ok_robot = cv::solvePnPGeneric(
         obj_points_robot_,
         corners[robot_index],
         camera_matrix_,
         dist_coeffs_,
-        rvec_camera_marker,
-        tvec_camera_marker,
+        robot_rvec_candidates,
+        robot_tvec_candidates,
         false,
         cv::SOLVEPNP_IPPE_SQUARE);
 
-      if (!ok_robot) {
+      if (!ok_robot || robot_rvec_candidates.empty() || robot_tvec_candidates.empty()) {
         RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 1000, "Robot marker solvePnP failed");
       } else {
-        cv::Mat Rcv_camera_marker;
-        cv::Rodrigues(rvec_camera_marker, Rcv_camera_marker);
-
-        const cv::Matx33d R_camera_marker(Rcv_camera_marker);
-        const cv::Matx33d R_map_marker = R_map_camera * R_camera_marker;
-        const cv::Vec3d t_map_marker = R_map_camera * tvec_camera_marker + t_map_camera;
-
         const cv::Matx33d R_base_aruco = rotationZ(base_link_to_aruco_yaw_);
         const cv::Vec3d t_base_aruco(
           base_link_to_aruco_x_,
@@ -818,33 +814,81 @@ if (ids.empty()) {
         const cv::Matx33d R_aruco_base = R_base_aruco.t();
         const cv::Vec3d t_aruco_base = -(R_aruco_base * t_base_aruco);
 
-        cv::Matx33d R_map_base = R_map_marker * R_aruco_base;
-        t_map_base = R_map_marker * t_aruco_base + t_map_marker;
+        bool selected_robot_candidate = false;
+        double best_candidate_score = std::numeric_limits<double>::infinity();
+        cv::Vec3d best_t_map_base(0.0, 0.0, 0.0);
+        double best_yaw_map_base = 0.0;
 
-        // The robot is always flat on the table so base_link z must point up.
-        // If R_map_base(2,2) < 0 the marker was detected with z flipped.
-        // Correct by applying Rx(180°) — flip columns 1 and 2 — which brings
-        // z back up. The yaw extracted by atan2 from row 0/1 is preserved
-        // correctly for the Rx-ambiguity case; for the rarer Ry case the flip
-        // restores both z and yaw simultaneously.
-        if (R_map_base(2, 2) < 0.0) {
-          R_map_base(0, 1) *= -1.0;  R_map_base(0, 2) *= -1.0;
-          R_map_base(1, 1) *= -1.0;  R_map_base(1, 2) *= -1.0;
-          R_map_base(2, 1) *= -1.0;  R_map_base(2, 2) *= -1.0;
+        const auto mat_to_vec3d = [](const cv::Mat &mat) {
+          cv::Mat mat64;
+          mat.convertTo(mat64, CV_64F);
+          return cv::Vec3d(mat64.at<double>(0), mat64.at<double>(1), mat64.at<double>(2));
+        };
+
+        const std::size_t candidate_count =
+          std::min(robot_rvec_candidates.size(), robot_tvec_candidates.size());
+        for (std::size_t candidate_i = 0; candidate_i < candidate_count; ++candidate_i) {
+          const cv::Vec3d candidate_rvec = mat_to_vec3d(robot_rvec_candidates[candidate_i]);
+          const cv::Vec3d candidate_tvec = mat_to_vec3d(robot_tvec_candidates[candidate_i]);
+
+          cv::Mat Rcv_camera_marker;
+          cv::Rodrigues(candidate_rvec, Rcv_camera_marker);
+
+          const cv::Matx33d R_camera_marker(Rcv_camera_marker);
+          const cv::Matx33d R_map_marker = R_map_camera * R_camera_marker;
+          const cv::Vec3d t_map_marker = R_map_camera * candidate_tvec + t_map_camera;
+
+          cv::Matx33d candidate_R_map_base = R_map_marker * R_aruco_base;
+          cv::Vec3d candidate_t_map_base = R_map_marker * t_aruco_base + t_map_marker;
+          const double raw_base_z_axis = candidate_R_map_base(2, 2);
+
+          // The robot is always flat on the table, so base_link Z must point up.
+          if (candidate_R_map_base(2, 2) < 0.0) {
+            candidate_R_map_base(0, 1) *= -1.0;  candidate_R_map_base(0, 2) *= -1.0;
+            candidate_R_map_base(1, 1) *= -1.0;  candidate_R_map_base(1, 2) *= -1.0;
+            candidate_R_map_base(2, 1) *= -1.0;  candidate_R_map_base(2, 2) *= -1.0;
+          }
+
+          const double candidate_yaw =
+            std::atan2(candidate_R_map_base(1, 0), candidate_R_map_base(0, 0));
+          double candidate_score = raw_base_z_axis < 0.0 ? 1000.0 : -raw_base_z_axis;
+          if (have_last_robot_pose_estimate_) {
+            const double dx = candidate_t_map_base[0] - last_robot_t_map_base_[0];
+            const double dy = candidate_t_map_base[1] - last_robot_t_map_base_[1];
+            const double distance = std::hypot(dx, dy);
+            const double yaw_delta = std::abs(wrapAngle(candidate_yaw - last_robot_yaw_map_base_));
+            candidate_score += distance + 0.05 * yaw_delta;
+          }
+
+          if (candidate_score < best_candidate_score) {
+            best_candidate_score = candidate_score;
+            best_t_map_base = candidate_t_map_base;
+            best_yaw_map_base = candidate_yaw;
+            selected_robot_candidate = true;
+          }
         }
 
-        yaw_map_base = std::atan2(R_map_base(1, 0), R_map_base(0, 0));
+        if (!selected_robot_candidate) {
+          RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 1000, "No usable robot pose candidate");
+        } else {
+          t_map_base = best_t_map_base;
+          t_map_base[2] = 0.0;
+          yaw_map_base = best_yaw_map_base;
+          last_robot_t_map_base_ = t_map_base;
+          last_robot_yaw_map_base_ = yaw_map_base;
+          have_last_robot_pose_estimate_ = true;
 
-        have_robot_pose = true;
-        robot_entity.marker_id = robot_marker_id_;
-        robot_entity.color = "robot";
-        robot_entity.position_map = cv::Vec3d(t_map_base[0], t_map_base[1], t_map_base[2]);
-        robot_entity.yaw_rad = yaw_map_base;
-        robot_entity.size_x_m = 0.0;
-        robot_entity.size_y_m = 0.0;
-        robot_entity.is_dynamic = true;
+          have_robot_pose = true;
+          robot_entity.marker_id = robot_marker_id_;
+          robot_entity.color = "robot";
+          robot_entity.position_map = cv::Vec3d(t_map_base[0], t_map_base[1], 0.0);
+          robot_entity.yaw_rad = yaw_map_base;
+          robot_entity.size_x_m = 0.0;
+          robot_entity.size_y_m = 0.0;
+          robot_entity.is_dynamic = true;
 
-        publishPose(t_map_base, yaw_map_base, frame_stamp);
+          publishPose(t_map_base, yaw_map_base, frame_stamp);
+        }
       }
     }
 
@@ -1728,6 +1772,9 @@ if (ids.empty()) {
   std::chrono::steady_clock::time_point last_bev_block_rescue_time_{};
   double block_rescue_period_s_{0.5};
   double bev_block_rescue_period_s_{1.0};
+  bool have_last_robot_pose_estimate_{false};
+  cv::Vec3d last_robot_t_map_base_{0.0, 0.0, 0.0};
+  double last_robot_yaw_map_base_{0.0};
 
   // EMA tracking for the JSON detection stream consumed by strategy and obstacle publishing.
   std::vector<TrackedEntity> tracked_entities_;

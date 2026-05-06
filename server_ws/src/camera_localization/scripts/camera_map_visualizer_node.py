@@ -71,8 +71,14 @@ class CameraMapVisualizer(Node):
         self.dynamic_obstacle_stale_timeout_s = float(
             self.declare_parameter('dynamic_obstacle_stale_timeout_s', 0.75).value
         )
+        self.dynamic_obstacle_hold_timeout_s = float(
+            self.declare_parameter('dynamic_obstacle_hold_timeout_s', 1.0).value
+        )
+        self.dynamic_obstacle_match_distance_m = float(
+            self.declare_parameter('dynamic_obstacle_match_distance_m', 0.20).value
+        )
         self.stamp_obstacle_cloud_with_now = bool(
-            self.declare_parameter('stamp_obstacle_cloud_with_now', True).value
+            self.declare_parameter('stamp_obstacle_cloud_with_now', False).value
         )
 
         self.nids_noms = list(self.declare_parameter('nids_noms', ['nid_jaune', 'nid_bleu']).value)
@@ -123,6 +129,7 @@ class CameraMapVisualizer(Node):
         )
         self.latest_blocks: List[Dict[str, Any]] = []
         self.latest_blocks_time = self.get_clock().now()
+        self.tracked_obstacles: List[Dict[str, Any]] = []
         self.has_received_blocks = False
         self.has_received_robot_pose = False
 
@@ -145,21 +152,23 @@ class CameraMapVisualizer(Node):
         self.tf_broadcaster.sendTransform(t)
 
     def _blocks_cb(self, msg: String) -> None:
+        now_time = self.get_clock().now()
         self.latest_blocks = self._parse_blocks(msg.data)
-        self.latest_blocks_time = self.get_clock().now()
+        self.latest_blocks_time = now_time
+        self._update_tracked_obstacles(self.latest_blocks, now_time)
         self.has_received_blocks = True
 
     def _publish_visualization(self) -> None:
         now_time = self.get_clock().now()
         dynamic_age_s = (now_time - self.latest_blocks_time).nanoseconds * 1e-9
-        blocks_are_fresh = (
+        blocks_are_stale = (
             self.has_received_blocks
-            and dynamic_age_s <= max(self.dynamic_obstacle_stale_timeout_s, 0.0)
+            and dynamic_age_s > max(self.dynamic_obstacle_stale_timeout_s, 0.0)
         )
-        blocks = self.latest_blocks if blocks_are_fresh else []
-        if self.has_received_blocks and not blocks_are_fresh:
+        blocks = self._active_tracked_obstacles(now_time) if self.has_received_blocks else []
+        if blocks_are_stale:
             self.get_logger().warn(
-                f'Detected obstacle data is stale ({dynamic_age_s:.2f}s old); publishing static obstacles only',
+                f'Detected obstacle data is stale ({dynamic_age_s:.2f}s old); holding recent obstacles until timeout',
                 throttle_duration_sec=1.0,
             )
 
@@ -293,6 +302,55 @@ class CameraMapVisualizer(Node):
             enemy_cloud = point_cloud2.create_cloud_xyz32(header, enemy_points)
             self.enemy_pc_pub.publish(enemy_cloud)
             self.dynamic_grid_pub.publish(self._build_dynamic_obstacle_grid(blocks, header))
+
+    def _update_tracked_obstacles(self, observations: List[Dict[str, Any]], now_time) -> None:
+        now_ns = now_time.nanoseconds
+        matched_tracks = set()
+        match_gate = max(self.dynamic_obstacle_match_distance_m, 0.0)
+
+        for observation in observations:
+            marker_id = int(observation.get('marker_id', -1))
+            color = str(observation.get('color', 'unknown'))
+            obs_x = float(observation.get('x', 0.0))
+            obs_y = float(observation.get('y', 0.0))
+            best_index = None
+            best_distance = match_gate
+
+            for i, track in enumerate(self.tracked_obstacles):
+                if i in matched_tracks:
+                    continue
+                block = track['block']
+                if int(block.get('marker_id', -2)) != marker_id:
+                    continue
+                if str(block.get('color', 'unknown')) != color:
+                    continue
+                dx = obs_x - float(block.get('x', 0.0))
+                dy = obs_y - float(block.get('y', 0.0))
+                distance = math.hypot(dx, dy)
+                if distance <= best_distance:
+                    best_distance = distance
+                    best_index = i
+
+            if best_index is None:
+                self.tracked_obstacles.append({'block': dict(observation), 'last_seen_ns': now_ns})
+                matched_tracks.add(len(self.tracked_obstacles) - 1)
+            else:
+                self.tracked_obstacles[best_index] = {'block': dict(observation), 'last_seen_ns': now_ns}
+                matched_tracks.add(best_index)
+
+        self._prune_tracked_obstacles(now_time)
+
+    def _active_tracked_obstacles(self, now_time) -> List[Dict[str, Any]]:
+        self._prune_tracked_obstacles(now_time)
+        return [dict(track['block']) for track in self.tracked_obstacles]
+
+    def _prune_tracked_obstacles(self, now_time) -> None:
+        timeout_s = max(self.dynamic_obstacle_hold_timeout_s, 0.0)
+        now_ns = now_time.nanoseconds
+        self.tracked_obstacles = [
+            track for track in self.tracked_obstacles
+            if (now_ns - int(track['last_seen_ns'])) * 1e-9 <= timeout_s
+        ]
 
     def _build_dynamic_obstacle_grid(self, blocks: List[Dict[str, Any]], header: Header) -> OccupancyGrid:
         resolution = max(self.dynamic_obstacle_grid_resolution_m, 0.01)
