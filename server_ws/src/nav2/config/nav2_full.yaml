@@ -48,14 +48,14 @@ collision_monitor:
 planner_server:
   ros__parameters:
     use_sim_time: false
-    expected_planner_frequency: 5.0
+    expected_planner_frequen3cy: 5.0
     planner_plugins: ["GridBased"]
 
     GridBased:
       plugin: "nav2_theta_star_planner::ThetaStarPlanner"
       how_many_corners: 8
       w_euclidean: 1.0
-      w_traversal_cost: 2.0
+      w_traversal_cost: 8.0 # MAY NEED TUNING was 3.0 before
       w_heuristic_param: 1.0
 
 controller_server:
@@ -190,7 +190,7 @@ global_costmap:
       robot_base_frame: base_link
       update_frequency: 8.0
       publish_frequency: 2.0
-      resolution: 0.05
+      resolution: 0.01
       rolling_window: false
       transform_tolerance: 0.5
       footprint: "[[-0.200, -0.150], [-0.200, 0.150], [0.200, 0.150], [0.200, -0.150]]"
@@ -241,10 +241,10 @@ local_costmap:
       robot_base_frame: base_link
       update_frequency: 10.0
       publish_frequency: 5.0
-      resolution: 0.05
+      resolution: 0.01
       rolling_window: true
-      width: 4
-      height: 4
+      width: 1
+      height: 1
       transform_tolerance: 0.5
       footprint: "[[-0.200, -0.150], [-0.200, 0.150], [0.200, 0.150], [0.200, -0.150]]"
       footprint_padding: 0.02
