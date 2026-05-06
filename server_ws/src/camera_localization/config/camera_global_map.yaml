@@ -38,8 +38,8 @@ global_localization_node:
     table_marker_length_m: 0.10
     robot_marker_length_m: 0.07
     enemy_robot_marker_length_m: 0.07
-    enemy_robot_size_x_m: 0.35
-    enemy_robot_size_y_m: 0.35
+    enemy_robot_size_x_m: 0.40
+    enemy_robot_size_y_m: 0.30
     enemy_robot_obstacle_z_m: 0.05
     block_marker_length_m: 0.03
     block_marker_ids: [36, 47]
