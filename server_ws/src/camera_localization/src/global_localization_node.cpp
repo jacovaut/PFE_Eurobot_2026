@@ -203,7 +203,9 @@ public:
     entity_tracking_max_missed_frames_ =
       declare_parameter<int>("entity_tracking_max_missed_frames", 5);
     enemy_entity_tracking_max_missed_frames_ =
-      declare_parameter<int>("enemy_entity_tracking_max_missed_frames", 50);
+      declare_parameter<int>("enemy_entity_tracking_max_missed_frames", 5);
+    enemy_entity_tracking_match_gate_m_ =
+      declare_parameter<double>("enemy_entity_tracking_match_gate_m", 0.5);
 
     // ----------------------------
     // Publisher
@@ -1474,73 +1476,29 @@ if (ids.empty()) {
 
   std::vector<DetectedEntity> updateTrackedEnemyEntities(const std::vector<DetectedEntity> &detections)
   {
-    if (!enable_entity_tracking_) {
-      return detections;
-    }
-
-    std::vector<bool> matched_tracks(tracked_enemy_entities_.size(), false);
-
-    for (const auto &detection : detections) {
-      int best_index = -1;
-      double best_distance = entity_tracking_match_gate_m_;
-
-      for (std::size_t i = 0; i < tracked_enemy_entities_.size(); ++i) {
-        if (matched_tracks[i]) {
-          continue;
-        }
-        const auto &track = tracked_enemy_entities_[i].entity;
-        if (track.marker_id != detection.marker_id || track.color != detection.color) {
-          continue;
-        }
-        const double dx = detection.position_map[0] - track.position_map[0];
-        const double dy = detection.position_map[1] - track.position_map[1];
-        const double distance = std::sqrt(dx * dx + dy * dy);
-        if (distance < best_distance) {
-          best_distance = distance;
-          best_index = static_cast<int>(i);
-        }
-      }
-
-      if (best_index >= 0) {
-        auto &track = tracked_enemy_entities_[best_index];
-        auto &entity = track.entity;
-        const double alpha = entity_tracking_ema_alpha_;
-        entity.position_map[0] = alpha * detection.position_map[0] + (1.0 - alpha) * entity.position_map[0];
-        entity.position_map[1] = alpha * detection.position_map[1] + (1.0 - alpha) * entity.position_map[1];
-        entity.position_map[2] = detection.position_map[2];
-        entity.yaw_rad = filterYaw(entity.yaw_rad, detection.yaw_rad);
-        entity.size_x_m = detection.size_x_m;
-        entity.size_y_m = detection.size_y_m;
-        entity.is_dynamic = detection.is_dynamic;
-        track.missed_frames = 0;
-        matched_tracks[best_index] = true;
+    if (!detections.empty()) {
+      // Singleton: one enemy robot, always overwrite position with latest detection.
+      // No match gate, no EMA lag — position jumps instantly to wherever the enemy is.
+      if (tracked_enemy_entities_.empty()) {
+        tracked_enemy_entities_.push_back(TrackedEntity{detections[0], 0});
       } else {
-        tracked_enemy_entities_.push_back(TrackedEntity{detection, 0});
-        matched_tracks.push_back(true);
+        auto &entity = tracked_enemy_entities_[0].entity;
+        entity.position_map = detections[0].position_map;
+        entity.yaw_rad = detections[0].yaw_rad;
+        entity.size_x_m = detections[0].size_x_m;
+        entity.size_y_m = detections[0].size_y_m;
+        entity.is_dynamic = detections[0].is_dynamic;
+        tracked_enemy_entities_[0].missed_frames = 0;
       }
     }
+    // If no detection: hold last known position — no eviction.
 
-    for (std::size_t i = 0; i < tracked_enemy_entities_.size(); ++i) {
-      if (!matched_tracks[i]) {
-        tracked_enemy_entities_[i].missed_frames++;
-      }
-    }
-
-    tracked_enemy_entities_.erase(
-      std::remove_if(
-        tracked_enemy_entities_.begin(),
-        tracked_enemy_entities_.end(),
-        [this](const TrackedEntity &track) {
-          return track.missed_frames > enemy_entity_tracking_max_missed_frames_;
-        }),
-      tracked_enemy_entities_.end());
-
-    std::vector<DetectedEntity> smoothed;
-    smoothed.reserve(tracked_enemy_entities_.size());
+    std::vector<DetectedEntity> result;
+    result.reserve(tracked_enemy_entities_.size());
     for (const auto &track : tracked_enemy_entities_) {
-      smoothed.push_back(track.entity);
+      result.push_back(track.entity);
     }
-    return smoothed;
+    return result;
   }
 
   void publishEnemyEntities(const std::vector<DetectedEntity> &entities)
@@ -1893,7 +1851,8 @@ if (ids.empty()) {
   double entity_tracking_ema_alpha_{0.5};
   double entity_tracking_yaw_alpha_{0.5};
   int entity_tracking_max_missed_frames_{5};
-  int enemy_entity_tracking_max_missed_frames_{50};
+  int enemy_entity_tracking_max_missed_frames_{5};
+  double enemy_entity_tracking_match_gate_m_{0.5};
   
   // Diagnostics: frame counting and timing
   std::atomic<uint64_t> frame_counter_{0};

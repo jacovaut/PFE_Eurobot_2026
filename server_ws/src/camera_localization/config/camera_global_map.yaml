@@ -95,8 +95,9 @@ global_localization_node:
     entity_tracking_match_gate_m: 0.12
     entity_tracking_ema_alpha: 0.5
     entity_tracking_yaw_alpha: 0.5
-    entity_tracking_max_missed_frames: 2
-    enemy_entity_tracking_max_missed_frames: 50
+    entity_tracking_max_missed_frames: 3
+    enemy_entity_tracking_max_missed_frames: 5
+    enemy_entity_tracking_match_gate_m: 0.5
 
     # base_link -> robot ArUco transform, measured on the robot.
     # X is forward from base_link, Y is left, Z is up, yaw is radians.
@@ -167,8 +168,8 @@ camera_map_visualizer_node:
     publish_period_s: 0.10
     dynamic_obstacle_stale_timeout_s: 2.0
     dynamic_obstacle_max_miss_count: 1
-    enemy_stale_timeout_s: 1.0
-    enemy_max_miss_count: 100
+    enemy_stale_timeout_s: 2.0
+    enemy_max_miss_count: 5
     stamp_obstacle_cloud_with_now: true
     detected_obstacle_point_spacing_m: 0.04
     detected_obstacle_padding_m: 0.01

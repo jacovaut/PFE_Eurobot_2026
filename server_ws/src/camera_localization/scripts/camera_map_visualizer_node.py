@@ -194,7 +194,11 @@ class CameraMapVisualizer(Node):
     def _enemy_cb(self, msg: String) -> None:
         detections = self._parse_blocks(msg.data)
         self.latest_enemy_time = self.get_clock().now()
-        self.tracked_enemy = self._update_tracked_obstacles(detections, self.tracked_enemy, self.enemy_max_miss_count)
+        if detections:
+            # Singleton: overwrite with the latest position from C++ (which already
+            # holds last-known when not detecting, so we always trust what C++ sends).
+            self.tracked_enemy = [{'block': detections[0], 'miss_count': 0}]
+        # If empty: C++ has no track yet (enemy never seen) — keep existing.
         self.has_received_enemy = True
 
     def _publish_visualization(self) -> None:
