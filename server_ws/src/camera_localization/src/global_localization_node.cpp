@@ -835,17 +835,16 @@ if (ids.empty()) {
 
         yaw_map_base = std::atan2(R_map_base(1, 0), R_map_base(0, 0));
 
-        if (have_robot_pose) {
-          robot_entity.marker_id = robot_marker_id_;
-          robot_entity.color = "robot";
-          robot_entity.position_map = cv::Vec3d(t_map_base[0], t_map_base[1], t_map_base[2]);
-          robot_entity.yaw_rad = yaw_map_base;
-          robot_entity.size_x_m = 0.0;
-          robot_entity.size_y_m = 0.0;
-          robot_entity.is_dynamic = true;
+        have_robot_pose = true;
+        robot_entity.marker_id = robot_marker_id_;
+        robot_entity.color = "robot";
+        robot_entity.position_map = cv::Vec3d(t_map_base[0], t_map_base[1], t_map_base[2]);
+        robot_entity.yaw_rad = yaw_map_base;
+        robot_entity.size_x_m = 0.0;
+        robot_entity.size_y_m = 0.0;
+        robot_entity.is_dynamic = true;
 
-          publishPose(t_map_base, yaw_map_base, frame_stamp);
-        }
+        publishPose(t_map_base, yaw_map_base, frame_stamp);
       }
     }
 
