@@ -173,6 +173,7 @@ camera_map_visualizer_node:
     dynamic_obstacle_grid_resolution_m: 0.01
     static_obstacle_padding_m: 0.0
     arena_wall_spacing_m: 0.02
+    publish_arena_walls_as_obstacles: false
 
     nids_noms: ["nid_jaune", "nid_bleu"]
     nids_centre_x_m: [0.300, 2.700]

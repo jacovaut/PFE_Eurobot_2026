@@ -116,6 +116,9 @@ class CameraMapVisualizer(Node):
         self.arena_y_max = float(self.declare_parameter('arena_y_max', 2.0).value)
         self.arena_wall_spacing_m = float(self.declare_parameter('arena_wall_spacing_m', 0.05).value)
         self.arena_wall_z_m = float(self.declare_parameter('arena_wall_z_m', 0.05).value)
+        self.publish_arena_walls_as_obstacles = bool(
+            self.declare_parameter('publish_arena_walls_as_obstacles', True).value
+        )
 
         self._wall_points: List[List[float]] = self._build_wall_points()
 
@@ -303,7 +306,10 @@ class CameraMapVisualizer(Node):
             header.frame_id = self.map_frame
             dynamic_cloud = point_cloud2.create_cloud_xyz32(header, obstacle_points)
             self.block_pc_pub.publish(dynamic_cloud)
-            static_cloud = point_cloud2.create_cloud_xyz32(header, static_points + self._wall_points)
+            static_obstacle_points = list(static_points)
+            if self.publish_arena_walls_as_obstacles:
+                static_obstacle_points.extend(self._wall_points)
+            static_cloud = point_cloud2.create_cloud_xyz32(header, static_obstacle_points)
             self.static_pc_pub.publish(static_cloud)
             enemy_cloud = point_cloud2.create_cloud_xyz32(header, enemy_points)
             self.enemy_pc_pub.publish(enemy_cloud)
