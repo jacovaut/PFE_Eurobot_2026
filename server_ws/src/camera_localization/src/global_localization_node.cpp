@@ -89,9 +89,9 @@ public:
     block_center_z_m_ = declare_parameter<double>("block_center_z_m", 0.03);
 
     const auto block_marker_ids =
-      declare_parameter<std::vector<int64_t>>("block_marker_ids", std::vector<int64_t>{36, 47});
+      declare_parameter<std::vector<int64_t>>("block_marker_ids", std::vector<int64_t>{36, 47, 41});
     const auto block_marker_colors =
-      declare_parameter<std::vector<std::string>>("block_marker_colors", std::vector<std::string>{"bleu", "jaune"});
+      declare_parameter<std::vector<std::string>>("block_marker_colors", std::vector<std::string>{"bleu", "jaune", "black"});
 
     if (block_marker_ids.size() != block_marker_colors.size()) {
       throw std::runtime_error(

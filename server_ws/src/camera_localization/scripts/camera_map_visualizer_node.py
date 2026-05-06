@@ -30,7 +30,7 @@ except Exception:
 
 import rclpy
 from geometry_msgs.msg import PoseWithCovarianceStamped, TransformStamped
-from nav2_msgs.srv import ClearEntireCostmap
+from nav_msgs.msg import OccupancyGrid
 from rcl_interfaces.msg import ParameterType, ParameterValue
 from rclpy.node import Node
 from sensor_msgs.msg import PointCloud2
@@ -51,6 +51,10 @@ class CameraMapVisualizer(Node):
         self.block_pointcloud_topic = self.declare_parameter('block_pointcloud_topic', '/camera/block_obstacles').value
         self.static_pointcloud_topic = self.declare_parameter('static_pointcloud_topic', '/camera/static_obstacles').value
         self.enemy_pointcloud_topic = self.declare_parameter('enemy_pointcloud_topic', '/camera/enemy_obstacles').value
+        self.dynamic_obstacle_grid_topic = self.declare_parameter(
+            'dynamic_obstacle_grid_topic',
+            '/camera/block_obstacle_grid',
+        ).value
         self.publish_block_obstacles = bool(self.declare_parameter('publish_block_obstacles', True).value)
         self.max_blocks_visualized = int(self.declare_parameter('max_blocks_visualized', 32).value)
         self.block_obstacle_height_m = float(self.declare_parameter('block_obstacle_height_m', 0.03).value)
@@ -94,23 +98,8 @@ class CameraMapVisualizer(Node):
         self.static_obstacle_padding_m = float(
             self.declare_parameter('static_obstacle_padding_m', 0.0).value
         )
-        self.clear_costmaps_on_dynamic_obstacle_update = bool(
-            self.declare_parameter('clear_costmaps_on_dynamic_obstacle_update', True).value
-        )
-        self.dynamic_obstacle_clear_min_period_s = float(
-            self.declare_parameter('dynamic_obstacle_clear_min_period_s', 0.25).value
-        )
-        self.dynamic_obstacle_clear_distance_m = float(
-            self.declare_parameter('dynamic_obstacle_clear_distance_m', 0.02).value
-        )
-        self.dynamic_obstacle_clear_services = list(
-            self.declare_parameter(
-                'dynamic_obstacle_clear_services',
-                [
-                    '/global_costmap/clear_entirely_global_costmap',
-                    '/local_costmap/clear_entirely_local_costmap',
-                ],
-            ).value
+        self.dynamic_obstacle_grid_resolution_m = float(
+            self.declare_parameter('dynamic_obstacle_grid_resolution_m', 0.05).value
         )
 
         self.arena_x_min = float(self.declare_parameter('arena_x_min', 0.0).value)
@@ -127,12 +116,11 @@ class CameraMapVisualizer(Node):
         self.block_pc_pub = self.create_publisher(PointCloud2, self.block_pointcloud_topic, 10)
         self.static_pc_pub = self.create_publisher(PointCloud2, self.static_pointcloud_topic, 10)
         self.enemy_pc_pub = self.create_publisher(PointCloud2, self.enemy_pointcloud_topic, 10)
-        self.clear_costmap_clients = [
-            self.create_client(ClearEntireCostmap, service_name)
-            for service_name in self.dynamic_obstacle_clear_services
-        ]
-        self._last_dynamic_obstacle_signature = None
-        self._last_dynamic_obstacle_clear_time = None
+        self.dynamic_grid_pub = self.create_publisher(
+            OccupancyGrid,
+            self.dynamic_obstacle_grid_topic,
+            10,
+        )
         self.latest_blocks: List[Dict[str, Any]] = []
         self.latest_blocks_time = self.get_clock().now()
         self.has_received_blocks = False
@@ -304,57 +292,63 @@ class CameraMapVisualizer(Node):
             self.static_pc_pub.publish(static_cloud)
             enemy_cloud = point_cloud2.create_cloud_xyz32(header, enemy_points)
             self.enemy_pc_pub.publish(enemy_cloud)
-            self._maybe_clear_dynamic_costmaps(blocks, now_time)
+            self.dynamic_grid_pub.publish(self._build_dynamic_obstacle_grid(blocks, header))
 
-    def _maybe_clear_dynamic_costmaps(self, blocks: List[Dict[str, Any]], now_time) -> None:
-        if not self.clear_costmaps_on_dynamic_obstacle_update:
-            return
+    def _build_dynamic_obstacle_grid(self, blocks: List[Dict[str, Any]], header: Header) -> OccupancyGrid:
+        resolution = max(self.dynamic_obstacle_grid_resolution_m, 0.01)
+        origin_x = self.arena_x_min - resolution
+        origin_y = self.arena_y_min - resolution
+        width = max(1, int(math.ceil((self.arena_x_max - self.arena_x_min) / resolution)) + 2)
+        height = max(1, int(math.ceil((self.arena_y_max - self.arena_y_min) / resolution)) + 2)
 
-        signature = self._dynamic_obstacle_signature(blocks)
-        changed = signature != self._last_dynamic_obstacle_signature
-        if not changed:
-            return
+        grid = OccupancyGrid()
+        grid.header = header
+        grid.info.resolution = resolution
+        grid.info.width = width
+        grid.info.height = height
+        grid.info.origin.position.x = origin_x
+        grid.info.origin.position.y = origin_y
+        grid.info.origin.position.z = 0.0
+        grid.info.origin.orientation.w = 1.0
+        grid.data = [0] * (width * height)
 
-        if self._last_dynamic_obstacle_clear_time is not None:
-            elapsed_s = (
-                now_time - self._last_dynamic_obstacle_clear_time
-            ).nanoseconds * 1e-9
-            if elapsed_s < max(self.dynamic_obstacle_clear_min_period_s, 0.0):
-                return
+        for block in blocks[: self.max_blocks_visualized]:
+            self._rasterize_dynamic_obstacle(grid, block)
+        return grid
 
-        any_called = False
-        all_called = True
-        for service_name, client in zip(self.dynamic_obstacle_clear_services, self.clear_costmap_clients):
-            if not client.service_is_ready():
-                all_called = False
-                self.get_logger().warn(
-                    f'Costmap clear service not ready: {service_name}',
-                    throttle_duration_sec=2.0,
-                )
-                continue
-            client.call_async(ClearEntireCostmap.Request())
-            any_called = True
+    def _rasterize_dynamic_obstacle(self, grid: OccupancyGrid, obstacle: Dict[str, Any]) -> None:
+        center_x = float(obstacle.get('x', 0.0))
+        center_y = float(obstacle.get('y', 0.0))
+        color = str(obstacle.get('color', 'unknown')).lower()
+        if color == 'enemy_robot':
+            padding = max(self.enemy_robot_obstacle_padding_m, 0.0)
+        else:
+            padding = max(self.detected_obstacle_padding_m, 0.0)
+        size_x = max(float(obstacle.get('size_x_m', 0.12)) + 2.0 * padding, 0.03)
+        size_y = max(float(obstacle.get('size_y_m', 0.05)) + 2.0 * padding, 0.03)
+        yaw = float(obstacle.get('yaw', 0.0))
+        cos_yaw = math.cos(yaw)
+        sin_yaw = math.sin(yaw)
+        resolution = grid.info.resolution
 
-        if any_called:
-            self._last_dynamic_obstacle_clear_time = now_time
-            if all_called:
-                self._last_dynamic_obstacle_signature = signature
+        radius = 0.5 * math.hypot(size_x, size_y) + resolution
+        min_ix = max(0, int(math.floor((center_x - radius - grid.info.origin.position.x) / resolution)))
+        max_ix = min(grid.info.width - 1, int(math.ceil((center_x + radius - grid.info.origin.position.x) / resolution)))
+        min_iy = max(0, int(math.floor((center_y - radius - grid.info.origin.position.y) / resolution)))
+        max_iy = min(grid.info.height - 1, int(math.ceil((center_y + radius - grid.info.origin.position.y) / resolution)))
 
-    def _dynamic_obstacle_signature(self, blocks: List[Dict[str, Any]]):
-        distance_bin = max(self.dynamic_obstacle_clear_distance_m, 0.001)
-        yaw_bin = 0.10
-        signature = []
-        for block in blocks:
-            signature.append((
-                int(block.get('marker_id', -1)),
-                str(block.get('color', 'unknown')),
-                round(float(block.get('x', 0.0)) / distance_bin),
-                round(float(block.get('y', 0.0)) / distance_bin),
-                round(float(block.get('yaw', 0.0)) / yaw_bin),
-                round(float(block.get('size_x_m', 0.0)) / distance_bin),
-                round(float(block.get('size_y_m', 0.0)) / distance_bin),
-            ))
-        return tuple(sorted(signature))
+        half_x = 0.5 * size_x
+        half_y = 0.5 * size_y
+        for iy in range(min_iy, max_iy + 1):
+            y = grid.info.origin.position.y + (iy + 0.5) * resolution
+            for ix in range(min_ix, max_ix + 1):
+                x = grid.info.origin.position.x + (ix + 0.5) * resolution
+                dx = x - center_x
+                dy = y - center_y
+                local_x = dx * cos_yaw + dy * sin_yaw
+                local_y = -dx * sin_yaw + dy * cos_yaw
+                if abs(local_x) <= half_x + 0.5 * resolution and abs(local_y) <= half_y + 0.5 * resolution:
+                    grid.data[iy * grid.info.width + ix] = 100
 
     def _build_wall_points(self) -> List[List[float]]:
         pts: List[List[float]] = []
@@ -550,6 +544,10 @@ class CameraMapVisualizer(Node):
             marker.color.r = 1.0
             marker.color.g = 0.1
             marker.color.b = 0.1
+        elif color_name == 'black':
+            marker.color.r = 0.02
+            marker.color.g = 0.02
+            marker.color.b = 0.02
         else:
             marker.color.r = 0.7
             marker.color.g = 0.7
