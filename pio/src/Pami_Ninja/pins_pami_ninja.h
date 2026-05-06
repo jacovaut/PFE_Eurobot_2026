@@ -42,7 +42,7 @@
 // ============================================================
 
 #define ARM_DOWN_ANGLE   85     // Degrees: arms fully lowered
-#define ARM_UP_ANGLE    120
+#define ARM_UP_ANGLE     120
      // Degrees: arms fully raised
 #define ARM_MOVE_DELAY   100    // ms to wait for servo to reach position
 
@@ -73,7 +73,7 @@
 #define WHEEL_RADIUS 0.06
 #define WHEELBASE_LENGTH 0.1
 #define WHEELBASE_WIDTH 0.1
-#define MAX_SPEED 100  // Max PWM value
+#define MAX_SPEED 255 // Max PWM value
 
 
 // Keyboard layout for robot control

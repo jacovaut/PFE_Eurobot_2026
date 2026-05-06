@@ -15,6 +15,7 @@ Servo servo2;
 
 // Track motor speeds
 int motorSpeeds[4] = {0, 0, 0, 0};
+int previousMotorSpeeds[4] = {0, 0, 0, 0};  // Track previous speeds for change detection
 
 // Valve and pump states
 bool valveState = false;
@@ -25,15 +26,16 @@ bool encoderReadingEnabled = false;
 
 // Servo angle tracking for incremental movement
 int currentServoAngle = 90;  // Start at middle position
-const int SERVO_INCREMENT = 2;  // Degrees per increment
+const int SERVO_INCREMENT = 10;  // Degrees per increment
 const unsigned long SERVO_UPDATE_PERIOD = 50;  // milliseconds between angle updates
 unsigned long lastServoUpdateTime = 0;
 
 // Speed control for robot movement
-int currentMaxSpeed = 200;  // Start at default speed
+int currentMaxSpeed = 100;  // Start at default speed for linear motion (vx, vy)
+int currentOmegaSpeed = 90;  // Separate speed for rotational motion (omega)
 const int MIN_SPEED = 50;  // Minimum speed
-const int MAX_SPEED_LIMIT = 255;  // Maximum speed (PWM limit)
-const int SPEED_INCREMENT = 10;  // Speed change per keypress
+const int MAX_SPEED_LIMIT = MAX_SPEED;  // Maximum speed (PWM limit)
+const int SPEED_INCREMENT = 5;  // Speed change per keypress
 unsigned long lastSpeedChangeTime = 0;
 const unsigned long SPEED_CHANGE_DEBOUNCE = 200;  // milliseconds between speed changes
 
@@ -116,16 +118,30 @@ void setup() {
 
 
 void loop() {
-  // Print encoder values (if enabled)
-  if (encoderReadingEnabled && millis() % 1000 < 50) {  // Print every second (with a small window to avoid flooding)
-    Serial.print("Encoders: ");
-    Serial.print(encoder1.getCount());
-    Serial.print(", ");
-    Serial.print(encoder2.getCount());
-    Serial.print(", ");
-    Serial.print(encoder3.getCount());
-    Serial.print(", ");
-    Serial.println(encoder4.getCount());
+  // Print encoder values (if enabled) - only display if values changed
+  if (encoderReadingEnabled) {
+    static long lastEnc1 = 0, lastEnc2 = 0, lastEnc3 = 0, lastEnc4 = 0;
+    
+    long enc1 = encoder1.getCount();
+    long enc2 = encoder2.getCount();
+    long enc3 = encoder3.getCount();
+    long enc4 = encoder4.getCount();
+    
+    if (enc1 != lastEnc1 || enc2 != lastEnc2 || enc3 != lastEnc3 || enc4 != lastEnc4) {
+      Serial.print("Encoders: ");
+      Serial.print(enc1);
+      Serial.print(", ");
+      Serial.print(enc2);
+      Serial.print(", ");
+      Serial.print(enc3);
+      Serial.print(", ");
+      Serial.println(enc4);
+      
+      lastEnc1 = enc1;
+      lastEnc2 = enc2;
+      lastEnc3 = enc3;
+      lastEnc4 = enc4;
+    }
   }
 
   // Process keyboard input - hold keys for continuous movement
@@ -150,25 +166,28 @@ void setMotor(int motor, int speed) {
       return;
   }
 
-  motorSpeeds[motor - 1] = speed;
-  int pwm = abs(speed);
+  // Only update and print if speed changed
+  if (motorSpeeds[motor - 1] != speed) {
+    motorSpeeds[motor - 1] = speed;
+    int pwm = abs(speed);
 
-  if (speed > 0) {
-    // Forward: PWM on IN1, LOW on IN2
-    ledcWrite(ch_in1, pwm);    // Write PWM to IN1 channel
-    ledcWrite(ch_in2, 0);       // Set IN2 to 0
-    Serial.printf("Motor %d - IN1: %d, IN2: 0\n", motor, pwm);
+    if (speed > 0) {
+      // Forward: PWM on IN1, LOW on IN2
+      ledcWrite(ch_in1, pwm);    // Write PWM to IN1 channel
+      ledcWrite(ch_in2, 0);       // Set IN2 to 0
+      Serial.printf("Motor %d - IN1: %d, IN2: 0\n", motor, pwm);
 
-  } else if (speed < 0) {
-    // Reverse: PWM on IN2, LOW on IN1
-    ledcWrite(ch_in1, 0);       // Set IN1 to 0
-    ledcWrite(ch_in2, pwm);     // Write PWM to IN2 channel
-    Serial.printf("Motor %d - IN1: 0, IN2: %d\n", motor, pwm);
+    } else if (speed < 0) {
+      // Reverse: PWM on IN2, LOW on IN1
+      ledcWrite(ch_in1, 0);       // Set IN1 to 0
+      ledcWrite(ch_in2, pwm);     // Write PWM to IN2 channel
+      Serial.printf("Motor %d - IN1: 0, IN2: %d\n", motor, pwm);
 
-  } else {
-    // Stop: PWM to 0, both pins LOW
-    ledcWrite(ch_in1, 0);       // Set IN1 to 0
-    ledcWrite(ch_in2, 0);       // Set IN2 to 0
+    } else {
+      // Stop: PWM to 0, both pins LOW
+      ledcWrite(ch_in1, 0);       // Set IN1 to 0
+      ledcWrite(ch_in2, 0);       // Set IN2 to 0
+    }
   }
 }
 
@@ -219,8 +238,9 @@ void printKeyboardHelp() {
   Serial.println("\nPUMP & SOLENOID:");
   Serial.println("  J - Toggle Pump ON/OFF");
   Serial.println("\nSPEED CONTROL:");
-  Serial.println("  + - Increase speed (50-255)");
-  Serial.println("  - - Decrease speed (50-255)");
+  Serial.println("  + - Increase linear speed (50-255) [W/S/A/D]");
+  Serial.println("  - - Decrease linear speed (50-255) [W/S/A/D]");
+  Serial.println("  Note: Rotation speed (Q/E) is set separately to 150");
   Serial.println("\nENCODER CONTROL:");
   Serial.println("  N - Toggle Encoder Reading ON/OFF");
   Serial.println("  L - Reset All Encoders");
@@ -241,7 +261,7 @@ void processKeyboardInput() {
     }
   }
   
-  // Check for key timeouts (key release detection)
+  // Check for key timeouts (key release detection) for all keys
   if (keyPressed[KEY_FORWARD] && (now - keyLastReceived[KEY_FORWARD] > KEY_TIMEOUT)) {
     keyPressed[KEY_FORWARD] = false;
   }
@@ -260,6 +280,33 @@ void processKeyboardInput() {
   if (keyPressed[KEY_ROTATE_CCW] && (now - keyLastReceived[KEY_ROTATE_CCW] > KEY_TIMEOUT)) {
     keyPressed[KEY_ROTATE_CCW] = false;
   }
+  if (keyPressed[KEY_SERVO_UP] && (now - keyLastReceived[KEY_SERVO_UP] > KEY_TIMEOUT)) {
+    keyPressed[KEY_SERVO_UP] = false;
+  }
+  if (keyPressed[KEY_SERVO_DOWN] && (now - keyLastReceived[KEY_SERVO_DOWN] > KEY_TIMEOUT)) {
+    keyPressed[KEY_SERVO_DOWN] = false;
+  }
+  if (keyPressed[KEY_PICK] && (now - keyLastReceived[KEY_PICK] > KEY_TIMEOUT)) {
+    keyPressed[KEY_PICK] = false;
+  }
+  if (keyPressed[KEY_RELEASE] && (now - keyLastReceived[KEY_RELEASE] > KEY_TIMEOUT)) {
+    keyPressed[KEY_RELEASE] = false;
+  }
+  if (keyPressed[KEY_PUMP_TOGGLE] && (now - keyLastReceived[KEY_PUMP_TOGGLE] > KEY_TIMEOUT)) {
+    keyPressed[KEY_PUMP_TOGGLE] = false;
+  }
+  if (keyPressed[KEY_ENC_TOGGLE] && (now - keyLastReceived[KEY_ENC_TOGGLE] > KEY_TIMEOUT)) {
+    keyPressed[KEY_ENC_TOGGLE] = false;
+  }
+  if (keyPressed[KEY_ENC_RESET] && (now - keyLastReceived[KEY_ENC_RESET] > KEY_TIMEOUT)) {
+    keyPressed[KEY_ENC_RESET] = false;
+  }
+  if (keyPressed[KEY_SPEED_UP] && (now - keyLastReceived[KEY_SPEED_UP] > KEY_TIMEOUT)) {
+    keyPressed[KEY_SPEED_UP] = false;
+  }
+  if (keyPressed[KEY_SPEED_DOWN] && (now - keyLastReceived[KEY_SPEED_DOWN] > KEY_TIMEOUT)) {
+    keyPressed[KEY_SPEED_DOWN] = false;
+  }
   
   // Process movement keys
   if (keyPressed[KEY_FORWARD]) {
@@ -275,33 +322,34 @@ void processKeyboardInput() {
     setMecanumSpeeds(0, -currentMaxSpeed / 255.0, 0);
   }
   else if (keyPressed[KEY_ROTATE_CW]) {
-    setMecanumSpeeds(0, 0, currentMaxSpeed / 255.0);
+    setMecanumSpeeds(0, 0, currentOmegaSpeed / 255.0);
   }
   else if (keyPressed[KEY_ROTATE_CCW]) {
-    setMecanumSpeeds(0, 0, -currentMaxSpeed / 255.0);
+    setMecanumSpeeds(0, 0, -currentOmegaSpeed / 255.0);
   }
   else {
     setMecanumSpeeds(0, 0, 0);
   }
 
-  // Servo control - continuous movement with incremental angle changes
-  if (keyPressed[KEY_SERVO_UP]) {
-    if (now - lastServoUpdateTime >= SERVO_UPDATE_PERIOD) {
-      currentServoAngle = constrain(currentServoAngle + SERVO_INCREMENT, 0, 180);
-      setServo(1, currentServoAngle);
-      setServo(2, currentServoAngle);
-      Serial.printf("Servos UP - Angle: %d\n", currentServoAngle);
-      lastServoUpdateTime = now;
-    }
+  // Servo control - one-shot per key press with debounce
+  static unsigned long lastServoUpTime = 0;
+  static unsigned long lastServoDownTime = 0;
+  const unsigned long SERVO_DEBOUNCE = 200;  // milliseconds between servo movements
+
+  if (keyPressed[KEY_SERVO_UP] && (now - lastServoUpTime > SERVO_DEBOUNCE)) {
+    currentServoAngle = constrain(currentServoAngle + SERVO_INCREMENT, 0, 180);
+    setServo(1, currentServoAngle);
+    setServo(2, currentServoAngle);
+    Serial.printf("Servos UP - Angle: %d\n", currentServoAngle);
+    lastServoUpTime = now;
   }
-  else if (keyPressed[KEY_SERVO_DOWN]) {
-    if (now - lastServoUpdateTime >= SERVO_UPDATE_PERIOD) {
-      currentServoAngle = constrain(currentServoAngle - SERVO_INCREMENT, 0, 180);
-      setServo(1, currentServoAngle);
-      setServo(2, currentServoAngle);
-      Serial.printf("Servos DOWN - Angle: %d\n", currentServoAngle);
-      lastServoUpdateTime = now;
-    }
+
+  if (keyPressed[KEY_SERVO_DOWN] && (now - lastServoDownTime > SERVO_DEBOUNCE)) {
+    currentServoAngle = constrain(currentServoAngle - SERVO_INCREMENT, 0, 180);
+    setServo(1, currentServoAngle);
+    setServo(2, currentServoAngle);
+    Serial.printf("Servos DOWN - Angle: %d\n", currentServoAngle);
+    lastServoDownTime = now;
   }
 
   // Block handling - one-shot execution
@@ -362,28 +410,44 @@ void setMecanumSpeeds(float vx, float vy, float omega) {
   float L = WHEELBASE_LENGTH / 2.0;
   float W = WHEELBASE_WIDTH / 2.0;
   float R = WHEEL_RADIUS;
-  Serial.printf("Calculating speeds for vx=%.2f, vy=%.2f, omega=%.2f\n", vx, vy, omega);
+ 
   float w1 = (vx - vy - (L + W) * omega) / R;
   float w2 = (vx + vy + (L + W) * omega) / R;
   float w3 = (vx + vy - (L + W) * omega) / R;
   float w4 = (vx - vy + (L + W) * omega) / R;
-  Serial.printf("Raw wheel speeds: w1=%.3f, w2=%.3f, w3=%.3f, w4=%.3f\n", w1, w2, w3, w4);
-  float scale = MAX_SPEED / 1.0;
+ 
+  float scale = currentMaxSpeed / 1.0;
 
   // Use proper rounding instead of truncation
-  int pwm1 = constrain((int)round(w1 * scale), -MAX_SPEED, MAX_SPEED);
-  int pwm2 = constrain((int)round(w2 * scale), -MAX_SPEED, MAX_SPEED);
-  int pwm3 = constrain((int)round(w3 * scale), -MAX_SPEED, MAX_SPEED);
-  int pwm4 = constrain((int)round(w4 * scale), -MAX_SPEED, MAX_SPEED);
+  int pwm1 = constrain((int)round(w1 * scale), -currentMaxSpeed, currentMaxSpeed);
+  int pwm2 = constrain((int)round(w2 * scale), -currentMaxSpeed, currentMaxSpeed);
+  int pwm3 = constrain((int)round(w3 * scale), -currentMaxSpeed, currentMaxSpeed);
+  int pwm4 = constrain((int)round(w4 * scale), -currentMaxSpeed, currentMaxSpeed);
 
   setMotor(1, pwm1);
   setMotor(2, pwm2);
   setMotor(3, pwm3);
   setMotor(4, pwm4);
-  if(pwm1 == 0 && pwm2 == 0 && pwm3 == 0 && pwm4 == 0) {
-    Serial.println("Stopping all motors");
-  } else {
-    Serial.printf("Setting motors - FL: %d, FR: %d, RL: %d, RR: %d\n", pwm1, pwm2, pwm3, pwm4);
+  
+  // Only print summary if any motor speed changed
+  bool anyChanged = (pwm1 != previousMotorSpeeds[0] || pwm2 != previousMotorSpeeds[1] || 
+                     pwm3 != previousMotorSpeeds[2] || pwm4 != previousMotorSpeeds[3]);
+  
+  if (anyChanged) {
+    previousMotorSpeeds[0] = pwm1;
+    previousMotorSpeeds[1] = pwm2;
+    previousMotorSpeeds[2] = pwm3;
+    previousMotorSpeeds[3] = pwm4;
+     if(vx != 0 || vy != 0 || omega != 0) {
+      Serial.printf("Raw wheel speeds: w1=%.3f, w2=%.3f, w3=%.3f, w4=%.3f\n", w1, w2, w3, w4);
+      Serial.printf("Calculating speeds for vx=%.2f, vy=%.2f, omega=%.2f\n", vx, vy, omega);
+    }
+    
+    if(pwm1 == 0 && pwm2 == 0 && pwm3 == 0 && pwm4 == 0) {
+      Serial.println("Stopping all motors");
+    } else {
+      Serial.printf("Setting motors - FL: %d, FR: %d, RL: %d, RR: %d\n", pwm1, pwm2, pwm3, pwm4);
+    }
   }
 }
 
