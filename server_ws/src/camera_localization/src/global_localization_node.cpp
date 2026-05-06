@@ -930,7 +930,14 @@ if (ids.empty()) {
         enemy_detections.push_back(enemy_entity);
         break;
       }
+      auto _t0 = std::chrono::steady_clock::now();
       publishEnemyEntities(updateTrackedEnemyEntities(enemy_detections));
+      double _enemy_pub_ms = std::chrono::duration<double, std::milli>(
+        std::chrono::steady_clock::now() - _t0).count();
+      if (_enemy_pub_ms > 5.0) {
+        RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 1000,
+          "publishEnemyEntities took %.1f ms — possible DDS backpressure", _enemy_pub_ms);
+      }
     }
 
     // These passes are useful for obstacle/strategy output, but they are expensive.
