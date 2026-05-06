@@ -100,6 +100,7 @@ def generate_launch_description():
             name='camera_map_visualizer_node',
             output='screen',
             emulate_tty=True,
+            prefix='python3 -u -X faulthandler',
             condition=IfCondition(launch_map_visualizer),
             parameters=[camera_map_config, {
                 'publish_block_obstacles': publish_block_obstacles,

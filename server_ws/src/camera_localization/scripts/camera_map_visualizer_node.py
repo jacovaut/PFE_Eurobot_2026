@@ -1,10 +1,32 @@
 #!/usr/bin/env python3
 
 import json
+import faulthandler
 import math
+import os
 import sys
 import traceback
 from typing import Any, Dict, List
+
+STARTUP_LOG = '/tmp/camera_map_visualizer_node_startup.log'
+
+
+def _startup_log(message: str) -> None:
+    try:
+        with open(STARTUP_LOG, 'a', encoding='utf-8') as handle:
+            handle.write(message + '\n')
+            handle.flush()
+    except Exception:
+        pass
+
+
+try:
+    _startup_log(
+        f'process imported: pid={os.getpid()} executable={sys.executable} argv={sys.argv}'
+    )
+    faulthandler.enable(file=sys.stderr, all_threads=True)
+except Exception:
+    pass
 
 import rclpy
 from geometry_msgs.msg import PoseWithCovarianceStamped, TransformStamped
@@ -420,10 +442,15 @@ class CameraMapVisualizer(Node):
 def main(args=None) -> None:
     node = None
     try:
+        _startup_log('main entered')
         rclpy.init(args=args)
+        _startup_log('rclpy.init complete')
         node = CameraMapVisualizer()
+        _startup_log('CameraMapVisualizer constructed')
         rclpy.spin(node)
+        _startup_log('rclpy.spin returned')
     except Exception:
+        _startup_log(traceback.format_exc())
         traceback.print_exc(file=sys.stderr)
         if node is not None:
             node.get_logger().fatal(
