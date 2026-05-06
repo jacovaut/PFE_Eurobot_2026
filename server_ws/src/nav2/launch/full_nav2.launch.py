@@ -7,7 +7,6 @@ import os
 
 def generate_launch_description():
     pkg_share = get_package_share_directory('nav2')
-    nav2_bringup = get_package_share_directory('nav2_bringup')
 
     params_file = LaunchConfiguration('params_file')
     use_sim_time = LaunchConfiguration('use_sim_time')

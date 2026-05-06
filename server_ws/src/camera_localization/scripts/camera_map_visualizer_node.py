@@ -29,10 +29,12 @@ except Exception:
     pass
 
 import rclpy
+from rclpy.executors import ExternalShutdownException
 from geometry_msgs.msg import PoseWithCovarianceStamped, TransformStamped
 from nav_msgs.msg import OccupancyGrid
 from rcl_interfaces.msg import ParameterType, ParameterValue
 from rclpy.node import Node
+from rclpy.qos import DurabilityPolicy, QoSProfile, ReliabilityPolicy
 from sensor_msgs.msg import PointCloud2
 from sensor_msgs_py import point_cloud2
 from std_msgs.msg import Header, String
@@ -122,10 +124,15 @@ class CameraMapVisualizer(Node):
         self.block_pc_pub = self.create_publisher(PointCloud2, self.block_pointcloud_topic, 10)
         self.static_pc_pub = self.create_publisher(PointCloud2, self.static_pointcloud_topic, 10)
         self.enemy_pc_pub = self.create_publisher(PointCloud2, self.enemy_pointcloud_topic, 10)
+        dynamic_grid_qos = QoSProfile(
+            depth=1,
+            durability=DurabilityPolicy.TRANSIENT_LOCAL,
+            reliability=ReliabilityPolicy.RELIABLE,
+        )
         self.dynamic_grid_pub = self.create_publisher(
             OccupancyGrid,
             self.dynamic_obstacle_grid_topic,
-            10,
+            dynamic_grid_qos,
         )
         self.latest_blocks: List[Dict[str, Any]] = []
         self.latest_blocks_time = self.get_clock().now()
@@ -636,6 +643,8 @@ def main(args=None) -> None:
         _startup_log('CameraMapVisualizer constructed')
         rclpy.spin(node)
         _startup_log('rclpy.spin returned')
+    except (KeyboardInterrupt, ExternalShutdownException):
+        _startup_log('shutdown requested')
     except Exception:
         _startup_log(traceback.format_exc())
         traceback.print_exc(file=sys.stderr)

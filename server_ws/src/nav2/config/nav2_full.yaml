@@ -224,7 +224,7 @@ global_costmap:
         plugin: "nav2_costmap_2d::StaticLayer"
         enabled: true
         map_topic: "/camera/block_obstacle_grid"
-        map_subscribe_transient_local: false
+        map_subscribe_transient_local: true
         subscribe_to_updates: false
         track_unknown_space: false
         use_maximum: true
@@ -272,7 +272,7 @@ local_costmap:
         plugin: "nav2_costmap_2d::StaticLayer"
         enabled: true
         map_topic: "/camera/block_obstacle_grid"
-        map_subscribe_transient_local: false
+        map_subscribe_transient_local: true
         subscribe_to_updates: false
         track_unknown_space: false
         use_maximum: true
