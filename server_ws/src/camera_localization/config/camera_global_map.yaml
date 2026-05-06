@@ -165,7 +165,7 @@ camera_map_visualizer_node:
     dynamic_obstacle_max_miss_count: 10
     stamp_obstacle_cloud_with_now: true
     detected_obstacle_point_spacing_m: 0.04
-    detected_obstacle_padding_m: 0.0
+    detected_obstacle_padding_m: 0.01
     enemy_robot_obstacle_padding_m: 0.0
     static_pointcloud_topic: "/camera/static_obstacles"
     enemy_pointcloud_topic: "/camera/enemy_obstacles"
