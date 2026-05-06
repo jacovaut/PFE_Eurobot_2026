@@ -1,0 +1,13 @@
+# Target labels
+ xrceagent
+# Source files and their labels
+/home/com2001/PFE_Eurobot_2026/ws/build/micro_ros_agent/CMakeFiles/xrceagent
+/home/com2001/PFE_Eurobot_2026/ws/build/micro_ros_agent/CMakeFiles/xrceagent.rule
+/home/com2001/PFE_Eurobot_2026/ws/build/micro_ros_agent/CMakeFiles/xrceagent-complete.rule
+/home/com2001/PFE_Eurobot_2026/ws/build/micro_ros_agent/agent/src/xrceagent-stamp/xrceagent-build.rule
+/home/com2001/PFE_Eurobot_2026/ws/build/micro_ros_agent/agent/src/xrceagent-stamp/xrceagent-configure.rule
+/home/com2001/PFE_Eurobot_2026/ws/build/micro_ros_agent/agent/src/xrceagent-stamp/xrceagent-download.rule
+/home/com2001/PFE_Eurobot_2026/ws/build/micro_ros_agent/agent/src/xrceagent-stamp/xrceagent-install.rule
+/home/com2001/PFE_Eurobot_2026/ws/build/micro_ros_agent/agent/src/xrceagent-stamp/xrceagent-mkdir.rule
+/home/com2001/PFE_Eurobot_2026/ws/build/micro_ros_agent/agent/src/xrceagent-stamp/xrceagent-patch.rule
+/home/com2001/PFE_Eurobot_2026/ws/build/micro_ros_agent/agent/src/xrceagent-stamp/xrceagent-update.rule

@@ -36,6 +36,21 @@ void cmdvel_callback(const void* msgin) {
   cmdvel.seq++;
 }
 
+void keyboard_callback(const void* msgin) {
+  const std_msgs__msg__String* msg =
+    static_cast<const std_msgs__msg__String*>(msgin);
+
+  if (msg->data.size == 0) {
+    return;
+  }
+
+  char key = toupper(msg->data.data[0]);
+  if (key >= 32 && key <= 126) {
+    keyPressed[(uint8_t)key] = true;
+    keyLastReceived[(uint8_t)key] = millis();
+  }
+}
+
 void timer_callback(rcl_timer_t* timer, int64_t last_call_time) {
   RCLC_UNUSED(last_call_time);
 
@@ -86,6 +101,17 @@ void setupMicroRos() {
     "cmd_vel_smoothed"
   ));
 
+  keyboard_msg.data.data = keyboard_msg_buffer;
+  keyboard_msg.data.size = 0;
+  keyboard_msg.data.capacity = sizeof(keyboard_msg_buffer);
+
+  RCCHECK(rclc_subscription_init_default(
+    &keyboard_sub,
+    &node,
+    ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, String),
+    "pami_ninja/keyboard"
+  ));
+
   RCCHECK(rclc_timer_init_default2(
     &timer,
     &support,
@@ -97,7 +123,7 @@ void setupMicroRos() {
   RCCHECK(rclc_executor_init(
     &executor,
     &support.context,
-    2,
+    3,
     &allocator
   ));
 
@@ -108,6 +134,14 @@ void setupMicroRos() {
     &cmdvel_sub,
     &cmdvel_msg,
     &cmdvel_callback,
+    ON_NEW_DATA
+  ));
+
+  RCCHECK(rclc_executor_add_subscription(
+    &executor,
+    &keyboard_sub,
+    &keyboard_msg,
+    &keyboard_callback,
     ON_NEW_DATA
   ));
 }

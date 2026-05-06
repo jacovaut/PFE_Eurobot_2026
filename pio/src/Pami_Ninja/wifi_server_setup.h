@@ -10,6 +10,7 @@
 #include <rclc/executor.h>
 #include <rmw_microros/rmw_microros.h>
 #include <geometry_msgs/msg/twist.h>
+#include <std_msgs/msg/string.h>
 
 // micro-ROS WiFi configuration copied from entrainement/main.cpp.
 char MICROROS_WIFI_SSID[] = "GRUM";
@@ -22,6 +23,9 @@ TaskHandle_t core2_handle = NULL;
 
 rcl_subscription_t cmdvel_sub;
 geometry_msgs__msg__Twist cmdvel_msg;
+rcl_subscription_t keyboard_sub;
+std_msgs__msg__String keyboard_msg;
+char keyboard_msg_buffer[8];
 
 rclc_executor_t executor;
 rclc_support_t support;
@@ -74,6 +78,7 @@ const unsigned long KEY_TIMEOUT = 150;
 
 void error_loop();
 void cmdvel_callback(const void* msgin);
+void keyboard_callback(const void* msgin);
 void timer_callback(rcl_timer_t* timer, int64_t last_call_time);
 void setupMicroRos();
 void core1(void* pvParameters);
