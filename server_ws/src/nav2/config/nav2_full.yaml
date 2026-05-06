@@ -86,7 +86,7 @@ controller_server:
 
       critics: ["ObstacleFootprint", "BaseObstacle", "PathAlign", "GoalAlign", "PathDist", "GoalDist", "RotateToGoal"]
       ObstacleFootprint.scale: 32.0
-      BaseObstacle.scale: 20.0
+      BaseObstacle.scale: 8.0
       PathAlign.scale: 0.0
       GoalAlign.scale: 0.0
       PathDist.scale: 2.0
@@ -158,8 +158,8 @@ global_costmap:
         subscribe_to_updates: false
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
-        inflation_radius: 0.30
-        cost_scaling_factor: 3.5
+        inflation_radius: 0.20
+        cost_scaling_factor: 6.0
       voxel_layer:
         plugin: "nav2_costmap_2d::VoxelLayer"
         enabled: true
@@ -200,8 +200,8 @@ local_costmap:
       plugins: ["voxel_layer", "inflation_layer"]
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
-        inflation_radius: 0.30
-        cost_scaling_factor: 3.5
+        inflation_radius: 0.20
+        cost_scaling_factor: 6.0
       voxel_layer:
         plugin: "nav2_costmap_2d::VoxelLayer"
         enabled: true
