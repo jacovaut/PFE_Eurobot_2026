@@ -5,6 +5,7 @@ Panels:
     Property Tree Widget:
       Expanded:
         - /Grid1
+        - /Map1/Position1
       Splitter Ratio: 0.5
     Tree Height: 1504
   - Class: rviz_common/Selection
@@ -29,7 +30,7 @@ Visualization Manager:
   Class: ""
   Displays:
     - Alpha: 0.5
-      Cell Size: 0.05000000074505806
+      Cell Size: 0.009999999776482582
       Class: rviz_default_plugins/Grid
       Color: 160; 160; 164
       Enabled: true
@@ -43,7 +44,7 @@ Visualization Manager:
         Y: 1.0499999523162842
         Z: 0
       Plane: XY
-      Plane Cell Count: 62
+      Plane Cell Count: 302
       Reference Frame: <Fixed Frame>
       Value: true
     - Alpha: 0.699999988079071
@@ -131,11 +132,84 @@ Visualization Manager:
         Value: /robot_description
       Enabled: true
       Links:
-        All Links Enabled: true
+        All Links Enabled:
+          {}
         Expand Joint Details: false
         Expand Link Details: false
         Expand Tree: false
         Link Tree Style: Links in Alphabetic Order
+        arducam_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        arducam_optical_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        arm_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        base_cad:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        base_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        cup_0:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        cup_1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        cup_2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        cup_3:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        deadwheel_left:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        deadwheel_right:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        deadwheel_side:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        flipper_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        front_left_wheel_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        front_right_wheel_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        map:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        rear_left_wheel_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        rear_right_wheel_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
       Mass Properties:
         Inertia: false
         Mass: false
