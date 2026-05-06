@@ -195,7 +195,7 @@ global_costmap:
       transform_tolerance: 0.5
       footprint: "[[-0.200, -0.150], [-0.200, 0.150], [0.200, 0.150], [0.200, -0.150]]"
       footprint_padding: 0.02
-      plugins: ["static_layer", "static_obstacle_layer", "dynamic_obstacle_layer"]
+      plugins: ["static_layer", "static_obstacle_layer", "dynamic_obstacle_layer", "inflation_layer"]
       static_layer:
         plugin: "nav2_costmap_2d::StaticLayer"
         map_subscribe_transient_local: true
@@ -232,6 +232,11 @@ global_costmap:
         use_maximum: true
         trinary_costmap: true
         lethal_cost_threshold: 65
+      inflation_layer:
+        plugin: "nav2_costmap_2d::InflationLayer"
+        enabled: true
+        inflation_radius: 0.35
+        cost_scaling_factor: 8.0
 
 # --- Local costmap params ---
 local_costmap:
@@ -249,7 +254,7 @@ local_costmap:
       transform_tolerance: 0.5
       footprint: "[[-0.200, -0.150], [-0.200, 0.150], [0.200, 0.150], [0.200, -0.150]]"
       footprint_padding: 0.02
-      plugins: ["static_obstacle_layer", "dynamic_obstacle_layer"]
+      plugins: ["static_obstacle_layer", "dynamic_obstacle_layer", "inflation_layer"]
       static_obstacle_layer:
         plugin: "nav2_costmap_2d::VoxelLayer"
         enabled: true
@@ -282,6 +287,11 @@ local_costmap:
         use_maximum: true
         trinary_costmap: true
         lethal_cost_threshold: 65
+      inflation_layer:
+        plugin: "nav2_costmap_2d::InflationLayer"
+        enabled: true
+        inflation_radius: 0.35
+        cost_scaling_factor: 8.0
 
 lifecycle_manager_navigation:
   ros__parameters:
