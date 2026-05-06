@@ -48,6 +48,7 @@ class CameraMapVisualizer(Node):
         self.detected_blocks_topic = self.declare_parameter('detected_blocks_topic', '/detected_blocks').value
         self.marker_topic = self.declare_parameter('marker_topic', '/camera_map/markers').value
         self.block_pointcloud_topic = self.declare_parameter('block_pointcloud_topic', '/camera/block_obstacles').value
+        self.enemy_pointcloud_topic = self.declare_parameter('enemy_pointcloud_topic', '/camera/enemy_obstacles').value
         self.publish_block_obstacles = bool(self.declare_parameter('publish_block_obstacles', True).value)
         self.max_blocks_visualized = int(self.declare_parameter('max_blocks_visualized', 32).value)
         self.block_obstacle_height_m = float(self.declare_parameter('block_obstacle_height_m', 0.03).value)
@@ -55,9 +56,18 @@ class CameraMapVisualizer(Node):
             self.declare_parameter('detected_obstacle_point_spacing_m', 0.05).value
         )
         self.detected_obstacle_padding_m = float(
-            self.declare_parameter('detected_obstacle_padding_m', 0.06).value
+            self.declare_parameter('detected_obstacle_padding_m', 0.02).value
+        )
+        self.enemy_robot_obstacle_padding_m = float(
+            self.declare_parameter('enemy_robot_obstacle_padding_m', 0.10).value
         )
         self.publish_period_s = float(self.declare_parameter('publish_period_s', 0.25).value)
+        self.dynamic_obstacle_stale_timeout_s = float(
+            self.declare_parameter('dynamic_obstacle_stale_timeout_s', 0.75).value
+        )
+        self.stamp_obstacle_cloud_with_now = bool(
+            self.declare_parameter('stamp_obstacle_cloud_with_now', True).value
+        )
 
         self.nids_noms = list(self.declare_parameter('nids_noms', ['nid_jaune', 'nid_bleu']).value)
         self.nids_centre_x_m = list(self.declare_parameter('nids_centre_x_m', [0.300, 2.700]).value)
@@ -92,7 +102,10 @@ class CameraMapVisualizer(Node):
         self.tf_broadcaster = TransformBroadcaster(self)
         self.marker_pub = self.create_publisher(MarkerArray, self.marker_topic, 10)
         self.block_pc_pub = self.create_publisher(PointCloud2, self.block_pointcloud_topic, 10)
+        self.enemy_pc_pub = self.create_publisher(PointCloud2, self.enemy_pointcloud_topic, 10)
         self.latest_blocks: List[Dict[str, Any]] = []
+        self.latest_blocks_time = self.get_clock().now()
+        self.has_received_blocks = False
         self.has_received_robot_pose = False
 
         self.create_subscription(PoseWithCovarianceStamped, self.robot_pose_topic, self._robot_pose_cb, 20)
@@ -115,11 +128,24 @@ class CameraMapVisualizer(Node):
 
     def _blocks_cb(self, msg: String) -> None:
         self.latest_blocks = self._parse_blocks(msg.data)
+        self.latest_blocks_time = self.get_clock().now()
+        self.has_received_blocks = True
 
     def _publish_visualization(self) -> None:
-        blocks = self.latest_blocks
+        now_time = self.get_clock().now()
+        dynamic_age_s = (now_time - self.latest_blocks_time).nanoseconds * 1e-9
+        blocks_are_fresh = (
+            self.has_received_blocks
+            and dynamic_age_s <= max(self.dynamic_obstacle_stale_timeout_s, 0.0)
+        )
+        blocks = self.latest_blocks if blocks_are_fresh else []
+        if self.has_received_blocks and not blocks_are_fresh:
+            self.get_logger().warn(
+                f'Detected obstacle data is stale ({dynamic_age_s:.2f}s old); publishing static obstacles only',
+                throttle_duration_sec=1.0,
+            )
 
-        now = self.get_clock().now().to_msg()
+        now = now_time.to_msg()
         if not self.has_received_robot_pose:
             t = TransformStamped()
             t.header.stamp = now
@@ -181,6 +207,7 @@ class CameraMapVisualizer(Node):
         )
 
         obstacle_points: List[List[float]] = []
+        enemy_points: List[List[float]] = []
         self._append_zone_obstacle_points(
             obstacle_points,
             xs=self.zones_interdites_centre_x_m,
@@ -231,15 +258,19 @@ class CameraMapVisualizer(Node):
             marker_array.markers.append(text)
 
             self._append_detected_obstacle_points(obstacle_points, block)
+            if str(block.get('color', 'unknown')).lower() == 'enemy_robot':
+                self._append_detected_obstacle_points(enemy_points, block)
 
         self.marker_pub.publish(marker_array)
 
         if self.publish_block_obstacles:
             header = Header()
-            header.stamp = rclpy.time.Time().to_msg()
+            header.stamp = now if self.stamp_obstacle_cloud_with_now else rclpy.time.Time().to_msg()
             header.frame_id = self.map_frame
             cloud = point_cloud2.create_cloud_xyz32(header, obstacle_points + self._wall_points)
             self.block_pc_pub.publish(cloud)
+            enemy_cloud = point_cloud2.create_cloud_xyz32(header, enemy_points)
+            self.enemy_pc_pub.publish(enemy_cloud)
 
     def _build_wall_points(self) -> List[List[float]]:
         pts: List[List[float]] = []
@@ -351,7 +382,11 @@ class CameraMapVisualizer(Node):
         center_x = float(obstacle.get('x', 0.0))
         center_y = float(obstacle.get('y', 0.0))
         center_z = float(obstacle.get('z', max(self.block_obstacle_height_m * 0.5, 0.03)))
-        padding = max(self.detected_obstacle_padding_m, 0.0)
+        color = str(obstacle.get('color', 'unknown')).lower()
+        if color == 'enemy_robot':
+            padding = max(self.enemy_robot_obstacle_padding_m, 0.0)
+        else:
+            padding = max(self.detected_obstacle_padding_m, 0.0)
         size_x = max(float(obstacle.get('size_x_m', 0.12)) + 2.0 * padding, 0.03)
         size_y = max(float(obstacle.get('size_y_m', 0.05)) + 2.0 * padding, 0.03)
         yaw = float(obstacle.get('yaw', 0.0))

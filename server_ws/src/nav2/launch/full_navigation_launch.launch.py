@@ -47,6 +47,7 @@ def generate_launch_description():
         'smoother_server',
         'behavior_server',
         'velocity_smoother',
+        'collision_monitor',
         'bt_navigator',
         'waypoint_follower',
     ]
@@ -157,7 +158,7 @@ def generate_launch_description():
                 respawn_delay=2.0,
                 parameters=[configured_params],
                 arguments=['--ros-args', '--log-level', log_level],
-                remappings=remappings,
+                remappings=remappings + [('cmd_vel', 'cmd_vel_raw')],
             ),
             Node(
                 package='nav2_smoother',
@@ -223,6 +224,17 @@ def generate_launch_description():
                 respawn_delay=2.0,
                 parameters=[configured_params],
                 arguments=['--ros-args', '--log-level', log_level],
+                remappings=remappings + [('cmd_vel', 'cmd_vel_raw')],
+            ),
+            Node(
+                package='nav2_collision_monitor',
+                executable='collision_monitor',
+                name='collision_monitor',
+                output='screen',
+                respawn=use_respawn,
+                respawn_delay=2.0,
+                parameters=[configured_params],
+                arguments=['--ros-args', '--log-level', log_level],
                 remappings=remappings,
             ),
             Node(
@@ -248,7 +260,7 @@ def generate_launch_description():
                         plugin='nav2_controller::ControllerServer',
                         name='controller_server',
                         parameters=[configured_params],
-                        remappings=remappings,
+                        remappings=remappings + [('cmd_vel', 'cmd_vel_raw')],
                     ),
                     ComposableNode(
                         package='nav2_smoother',
@@ -289,6 +301,13 @@ def generate_launch_description():
                         package='nav2_velocity_smoother',
                         plugin='nav2_velocity_smoother::VelocitySmoother',
                         name='velocity_smoother',
+                        parameters=[configured_params],
+                        remappings=remappings + [('cmd_vel', 'cmd_vel_raw')],
+                    ),
+                    ComposableNode(
+                        package='nav2_collision_monitor',
+                        plugin='nav2_collision_monitor::CollisionMonitor',
+                        name='collision_monitor',
                         parameters=[configured_params],
                         remappings=remappings,
                     ),
