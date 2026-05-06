@@ -119,7 +119,7 @@ controller_server:
 
       critics: ["ObstacleFootprint", "BaseObstacle", "PathAlign", "GoalAlign", "PathDist", "GoalDist", "RotateToGoal"]
       ObstacleFootprint.scale: 32.0
-      BaseObstacle.scale: 20.0
+      BaseObstacle.scale: 8.0
       PathAlign.scale: 0.0
       GoalAlign.scale: 0.0
       PathDist.scale: 2.0
@@ -182,7 +182,7 @@ global_costmap:
       publish_frequency: 2.0
       resolution: 0.05
       rolling_window: false
-      footprint: "[[-0.257, -0.154], [-0.257, 0.154], [0.257, 0.154], [0.257, -0.154]]"
+      footprint: "[[-0.200, -0.150], [-0.200, 0.150], [0.200, 0.150], [0.200, -0.150]]"
       footprint_padding: 0.02
       plugins: ["static_layer", "voxel_layer", "inflation_layer"]
       static_layer:
@@ -228,7 +228,7 @@ local_costmap:
       rolling_window: true
       width: 4
       height: 4
-      footprint: "[[-0.257, -0.154], [-0.257, 0.154], [0.257, 0.154], [0.257, -0.154]]"
+      footprint: "[[-0.200, -0.150], [-0.200, 0.150], [0.200, 0.150], [0.200, -0.150]]"
       footprint_padding: 0.02
       plugins: ["voxel_layer", "inflation_layer"]
       inflation_layer:
