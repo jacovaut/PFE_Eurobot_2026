@@ -162,8 +162,8 @@ camera_map_visualizer_node:
   ros__parameters:
     publish_period_s: 0.10
     dynamic_obstacle_stale_timeout_s: 0.75
-    dynamic_obstacle_hold_timeout_s: 1.0
-    stamp_obstacle_cloud_with_now: false
+    dynamic_obstacle_max_miss_count: 10
+    stamp_obstacle_cloud_with_now: true
     detected_obstacle_point_spacing_m: 0.04
     detected_obstacle_padding_m: 0.0
     enemy_robot_obstacle_padding_m: 0.0
@@ -173,6 +173,7 @@ camera_map_visualizer_node:
     dynamic_obstacle_grid_resolution_m: 0.01
     static_obstacle_padding_m: 0.0
     arena_wall_spacing_m: 0.02
+    publish_arena_walls_as_obstacles: false
 
     nids_noms: ["nid_jaune", "nid_bleu"]
     nids_centre_x_m: [0.300, 2.700]
