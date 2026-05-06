@@ -241,8 +241,8 @@ local_costmap:
       publish_frequency: 5.0
       resolution: 0.01
       rolling_window: true
-      width: 1
-      height: 1
+      width: 3
+      height: 3
       transform_tolerance: 0.5
       footprint: "[[-0.200, -0.150], [-0.200, 0.150], [0.200, 0.150], [0.200, -0.150]]"
       footprint_padding: 0.02
