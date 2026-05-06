@@ -50,7 +50,7 @@ controller_server:
       plugin: "nav2_controller::SimpleGoalChecker"
       stateful: true
       xy_goal_tolerance: 0.08
-      yaw_goal_tolerance: 0.3
+      yaw_goal_tolerance: 0.52
 
     # Controller option A (recommended-to-start): DWB holonomic
     FollowPath:
@@ -84,17 +84,16 @@ controller_server:
       transform_tolerance: 0.5
       trans_stopped_velocity: 0.05
 
-      critics: ["ObstacleFootprint", "BaseObstacle", "PathAlign", "GoalAlign", "PathDist", "GoalDist", "RotateToGoal", "Oscillation"]
+      critics: ["ObstacleFootprint", "BaseObstacle", "PathAlign", "GoalAlign", "PathDist", "GoalDist", "RotateToGoal"]
       ObstacleFootprint.scale: 32.0
       BaseObstacle.scale: 20.0
       PathAlign.scale: 0.0
       GoalAlign.scale: 0.0
       PathDist.scale: 2.0
       GoalDist.scale: 12.0
-      RotateToGoal.scale: 1.0
+      RotateToGoal.scale: 0.5
       RotateToGoal.slowing_factor: 5.0
       RotateToGoal.lookahead_time: -1.0
-      Oscillation.scale: 4.0
 
 bt_navigator:
   ros__parameters:
