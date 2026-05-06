@@ -2,6 +2,8 @@
 
 import json
 import math
+import sys
+import traceback
 from typing import Any, Dict, List
 
 import rclpy
@@ -416,8 +418,20 @@ class CameraMapVisualizer(Node):
 
 
 def main(args=None) -> None:
-    rclpy.init(args=args)
-    node = CameraMapVisualizer()
-    rclpy.spin(node)
-    node.destroy_node()
-    rclpy.shutdown()
+    node = None
+    try:
+        rclpy.init(args=args)
+        node = CameraMapVisualizer()
+        rclpy.spin(node)
+    except Exception:
+        traceback.print_exc(file=sys.stderr)
+        if node is not None:
+            node.get_logger().fatal(
+                'camera_map_visualizer_node crashed; see traceback above'
+            )
+        raise
+    finally:
+        if node is not None:
+            node.destroy_node()
+        if rclpy.ok():
+            rclpy.shutdown()
