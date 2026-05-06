@@ -163,7 +163,7 @@ camera_map_visualizer_node:
     publish_period_s: 0.10
     dynamic_obstacle_stale_timeout_s: 0.75
     dynamic_obstacle_hold_timeout_s: 1.0
-    stamp_obstacle_cloud_with_now: false
+    stamp_obstacle_cloud_with_now: true
     detected_obstacle_point_spacing_m: 0.04
     detected_obstacle_padding_m: 0.0
     enemy_robot_obstacle_padding_m: 0.0
