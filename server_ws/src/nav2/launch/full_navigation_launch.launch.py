@@ -353,6 +353,14 @@ def generate_launch_description():
         ],
     )
 
+    match_node = Node(
+        package='match',
+        executable='match_node',
+        name='match_node',
+        output='screen',
+        parameters=[{'autostart': False, 'duration_s': 98.0}],
+    )
+
     # Create the launch description and populate
     ld = LaunchDescription()
 
@@ -370,6 +378,7 @@ def generate_launch_description():
     ld.add_action(declare_log_level_cmd)
     ld.add_action(declare_map_file_cmd)
     # Add the actions to launch all of the navigation nodes
+    ld.add_action(match_node)
     ld.add_action(load_nodes)
     ld.add_action(load_composable_nodes)
 
