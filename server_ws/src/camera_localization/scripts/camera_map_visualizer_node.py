@@ -432,11 +432,36 @@ class CameraMapVisualizer(Node):
             self._rasterize_dynamic_obstacle(grid, block)
         return grid
 
+    def _fill_rect_cells(self, grid: OccupancyGrid, cx: float, cy: float,
+                         cos_yaw: float, sin_yaw: float,
+                         size_x: float, size_y: float, value: int) -> None:
+        resolution = grid.info.resolution
+        radius = 0.5 * math.hypot(size_x, size_y) + resolution
+        min_ix = max(0, int(math.floor((cx - radius - grid.info.origin.position.x) / resolution)))
+        max_ix = min(grid.info.width - 1, int(math.ceil((cx + radius - grid.info.origin.position.x) / resolution)))
+        min_iy = max(0, int(math.floor((cy - radius - grid.info.origin.position.y) / resolution)))
+        max_iy = min(grid.info.height - 1, int(math.ceil((cy + radius - grid.info.origin.position.y) / resolution)))
+        half_x = 0.5 * size_x
+        half_y = 0.5 * size_y
+        for iy in range(min_iy, max_iy + 1):
+            y = grid.info.origin.position.y + (iy + 0.5) * resolution
+            for ix in range(min_ix, max_ix + 1):
+                x = grid.info.origin.position.x + (ix + 0.5) * resolution
+                dx = x - cx
+                dy = y - cy
+                local_x = dx * cos_yaw + dy * sin_yaw
+                local_y = -dx * sin_yaw + dy * cos_yaw
+                if abs(local_x) <= half_x + 0.5 * resolution and abs(local_y) <= half_y + 0.5 * resolution:
+                    idx = iy * grid.info.width + ix
+                    if grid.data[idx] < value:
+                        grid.data[idx] = value
+
     def _rasterize_dynamic_obstacle(self, grid: OccupancyGrid, obstacle: Dict[str, Any]) -> None:
         center_x = float(obstacle.get('x', 0.0))
         center_y = float(obstacle.get('y', 0.0))
         color = str(obstacle.get('color', 'unknown')).lower()
-        if color == 'enemy_robot':
+        is_enemy = (color == 'enemy_robot')
+        if is_enemy:
             padding = max(self.enemy_robot_obstacle_padding_m, 0.0)
         else:
             padding = max(self.detected_obstacle_padding_m, 0.0)
@@ -445,26 +470,23 @@ class CameraMapVisualizer(Node):
         yaw = float(obstacle.get('yaw', 0.0))
         cos_yaw = math.cos(yaw)
         sin_yaw = math.sin(yaw)
-        resolution = grid.info.resolution
 
-        radius = 0.5 * math.hypot(size_x, size_y) + resolution
-        min_ix = max(0, int(math.floor((center_x - radius - grid.info.origin.position.x) / resolution)))
-        max_ix = min(grid.info.width - 1, int(math.ceil((center_x + radius - grid.info.origin.position.x) / resolution)))
-        min_iy = max(0, int(math.floor((center_y - radius - grid.info.origin.position.y) / resolution)))
-        max_iy = min(grid.info.height - 1, int(math.ceil((center_y + radius - grid.info.origin.position.y) / resolution)))
-
-        half_x = 0.5 * size_x
-        half_y = 0.5 * size_y
-        for iy in range(min_iy, max_iy + 1):
-            y = grid.info.origin.position.y + (iy + 0.5) * resolution
-            for ix in range(min_ix, max_ix + 1):
-                x = grid.info.origin.position.x + (ix + 0.5) * resolution
-                dx = x - center_x
-                dy = y - center_y
-                local_x = dx * cos_yaw + dy * sin_yaw
-                local_y = -dx * sin_yaw + dy * cos_yaw
-                if abs(local_x) <= half_x + 0.5 * resolution and abs(local_y) <= half_y + 0.5 * resolution:
-                    grid.data[iy * grid.info.width + ix] = 100
+        if is_enemy:
+            # Enemy robot: 3-ring gradient, all non-lethal (layer uses lethal_cost_threshold: 101).
+            # Outer 30 cm ring (OGM 60 → ~150 cost), inner 10 cm ring (OGM 75 → ~188 cost),
+            # core (OGM 100 → ~250 cost). Planner strongly avoids but can route through if needed;
+            # collision monitor provides the real-time hard stop.
+            self._fill_rect_cells(grid, center_x, center_y, cos_yaw, sin_yaw,
+                                  size_x + 0.60, size_y + 0.60, 60)
+            self._fill_rect_cells(grid, center_x, center_y, cos_yaw, sin_yaw,
+                                  size_x + 0.20, size_y + 0.20, 75)
+            self._fill_rect_cells(grid, center_x, center_y, cos_yaw, sin_yaw, size_x, size_y, 100)
+        else:
+            # Blocks: 2 cm shadow ring (OGM 30 → ~117 cost), core (OGM 60 → ~233 cost).
+            # Layer uses lethal_cost_threshold: 65, so both values are non-lethal.
+            self._fill_rect_cells(grid, center_x, center_y, cos_yaw, sin_yaw,
+                                  size_x + 0.04, size_y + 0.04, 30)
+            self._fill_rect_cells(grid, center_x, center_y, cos_yaw, sin_yaw, size_x, size_y, 60)
 
     def _build_wall_points(self) -> List[List[float]]:
         pts: List[List[float]] = []
