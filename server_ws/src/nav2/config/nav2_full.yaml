@@ -246,7 +246,7 @@ global_costmap:
         combination_method: 1
         observation_sources: lidar_cloud
         lidar_cloud:
-          topic: "/scan_cloud"
+          topic: "/scan_cloud_filtered"  # boundary-filtered by scan_boundary_filter_node
           data_type: "PointCloud2"
           clearing: true
           marking: true
@@ -319,7 +319,7 @@ local_costmap:
         combination_method: 1
         observation_sources: lidar_cloud
         lidar_cloud:
-          topic: "/scan_cloud"
+          topic: "/scan_cloud_filtered"  # boundary-filtered by scan_boundary_filter_node
           data_type: "PointCloud2"
           clearing: true
           marking: true
