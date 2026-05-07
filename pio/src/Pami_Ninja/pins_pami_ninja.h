@@ -2,14 +2,14 @@
 #define PINS_H
 
 // Motor pins
-#define MOTOR_FL_IN1  22    // Front-Left
-#define MOTOR_FL_IN2  23
-#define MOTOR_FR_IN1  21    // Front-Right
-#define MOTOR_FR_IN2  19
-#define MOTOR_RL_IN1  5    // Rear-Left
-#define MOTOR_RL_IN2  18
-#define MOTOR_RR_IN1  17    // Rear-Right
-#define MOTOR_RR_IN2  16
+#define MOTOR_FL_IN1  21    // Front-Left
+#define MOTOR_FL_IN2  19
+#define MOTOR_FR_IN1  17    // Front-Right
+#define MOTOR_FR_IN2  16
+#define MOTOR_RL_IN1  22   // Rear-Left
+#define MOTOR_RL_IN2  23
+#define MOTOR_RR_IN1  5    // Rear-Right
+#define MOTOR_RR_IN2  18
 
 // Encoder pins
 // GPIO 34, 35, 36, 39 are input-only — perfect for encoders
@@ -41,10 +41,11 @@
 //  TUNABLE CONSTANTS
 // ============================================================
 
-#define ARM_DOWN_ANGLE   70     // Degrees: arms fully lowered
-#define ARM_UP_ANGLE     150
-     // Degrees: arms fully raised
-#define ARM_MOVE_DELAY   100    // ms to wait for servo to reach position
+#define ARM_PICKUP_DOWN_ANGLE   30     // Degrees: pickup lowering angle
+#define ARM_RELEASE_DOWN_ANGLE  70     // Degrees: release lowering angle
+#define ARM_DOWN_ANGLE          ARM_PICKUP_DOWN_ANGLE
+#define ARM_UP_ANGLE            130    // Degrees: arms fully raised
+#define ARM_MOVE_DELAY   200    // ms to wait for servo to reach position
 #define ARM_SWEEP_STEP   2      // Degrees per step for continuous servo sweep
 #define ARM_SWEEP_DELAY  15     // ms between sweep steps
 

@@ -616,9 +616,9 @@ void setMecanumSpeeds(float vx, float vy, float omega) {
 
 void pickupBlock() {
   Serial.println("PICKUP: Lowering servos...");
-  setServo(1, ARM_DOWN_ANGLE);
-  setServo(2, ARM_DOWN_ANGLE);
-  currentServoAngle = ARM_DOWN_ANGLE;
+  setServo(1, ARM_PICKUP_DOWN_ANGLE);
+  setServo(2, ARM_PICKUP_DOWN_ANGLE);
+  currentServoAngle = ARM_PICKUP_DOWN_ANGLE;
   delay(ARM_MOVE_DELAY);
 
   Serial.println("PICKUP: Activating pump...");
@@ -636,9 +636,9 @@ void pickupBlock() {
 
 void releaseBlock() {
   Serial.println("RELEASE: Lowering servos...");
-  setServo(1, ARM_DOWN_ANGLE);
-  setServo(2, ARM_DOWN_ANGLE);
-  currentServoAngle = ARM_DOWN_ANGLE;
+  setServo(1, ARM_RELEASE_DOWN_ANGLE);
+  setServo(2, ARM_RELEASE_DOWN_ANGLE);
+  currentServoAngle = ARM_RELEASE_DOWN_ANGLE;
   delay(ARM_MOVE_DELAY);
 
   Serial.println("RELEASE: Deactivating pump...");
