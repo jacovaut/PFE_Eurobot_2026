@@ -82,8 +82,8 @@ controller_server:
     goal_checker:
       plugin: "nav2_controller::SimpleGoalChecker"
       stateful: true
-      xy_goal_tolerance: 0.08
-      yaw_goal_tolerance: 0.52
+      xy_goal_tolerance: 0.03
+      yaw_goal_tolerance: 0.35
 
     # Holonomic mecanum controller. Use DWB directly so the robot can strafe
     # instead of rotating to face the path before moving.
@@ -119,7 +119,7 @@ controller_server:
       transform_tolerance: 0.5
       trans_stopped_velocity: 0.05
 
-      critics: ["ObstacleFootprint", "BaseObstacle", "PathAlign", "GoalAlign", "PathDist", "GoalDist", "Oscillation", "Twirling"]
+      critics: ["ObstacleFootprint", "BaseObstacle", "PathDist", "GoalDist", "Oscillation", "Twirling", "RotateToGoal"]
       ObstacleFootprint.scale: 32.0
       BaseObstacle.scale: 16.0
       PathAlign.scale: 0.0
@@ -128,6 +128,9 @@ controller_server:
       GoalDist.scale: 8.0
       Oscillation.scale: 1.0
       Twirling.scale: 8.0
+      RotateToGoal.scale: 24.0
+      RotateToGoal.slowing_factor: 5.0
+      RotateToGoal.lookahead_time: -1.0
 
 bt_navigator:
   ros__parameters:
