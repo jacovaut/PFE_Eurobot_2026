@@ -2,3 +2,7 @@
 	path = uros_ws/micro_ros_setup
 	url = https://github.com/micro-ROS/micro_ros_setup.git
 	branch = jazzy
+[submodule "robot_ws/YDLidar-SDK"]
+	path = robot_ws/YDLidar-SDK
+	url = https://github.com/YDLIDAR/YDLidar-SDK
+	ignore = dirty

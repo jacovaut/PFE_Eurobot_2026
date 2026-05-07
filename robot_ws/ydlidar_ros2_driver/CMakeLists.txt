@@ -22,8 +22,32 @@ find_package(std_srvs REQUIRED)
 
 ############## YDLIDAR SDK START#####################################
 #find ydlidar_sdk package
+if(NOT ydlidar_sdk_DIR)
+    set(_ydlidar_sdk_repo_dir "${CMAKE_CURRENT_SOURCE_DIR}/../ydlidar_sdk_install/lib/cmake/ydlidar_sdk")
+    if(EXISTS "${_ydlidar_sdk_repo_dir}/ydlidar_sdkConfig.cmake")
+        set(ydlidar_sdk_DIR "${_ydlidar_sdk_repo_dir}")
+    endif()
+endif()
+
 find_package(ydlidar_sdk REQUIRED)
 ############## YDLIDAR SDK END#####################################
+
+if(NOT YDLIDAR_SDK_LIBRARY_DIRS AND DEFINED ydlidar_sdk_DIR)
+    get_filename_component(_ydlidar_sdk_cmake_dir "${ydlidar_sdk_DIR}" ABSOLUTE)
+    get_filename_component(_ydlidar_sdk_prefix "${_ydlidar_sdk_cmake_dir}/../../.." ABSOLUTE)
+    set(YDLIDAR_SDK_LIBRARY_DIRS "${_ydlidar_sdk_prefix}/lib")
+endif()
+
+find_library(YDLIDAR_SDK_LIBRARY
+    NAMES ydlidar_sdk
+    PATHS ${YDLIDAR_SDK_LIBRARY_DIRS}
+    NO_DEFAULT_PATH)
+
+if(YDLIDAR_SDK_LIBRARY)
+    set(YDLIDAR_SDK_LINK_LIBRARIES ${YDLIDAR_SDK_LIBRARY} pthread rt)
+else()
+    set(YDLIDAR_SDK_LINK_LIBRARIES ${YDLIDAR_SDK_LIBRARIES})
+endif()
 
 #Include directories
 include_directories(
@@ -51,7 +75,7 @@ ament_target_dependencies(${PROJECT_NAME}_node
     )
 
 target_link_libraries(${PROJECT_NAME}_node
-    ${YDLIDAR_SDK_LIBRARIES})
+    ${YDLIDAR_SDK_LINK_LIBRARIES})
 
 #---------------------------------------------------------------------------------------
 # generate excutable and add libraries

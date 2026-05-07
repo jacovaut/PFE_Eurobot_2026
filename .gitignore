@@ -7,6 +7,7 @@
 robot_ws/build/
 robot_ws/install/
 robot_ws/log/
+robot_ws/ydlidar_sdk_install/
 
 server_ws/build/
 server_ws/install/
