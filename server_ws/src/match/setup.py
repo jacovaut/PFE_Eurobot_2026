@@ -37,7 +37,8 @@ setup(
         'console_scripts': [
             'csi_camera_publisher_node = ros2_opencv.csi_camera_publisher:main',
             'merged_local_pickup_node = ros2_opencv.merged_local_pickup_node:main',
-            'match_timer_node = match.match_timer:main',
+            'cmd_vel_match_gate = match.cmd_vel_match_gate:main',
+            'match_node = match.match_node:main',
         ],
     },
 )

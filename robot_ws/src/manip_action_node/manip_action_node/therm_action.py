@@ -23,7 +23,7 @@ class ThermActionServer(Node):
         super().__init__("therm_action_server")
 
         self.declare_parameter("action_name", "therm")
-        self.declare_parameter("cmd_vel_topic", "/cmd_vel_smoothed")
+        self.declare_parameter("cmd_vel_topic", "/cmd_vel_match_input")
         self.declare_parameter("control_rate", 50.0)
         self.declare_parameter("forward_distance_m", 0.25)
         self.declare_parameter("strafe_distance_m", 0.30)

@@ -42,14 +42,14 @@ class PamiKeyboard(Node):
     def __init__(self):
         super().__init__("pami_keyboard")
         self.key_pub = self.create_publisher(String, "pami_ninja/keyboard", 10)
-        self.cmd_pub = self.create_publisher(Twist, "cmd_vel_smoothed", 10)
+        self.cmd_pub = self.create_publisher(Twist, "cmd_vel_match_input", 10)
         self.valid_keys = set("WSADQE PRUOJNL+-")
         self.movement_keys = set("WSADQE")
         self.active_movement_key = None
         self.linear_speed = 0.39
         self.angular_speed = 0.35
         self.get_logger().info(
-            "Publishing keys on /pami_ninja/keyboard and movement on /cmd_vel_smoothed"
+            "Publishing keys on /pami_ninja/keyboard and movement on /cmd_vel_match_input"
         )
 
     def publish_key(self, key: str, show: bool = False):
