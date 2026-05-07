@@ -74,8 +74,8 @@ controller_server:
     goal_checker:
       plugin: "nav2_controller::SimpleGoalChecker"
       stateful: true
-      xy_goal_tolerance: 0.03
-      yaw_goal_tolerance: 0.35
+      xy_goal_tolerance: 0.10
+      yaw_goal_tolerance: 3.14
 
     # Holonomic mecanum controller. Use DWB directly so the robot can strafe
     # instead of rotating to face the path before moving.
@@ -130,7 +130,8 @@ bt_navigator:
     global_frame: map
     robot_base_frame: base_link
     odom_topic: "/odometry/local"
-    default_nav_to_pose_bt_xml: "$(find-pkg-share nav2)/config/navigate_to_pose_with_backup.xml"
+    # default_nav_to_pose_bt_xml: "$(find-pkg-share nav2)/config/navigate_to_pose_with_backup.xml"
+    default_nav_to_pose_bt_xml: "$(find-pkg-share nav2_bt_navigator)/behavior_trees/navigate_w_replanning_only_if_path_becomes_invalid.xml"
     default_nav_through_poses_bt_xml: "$(find-pkg-share nav2_bt_navigator)/behavior_trees/navigate_through_poses_w_replanning_and_recovery.xml"
     navigators: ["navigate_to_pose", "navigate_through_poses"]
     navigate_to_pose:
