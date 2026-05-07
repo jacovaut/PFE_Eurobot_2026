@@ -49,6 +49,7 @@ class CameraMapVisualizer(Node):
         self.map_frame = self.declare_parameter('map_frame', 'map').value
         self.robot_pose_topic = self.declare_parameter('robot_pose_topic', '/camera/global_pose').value
         self.detected_blocks_topic = self.declare_parameter('detected_blocks_topic', '/detected_blocks').value
+        self.detected_enemy_topic = self.declare_parameter('detected_enemy_topic', '/detected_enemy').value
         self.marker_topic = self.declare_parameter('marker_topic', '/camera_map/markers').value
         self.block_pointcloud_topic = self.declare_parameter('block_pointcloud_topic', '/camera/block_obstacles').value
         self.static_pointcloud_topic = self.declare_parameter('static_pointcloud_topic', '/camera/static_obstacles').value
@@ -56,6 +57,10 @@ class CameraMapVisualizer(Node):
         self.dynamic_obstacle_grid_topic = self.declare_parameter(
             'dynamic_obstacle_grid_topic',
             '/camera/block_obstacle_grid',
+        ).value
+        self.enemy_obstacle_grid_topic = self.declare_parameter(
+            'enemy_obstacle_grid_topic',
+            '/camera/enemy_obstacle_grid',
         ).value
         self.publish_block_obstacles = bool(self.declare_parameter('publish_block_obstacles', True).value)
         self.max_blocks_visualized = int(self.declare_parameter('max_blocks_visualized', 32).value)
@@ -75,6 +80,12 @@ class CameraMapVisualizer(Node):
         )
         self.dynamic_obstacle_max_miss_count = int(
             self.declare_parameter('dynamic_obstacle_max_miss_count', 10).value
+        )
+        self.enemy_stale_timeout_s = float(
+            self.declare_parameter('enemy_stale_timeout_s', 1.5).value
+        )
+        self.enemy_max_miss_count = int(
+            self.declare_parameter('enemy_max_miss_count', 3).value
         )
         self.dynamic_obstacle_match_distance_m = float(
             self.declare_parameter('dynamic_obstacle_match_distance_m', 0.20).value
@@ -137,14 +148,26 @@ class CameraMapVisualizer(Node):
             self.dynamic_obstacle_grid_topic,
             dynamic_grid_qos,
         )
-        self.latest_blocks: List[Dict[str, Any]] = []
+        self.enemy_grid_pub = self.create_publisher(
+            OccupancyGrid,
+            self.enemy_obstacle_grid_topic,
+            QoSProfile(
+                depth=1,
+                durability=DurabilityPolicy.TRANSIENT_LOCAL,
+                reliability=ReliabilityPolicy.RELIABLE,
+            ),
+        )
         self.latest_blocks_time = self.get_clock().now()
-        self.tracked_obstacles: List[Dict[str, Any]] = []
+        self.latest_enemy_time = self.get_clock().now()
+        self.tracked_blocks: List[Dict[str, Any]] = []
+        self.tracked_enemy: List[Dict[str, Any]] = []
         self.has_received_blocks = False
+        self.has_received_enemy = False
         self.has_received_robot_pose = False
 
         self.create_subscription(PoseWithCovarianceStamped, self.robot_pose_topic, self._robot_pose_cb, 20)
         self.create_subscription(String, self.detected_blocks_topic, self._blocks_cb, 20)
+        self.create_subscription(String, self.detected_enemy_topic, self._enemy_cb, 20)
         self.create_timer(max(self.publish_period_s, 0.05), self._publish_visualization)
 
         self.get_logger().info('camera_map_visualizer_node started')
@@ -162,24 +185,44 @@ class CameraMapVisualizer(Node):
         self.tf_broadcaster.sendTransform(t)
 
     def _blocks_cb(self, msg: String) -> None:
-        self.latest_blocks = self._parse_blocks(msg.data)
+        detections = self._parse_blocks(msg.data)
         self.latest_blocks_time = self.get_clock().now()
-        self._update_tracked_obstacles(self.latest_blocks)
+        blocks_only = [b for b in detections if str(b.get('color', '')).lower() != 'enemy_robot']
+        self.tracked_blocks = self._update_tracked_obstacles(blocks_only, self.tracked_blocks, self.dynamic_obstacle_max_miss_count)
         self.has_received_blocks = True
+
+    def _enemy_cb(self, msg: String) -> None:
+        detections = self._parse_blocks(msg.data)
+        self.latest_enemy_time = self.get_clock().now()
+        if detections:
+            # Singleton: overwrite with the latest position from C++ (which already
+            # holds last-known when not detecting, so we always trust what C++ sends).
+            self.tracked_enemy = [{'block': detections[0], 'miss_count': 0}]
+        # If empty: C++ has no track yet (enemy never seen) — keep existing.
+        self.has_received_enemy = True
 
     def _publish_visualization(self) -> None:
         now_time = self.get_clock().now()
-        dynamic_age_s = (now_time - self.latest_blocks_time).nanoseconds * 1e-9
+        blocks_age_s = (now_time - self.latest_blocks_time).nanoseconds * 1e-9
+        enemy_age_s = (now_time - self.latest_enemy_time).nanoseconds * 1e-9
         blocks_are_stale = (
             self.has_received_blocks
-            and dynamic_age_s > max(self.dynamic_obstacle_stale_timeout_s, 0.0)
+            and blocks_age_s > max(self.dynamic_obstacle_stale_timeout_s, 0.0)
         )
-        blocks = self._active_tracked_obstacles(now_time) if self.has_received_blocks else []
         if blocks_are_stale:
             self.get_logger().warn(
-                f'Detected obstacle data is stale ({dynamic_age_s:.2f}s old); clearing obstacles',
+                f'Block obstacle data is stale ({blocks_age_s:.2f}s old); clearing blocks',
                 throttle_duration_sec=1.0,
             )
+        blocks_only = (
+            self._active_tracked_obstacles(self.tracked_blocks, now_time, self.dynamic_obstacle_stale_timeout_s, self.latest_blocks_time)
+            if self.has_received_blocks else []
+        )
+        enemy_only = (
+            self._active_tracked_obstacles(self.tracked_enemy, now_time, self.enemy_stale_timeout_s, self.latest_enemy_time)
+            if self.has_received_enemy else []
+        )
+        blocks = blocks_only + enemy_only
 
         now = now_time.to_msg()
         if not self.has_received_robot_pose:
@@ -314,13 +357,10 @@ class CameraMapVisualizer(Node):
             self.static_pc_pub.publish(static_cloud)
             enemy_cloud = point_cloud2.create_cloud_xyz32(header, enemy_points)
             self.enemy_pc_pub.publish(enemy_cloud)
-            block_grid_obstacles = [
-                block for block in blocks
-                if str(block.get('color', 'unknown')).lower() != 'enemy_robot'
-            ]
-            self.dynamic_grid_pub.publish(self._build_dynamic_obstacle_grid(block_grid_obstacles, header))
+            self.dynamic_grid_pub.publish(self._build_dynamic_obstacle_grid(blocks_only, header))
+            self.enemy_grid_pub.publish(self._build_dynamic_obstacle_grid(enemy_only, header))
 
-    def _update_tracked_obstacles(self, detections: List[Dict[str, Any]]) -> None:
+    def _update_tracked_obstacles(self, detections: List[Dict[str, Any]], current_tracks: List[Dict[str, Any]], max_miss_count: int) -> List[Dict[str, Any]]:
         match_gate = max(self.dynamic_obstacle_match_distance_m, 0.0)
         matched_track_indices: set = set()
 
@@ -332,7 +372,7 @@ class CameraMapVisualizer(Node):
             best_index = None
             best_distance = match_gate
 
-            for i, track in enumerate(self.tracked_obstacles):
+            for i, track in enumerate(current_tracks):
                 if i in matched_track_indices:
                     continue
                 block = track['block']
@@ -348,28 +388,27 @@ class CameraMapVisualizer(Node):
                     best_index = i
 
             if best_index is None:
-                self.tracked_obstacles.append({'block': dict(detection), 'miss_count': 0})
-                matched_track_indices.add(len(self.tracked_obstacles) - 1)
+                current_tracks.append({'block': dict(detection), 'miss_count': 0})
+                matched_track_indices.add(len(current_tracks) - 1)
             else:
-                self.tracked_obstacles[best_index] = {'block': dict(detection), 'miss_count': 0}
+                current_tracks[best_index] = {'block': dict(detection), 'miss_count': 0}
                 matched_track_indices.add(best_index)
 
-        # Increment miss count for unmatched tracks; drop after max_miss_count misses
-        max_miss = max(self.dynamic_obstacle_max_miss_count, 1)
+        max_miss = max(max_miss_count, 1)
         updated: List[Dict[str, Any]] = []
-        for i, track in enumerate(self.tracked_obstacles):
+        for i, track in enumerate(current_tracks):
             if i not in matched_track_indices:
                 track['miss_count'] = track.get('miss_count', 0) + 1
             if track.get('miss_count', 0) < max_miss:
                 updated.append(track)
-        self.tracked_obstacles = updated
+        return updated
 
-    def _active_tracked_obstacles(self, now_time) -> List[Dict[str, Any]]:
-        # Camera dead fallback: clear all tracks if no new message arrived recently
-        dynamic_age_s = (now_time - self.latest_blocks_time).nanoseconds * 1e-9
-        if self.has_received_blocks and dynamic_age_s > max(self.dynamic_obstacle_stale_timeout_s, 0.0):
+    def _active_tracked_obstacles(self, tracks: List[Dict[str, Any]], now_time, stale_timeout_s: float, last_received_time=None) -> List[Dict[str, Any]]:
+        ref_time = last_received_time if last_received_time is not None else self.latest_blocks_time
+        age_s = (now_time - ref_time).nanoseconds * 1e-9
+        if age_s > max(stale_timeout_s, 0.0):
             return []
-        return [dict(track['block']) for track in self.tracked_obstacles]
+        return [dict(track['block']) for track in tracks]
 
     def _build_dynamic_obstacle_grid(self, blocks: List[Dict[str, Any]], header: Header) -> OccupancyGrid:
         resolution = max(self.dynamic_obstacle_grid_resolution_m, 0.01)
@@ -393,11 +432,36 @@ class CameraMapVisualizer(Node):
             self._rasterize_dynamic_obstacle(grid, block)
         return grid
 
+    def _fill_rect_cells(self, grid: OccupancyGrid, cx: float, cy: float,
+                         cos_yaw: float, sin_yaw: float,
+                         size_x: float, size_y: float, value: int) -> None:
+        resolution = grid.info.resolution
+        radius = 0.5 * math.hypot(size_x, size_y) + resolution
+        min_ix = max(0, int(math.floor((cx - radius - grid.info.origin.position.x) / resolution)))
+        max_ix = min(grid.info.width - 1, int(math.ceil((cx + radius - grid.info.origin.position.x) / resolution)))
+        min_iy = max(0, int(math.floor((cy - radius - grid.info.origin.position.y) / resolution)))
+        max_iy = min(grid.info.height - 1, int(math.ceil((cy + radius - grid.info.origin.position.y) / resolution)))
+        half_x = 0.5 * size_x
+        half_y = 0.5 * size_y
+        for iy in range(min_iy, max_iy + 1):
+            y = grid.info.origin.position.y + (iy + 0.5) * resolution
+            for ix in range(min_ix, max_ix + 1):
+                x = grid.info.origin.position.x + (ix + 0.5) * resolution
+                dx = x - cx
+                dy = y - cy
+                local_x = dx * cos_yaw + dy * sin_yaw
+                local_y = -dx * sin_yaw + dy * cos_yaw
+                if abs(local_x) <= half_x + 0.5 * resolution and abs(local_y) <= half_y + 0.5 * resolution:
+                    idx = iy * grid.info.width + ix
+                    if grid.data[idx] < value:
+                        grid.data[idx] = value
+
     def _rasterize_dynamic_obstacle(self, grid: OccupancyGrid, obstacle: Dict[str, Any]) -> None:
         center_x = float(obstacle.get('x', 0.0))
         center_y = float(obstacle.get('y', 0.0))
         color = str(obstacle.get('color', 'unknown')).lower()
-        if color == 'enemy_robot':
+        is_enemy = (color == 'enemy_robot')
+        if is_enemy:
             padding = max(self.enemy_robot_obstacle_padding_m, 0.0)
         else:
             padding = max(self.detected_obstacle_padding_m, 0.0)
@@ -406,26 +470,23 @@ class CameraMapVisualizer(Node):
         yaw = float(obstacle.get('yaw', 0.0))
         cos_yaw = math.cos(yaw)
         sin_yaw = math.sin(yaw)
-        resolution = grid.info.resolution
 
-        radius = 0.5 * math.hypot(size_x, size_y) + resolution
-        min_ix = max(0, int(math.floor((center_x - radius - grid.info.origin.position.x) / resolution)))
-        max_ix = min(grid.info.width - 1, int(math.ceil((center_x + radius - grid.info.origin.position.x) / resolution)))
-        min_iy = max(0, int(math.floor((center_y - radius - grid.info.origin.position.y) / resolution)))
-        max_iy = min(grid.info.height - 1, int(math.ceil((center_y + radius - grid.info.origin.position.y) / resolution)))
-
-        half_x = 0.5 * size_x
-        half_y = 0.5 * size_y
-        for iy in range(min_iy, max_iy + 1):
-            y = grid.info.origin.position.y + (iy + 0.5) * resolution
-            for ix in range(min_ix, max_ix + 1):
-                x = grid.info.origin.position.x + (ix + 0.5) * resolution
-                dx = x - center_x
-                dy = y - center_y
-                local_x = dx * cos_yaw + dy * sin_yaw
-                local_y = -dx * sin_yaw + dy * cos_yaw
-                if abs(local_x) <= half_x + 0.5 * resolution and abs(local_y) <= half_y + 0.5 * resolution:
-                    grid.data[iy * grid.info.width + ix] = 100
+        if is_enemy:
+            # Enemy robot: 3-ring gradient, all non-lethal (layer uses lethal_cost_threshold: 101).
+            # Outer 30 cm ring (OGM 60 → ~150 cost), inner 10 cm ring (OGM 75 → ~188 cost),
+            # core (OGM 100 → ~250 cost). Planner strongly avoids but can route through if needed;
+            # collision monitor provides the real-time hard stop.
+            self._fill_rect_cells(grid, center_x, center_y, cos_yaw, sin_yaw,
+                                  size_x + 0.60, size_y + 0.60, 60)
+            self._fill_rect_cells(grid, center_x, center_y, cos_yaw, sin_yaw,
+                                  size_x + 0.20, size_y + 0.20, 75)
+            self._fill_rect_cells(grid, center_x, center_y, cos_yaw, sin_yaw, size_x, size_y, 100)
+        else:
+            # Blocks: 2 cm shadow ring (OGM 30 → ~117 cost), core (OGM 60 → ~233 cost).
+            # Layer uses lethal_cost_threshold: 65, so both values are non-lethal.
+            self._fill_rect_cells(grid, center_x, center_y, cos_yaw, sin_yaw,
+                                  size_x + 0.04, size_y + 0.04, 30)
+            self._fill_rect_cells(grid, center_x, center_y, cos_yaw, sin_yaw, size_x, size_y, 60)
 
     def _build_wall_points(self) -> List[List[float]]:
         pts: List[List[float]] = []

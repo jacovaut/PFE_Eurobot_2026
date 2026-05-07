@@ -73,6 +73,7 @@ public:
     map_frame_ = declare_parameter<std::string>("map_frame", "map");
     pose_topic_ = declare_parameter<std::string>("pose_topic", "/camera/global_pose");
     detected_blocks_topic_ = declare_parameter<std::string>("detected_blocks_topic", "/detected_blocks");
+    detected_enemy_topic_ = declare_parameter<std::string>("detected_enemy_topic", "/detected_enemy");
     debug_view_ = declare_parameter<bool>("debug_view", true);
 
     // Marker IDs / sizes
@@ -201,6 +202,10 @@ public:
       declare_parameter<double>("entity_tracking_yaw_alpha", 0.5);
     entity_tracking_max_missed_frames_ =
       declare_parameter<int>("entity_tracking_max_missed_frames", 5);
+    enemy_entity_tracking_max_missed_frames_ =
+      declare_parameter<int>("enemy_entity_tracking_max_missed_frames", 5);
+    enemy_entity_tracking_match_gate_m_ =
+      declare_parameter<double>("enemy_entity_tracking_match_gate_m", 0.5);
 
     // ----------------------------
     // Publisher
@@ -211,7 +216,9 @@ public:
       pose_topic_, qos);
     detected_blocks_pub_ = create_publisher<std_msgs::msg::String>(
       detected_blocks_topic_, qos);
-    
+    detected_enemy_pub_ = create_publisher<std_msgs::msg::String>(
+      detected_enemy_topic_, qos);
+
     RCLCPP_INFO(get_logger(), "Publishers configured with RELIABLE QoS policy");
 
     // ----------------------------
@@ -664,6 +671,7 @@ private:
 }
 
 if (ids.empty()) {
+  publishEnemyEntities(updateTrackedEnemyEntities({}));
   publishDetectedEntities(updateTrackedEntities({}));
   showDebug(debug_image);
   return;
@@ -753,6 +761,7 @@ if (ids.empty()) {
       failed_solvepnp_++;
       RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 2000,
         "No camera pose available yet (waiting for table markers)");
+      publishEnemyEntities(updateTrackedEnemyEntities({}));
       publishDetectedEntities(updateTrackedEntities({}));
       showDebug(debug_image);
       return;
@@ -892,6 +901,42 @@ if (ids.empty()) {
       }
     }
 
+    // Detect and publish the enemy robot on every frame (before rescue passes so it
+    // runs at full camera rate, not just at rescue-pass cadence).
+    {
+      std::vector<DetectedEntity> enemy_detections;
+      for (size_t i = 0; i < ids.size(); ++i) {
+        if (ids[i] != enemy_robot_marker_id_) {
+          continue;
+        }
+        cv::Matx33d R_map_enemy;
+        cv::Vec3d t_map_enemy;
+        if (!estimateMarkerPoseInMap(
+              obj_points_enemy_robot_,
+              corners[i],
+              R_map_camera,
+              t_map_camera,
+              R_map_enemy,
+              t_map_enemy)) {
+          continue;
+        }
+        DetectedEntity enemy_entity;
+        enemy_entity.marker_id = ids[i];
+        enemy_entity.color = "enemy_robot";
+        enemy_entity.position_map = cv::Vec3d(
+          t_map_enemy[0],
+          t_map_enemy[1],
+          enemy_robot_obstacle_z_m_);
+        enemy_entity.yaw_rad = std::atan2(R_map_enemy(1, 0), R_map_enemy(0, 0));
+        enemy_entity.size_x_m = enemy_robot_size_x_m_;
+        enemy_entity.size_y_m = enemy_robot_size_y_m_;
+        enemy_entity.is_dynamic = true;
+        enemy_detections.push_back(enemy_entity);
+        break;
+      }
+      publishEnemyEntities(updateTrackedEnemyEntities(enemy_detections));
+    }
+
     // These passes are useful for obstacle/strategy output, but they are expensive.
     // Run them periodically so /camera/global_pose is not limited by block rescue throughput.
     const double block_rescue_elapsed_s =
@@ -946,39 +991,6 @@ if (ids.empty()) {
       e.size_y_m = block_size_y_m_;
       e.is_dynamic = true;
       detected_entities.push_back(e);
-    }
-
-    for (size_t i = 0; i < ids.size(); ++i) {
-      const int id = ids[i];
-      if (id != enemy_robot_marker_id_) {
-        continue;
-      }
-
-      cv::Matx33d R_map_enemy;
-      cv::Vec3d t_map_enemy;
-      if (!estimateMarkerPoseInMap(
-            obj_points_enemy_robot_,
-            corners[i],
-            R_map_camera,
-            t_map_camera,
-            R_map_enemy,
-            t_map_enemy)) {
-        continue;
-      }
-
-      DetectedEntity enemy_entity;
-      enemy_entity.marker_id = id;
-      enemy_entity.color = "enemy_robot";
-      enemy_entity.position_map = cv::Vec3d(
-        t_map_enemy[0],
-        t_map_enemy[1],
-        enemy_robot_obstacle_z_m_);
-      enemy_entity.yaw_rad = std::atan2(R_map_enemy(1, 0), R_map_enemy(0, 0));
-      enemy_entity.size_x_m = enemy_robot_size_x_m_;
-      enemy_entity.size_y_m = enemy_robot_size_y_m_;
-      enemy_entity.is_dynamic = true;
-      detected_entities.push_back(enemy_entity);
-      break;
     }
 
     if (have_robot_pose) {
@@ -1462,6 +1474,60 @@ if (ids.empty()) {
     last_publish_ms_ = publish_ms;
   }
 
+  std::vector<DetectedEntity> updateTrackedEnemyEntities(const std::vector<DetectedEntity> &detections)
+  {
+    if (!detections.empty()) {
+      // Singleton: one enemy robot, always overwrite position with latest detection.
+      // No match gate, no EMA lag — position jumps instantly to wherever the enemy is.
+      if (tracked_enemy_entities_.empty()) {
+        tracked_enemy_entities_.push_back(TrackedEntity{detections[0], 0});
+      } else {
+        auto &entity = tracked_enemy_entities_[0].entity;
+        entity.position_map = detections[0].position_map;
+        entity.yaw_rad = detections[0].yaw_rad;
+        entity.size_x_m = detections[0].size_x_m;
+        entity.size_y_m = detections[0].size_y_m;
+        entity.is_dynamic = detections[0].is_dynamic;
+        tracked_enemy_entities_[0].missed_frames = 0;
+      }
+    }
+    // If no detection: hold last known position — no eviction.
+
+    std::vector<DetectedEntity> result;
+    result.reserve(tracked_enemy_entities_.size());
+    for (const auto &track : tracked_enemy_entities_) {
+      result.push_back(track.entity);
+    }
+    return result;
+  }
+
+  void publishEnemyEntities(const std::vector<DetectedEntity> &entities)
+  {
+    std::ostringstream ss;
+    ss << std::fixed << std::setprecision(6) << "[";
+    for (std::size_t i = 0; i < entities.size(); ++i) {
+      const auto &e = entities[i];
+      if (i > 0) ss << ",";
+      const double angle_z_deg = e.yaw_rad * 180.0 / M_PI;
+      ss << "{";
+      ss << "\"marker_id\":" << e.marker_id << ",";
+      ss << "\"color\":\"" << jsonEscape(e.color) << "\",";
+      ss << "\"x\":" << e.position_map[0] << ",";
+      ss << "\"y\":" << e.position_map[1] << ",";
+      ss << "\"z\":" << e.position_map[2] << ",";
+      ss << "\"yaw\":" << e.yaw_rad << ",";
+      ss << "\"angle_z_deg\":" << angle_z_deg << ",";
+      ss << "\"size_x_m\":" << e.size_x_m << ",";
+      ss << "\"size_y_m\":" << e.size_y_m << ",";
+      ss << "\"dynamic\":" << (e.is_dynamic ? "true" : "false");
+      ss << "}";
+    }
+    ss << "]";
+    std_msgs::msg::String msg;
+    msg.data = ss.str();
+    detected_enemy_pub_->publish(msg);
+  }
+
   cv::Matx33d rotationZ(double yaw) const
   {
     const double c = std::cos(yaw);
@@ -1714,6 +1780,7 @@ if (ids.empty()) {
   // ROS
   rclcpp::Publisher<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr pose_pub_;
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr detected_blocks_pub_;
+  rclcpp::Publisher<std_msgs::msg::String>::SharedPtr detected_enemy_pub_;
   rclcpp::TimerBase::SharedPtr display_timer_;
 
   // Camera / calibration
@@ -1778,11 +1845,14 @@ if (ids.empty()) {
 
   // EMA tracking for the JSON detection stream consumed by strategy and obstacle publishing.
   std::vector<TrackedEntity> tracked_entities_;
+  std::vector<TrackedEntity> tracked_enemy_entities_;
   bool enable_entity_tracking_{true};
   double entity_tracking_match_gate_m_{0.12};
   double entity_tracking_ema_alpha_{0.5};
   double entity_tracking_yaw_alpha_{0.5};
   int entity_tracking_max_missed_frames_{5};
+  int enemy_entity_tracking_max_missed_frames_{5};
+  double enemy_entity_tracking_match_gate_m_{0.5};
   
   // Diagnostics: frame counting and timing
   std::atomic<uint64_t> frame_counter_{0};
@@ -1811,6 +1881,7 @@ if (ids.empty()) {
   std::string map_frame_;
   std::string pose_topic_;
   std::string detected_blocks_topic_;
+  std::string detected_enemy_topic_;
   int width_{0};
   int height_{0};
   int fps_{30};
