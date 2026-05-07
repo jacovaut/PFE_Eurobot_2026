@@ -127,9 +127,9 @@ controller_server:
       PathDist.scale: 2.0
       GoalDist.scale: 8.0
       Oscillation.scale: 1.0
-      Twirling.scale: 8.0
+      Twirling.scale: 0.0
       RotateToGoal.scale: 24.0
-      RotateToGoal.slowing_factor: 5.0
+      RotateToGoal.slowing_factor: 1.0
       RotateToGoal.lookahead_time: -1.0
 
 bt_navigator:
