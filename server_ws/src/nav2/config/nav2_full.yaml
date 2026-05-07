@@ -19,17 +19,7 @@ collision_monitor:
     base_shift_correction: true
     stop_pub_timeout: 1.0
     enable_stamped_cmd_vel: false
-    polygons: ["EnemyStop", "EnemySlow"]
-    EnemyStop:
-      type: "polygon"
-      points: "[[0.32, 0.22], [0.32, -0.22], [-0.32, -0.22], [-0.32, 0.22]]"
-      action_type: "approach"
-      time_before_collision: 0.5
-      simulation_time_step: 0.02
-      min_points: 1
-      visualize: true
-      polygon_pub_topic: "enemy_stop_polygon"
-      enabled: true
+    polygons: ["EnemySlow"]
     EnemySlow:
       type: "polygon"
       points: "[[0.55, 0.36], [0.55, -0.36], [-0.55, -0.36], [-0.55, 0.36]]"
