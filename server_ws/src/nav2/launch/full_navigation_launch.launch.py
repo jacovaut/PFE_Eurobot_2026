@@ -245,6 +245,18 @@ def generate_launch_description():
                 arguments=['--ros-args', '--log-level', log_level],
                 parameters=[{'autostart': autostart}, {'node_names': lifecycle_nodes}],
             ),
+            Node(
+                package='camera_localization',
+                executable='enemy_reactive_avoidance_node.py',
+                name='enemy_reactive_avoidance',
+                output='screen',
+                parameters=[{
+                    'reactive_distance_m': 0.50,
+                    'reactive_speed_m_s': 0.25,
+                    'cooldown_s': 0.5,
+                    'enemy_stale_s': 1.0,
+                }],
+            ),
         ],
     )
 
