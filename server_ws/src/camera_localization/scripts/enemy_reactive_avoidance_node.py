@@ -50,7 +50,7 @@ class EnemyReactiveAvoidance(Node):
         self._backing = False
         self._cooldown_until = None
 
-        self.create_timer(0.05, self._tick)  # 20 Hz reactive loop
+        self.create_timer(0.02, self._tick)  # 50 Hz reactive loop
 
     def _enemy_cb(self, msg: String) -> None:
         try:
@@ -62,6 +62,7 @@ class EnemyReactiveAvoidance(Node):
             self._enemy_x = float(e.get('x', 0.0))
             self._enemy_y = float(e.get('y', 0.0))
             self._last_enemy_t = self.get_clock().now()
+            self._tick()  # react immediately on new enemy data, don't wait for timer
 
     def _nav_cb(self, msg: Twist) -> None:
         self._nav_cmd = msg
