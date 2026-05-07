@@ -43,6 +43,15 @@ class ClusterAnalyzeNode(Node):
         b = zone["bornes"]
         return b["x_min"] <= x_m <= b["x_max"] and b["y_min"] <= y_m <= b["y_max"]
 
+    @staticmethod
+    def _normalize_team_color(color: str) -> str:
+        color = str(color).strip().lower()
+        if color in ("blue", "bleu"):
+            return "blue"
+        if color in ("yellow", "jaune"):
+            return "yellow"
+        return "blue"
+
     def __init__(self):
         super().__init__("cluster_node")
 
@@ -53,8 +62,12 @@ class ClusterAnalyzeNode(Node):
         self.pub_cluster = self.create_publisher(String, "cluster_info", 10)
 
         # --- Parameters (tunable later) ---
-        self.team_color = self.declare_parameter("team_color", "jaune").value
-        self.robot_marker_id = int(self.declare_parameter("robot_marker_id", 1).value)
+        self.team_color = self._normalize_team_color(
+            self.declare_parameter("team_color", "blue").value
+        )
+        self.robot_marker_id = int(
+            self.declare_parameter("robot_marker_id", 1).value
+        )  # Legacy fallback; robot detections now primarily use color/range.
 
         self.cluster_eps_m = float(self.declare_parameter("cluster_eps_m", 0.15).value)
         self.cluster_min_samples = int(self.declare_parameter("cluster_min_samples", 2).value)
@@ -85,12 +98,14 @@ class ClusterAnalyzeNode(Node):
         self.zones_garde_manger = {
             "garde_manger_1": self._make_rect_zone("garde_manger_1", 1.250, 1.450, 0.200, 0.200),
             "garde_manger_2": self._make_rect_zone("garde_manger_2", 1.750, 1.450, 0.200, 0.200),
-            "garde_manger_3": self._make_rect_zone("garde_manger_3", 0.800, 0.800, 0.200, 0.200),
-            "garde_manger_4": self._make_rect_zone("garde_manger_4", 1.500, 0.800, 0.200, 0.200),
-            "garde_manger_5": self._make_rect_zone("garde_manger_5", 2.200, 0.800, 0.200, 0.200),
-            "garde_manger_6": self._make_rect_zone("garde_manger_6", 0.700, 0.100, 0.200, 0.200),
-            "garde_manger_7": self._make_rect_zone("garde_manger_7", 1.500, 0.100, 0.200, 0.200),
-            "garde_manger_8": self._make_rect_zone("garde_manger_8", 2.300, 0.100, 0.200, 0.200),
+            "garde_manger_3": self._make_rect_zone("garde_manger_3", 0.100, 0.800, 0.200, 0.200),
+            "garde_manger_4": self._make_rect_zone("garde_manger_4", 0.800, 0.800, 0.200, 0.200),
+            "garde_manger_5": self._make_rect_zone("garde_manger_5", 1.500, 0.800, 0.200, 0.200),
+            "garde_manger_6": self._make_rect_zone("garde_manger_6", 2.200, 0.800, 0.200, 0.200),
+            "garde_manger_7": self._make_rect_zone("garde_manger_7", 2.900, 0.800, 0.200, 0.200),
+            "garde_manger_8": self._make_rect_zone("garde_manger_8", 0.700, 0.100, 0.200, 0.200),
+            "garde_manger_9": self._make_rect_zone("garde_manger_9", 1.500, 0.100, 0.200, 0.200),
+            "garde_manger_10": self._make_rect_zone("garde_manger_10", 2.300, 0.100, 0.200, 0.200),
         }
 
         # Zones interdites (ex: grenier inaccessible au robot)
@@ -149,9 +164,14 @@ class ClusterAnalyzeNode(Node):
         )
 
     def _enemy_color(self) -> str:
-        if self.team_color.lower() == "bleu":
+        if self.team_color == "blue":
             return "jaune"
         return "bleu"
+
+    def _is_our_robot_marker(self, marker_id: int) -> bool:
+        if self.team_color == "blue":
+            return 1 <= marker_id <= 5
+        return 6 <= marker_id <= 10
 
     def _parse_detected_blocks(self, json_data: str) -> List[BlockDetection]:
         """Parse detected blocks from JSON string."""
@@ -169,9 +189,10 @@ class ClusterAnalyzeNode(Node):
                 z = float(item.get("z", item.get("z_cam", 0.0)))
                 angle_z_deg = float(item.get("angle_z_deg", math.degrees(float(item.get("yaw", 0.0)))))
                 
-                # Track robot position
-                if marker_id == self.robot_marker_id:
+                # Track robot position from the global camera's robot entity.
+                if color == "robot" or self._is_our_robot_marker(marker_id):
                     self.last_robot_pos = (x, y)
+                    continue
                 
                 # Only add colored blocks (not robot)
                 if marker_id in self.id_color_map:

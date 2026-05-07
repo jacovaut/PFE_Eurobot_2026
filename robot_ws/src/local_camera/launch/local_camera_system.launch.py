@@ -8,12 +8,36 @@ from launch.substitutions import Command
 from launch.substitutions import LaunchConfiguration
 from launch_ros.parameter_descriptions import ParameterValue
 from ament_index_python.packages import get_package_share_directory
+from ament_index_python.packages import PackageNotFoundError
 import os
+import yaml
+
+
+def _normalize_team_color(color):
+    color = str(color).strip().lower()
+    if color in ('blue', 'bleu'):
+        return 'blue'
+    if color in ('yellow', 'jaune'):
+        return 'yellow'
+    return 'blue'
+
+
+def _read_team_color_default():
+    try:
+        camera_share = get_package_share_directory('camera_localization')
+        camera_map = os.path.join(camera_share, 'config', 'camera_global_map.yaml')
+        with open(camera_map, 'r', encoding='utf-8') as handle:
+            data = yaml.safe_load(handle) or {}
+        params = data.get('global_localization_node', {}).get('ros__parameters', {})
+        return _normalize_team_color(params.get('team_color', 'blue'))
+    except (PackageNotFoundError, OSError, yaml.YAMLError):
+        return 'blue'
 
 
 def generate_launch_description():
     pkg_path = get_package_share_directory('pfe')
     local_camera_share = get_package_share_directory('local_camera')
+    default_team_color = _read_team_color_default()
     urdf_file = os.path.join(pkg_path, 'urdf', 'my_robot.urdf.xacro')
     lidar_launch_file = os.path.join(local_camera_share, 'launch', 'ydlidar_pointcloud.launch.py')
 
@@ -28,6 +52,12 @@ def generate_launch_description():
         description='Start the YDLidar driver and LaserScan to PointCloud2 bridge.',
     )
 
+    team_color_arg = DeclareLaunchArgument(
+        'team_color',
+        default_value=default_team_color,
+        description='Team color for local pickup scoring (blue|yellow, bleu|jaune).',
+    )
+
     lidar_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(lidar_launch_file),
         condition=IfCondition(LaunchConfiguration('enable_lidar')),
@@ -35,6 +65,7 @@ def generate_launch_description():
 
     return LaunchDescription([
         enable_lidar_arg,
+        team_color_arg,
         Node(
             package='robot_state_publisher',
             executable='robot_state_publisher',
@@ -63,6 +94,7 @@ def generate_launch_description():
             output='screen',
             parameters=[{
                 'udp_port': 5005,
+                'team_color': LaunchConfiguration('team_color'),
             }],
         ),
         lidar_launch,

@@ -15,17 +15,19 @@ from .modules.math_utils import rotate_xy, angle_between, wrap_angle, rectangula
 from .modules.solver import compute_best_pickup, recompute_locked_pose
 from .modules.block_tracker import BlockTracker
 from .modules.tf_utils import TfPublisher
+from .team_color import normalize_team_color, read_default_team_color
+
 
 class MergedLocalPickupNode(Node):
     def __init__(self):
         super().__init__("merged_local_pickup_node")
         self.declare_parameter("udp_port", 5005)
-        self.declare_parameter("team_color", "blue")
+        self.declare_parameter("team_color", read_default_team_color())
         self.declare_parameter("block_timeout_sec", 1.0)
         self.declare_parameter("match_distance_m", 0.035)
         self.declare_parameter("camera_seen_timeout", 0.3)  # stop publishing if no detections for this long
         self.udp_port = int(self.get_parameter("udp_port").value)
-        self.team_color = str(self.get_parameter("team_color").value)
+        self.team_color = normalize_team_color(self.get_parameter("team_color").value)
         self.block_timeout_sec = float(self.get_parameter("block_timeout_sec").value)
         self.match_distance_m = float(self.get_parameter("match_distance_m").value)
         self.camera_seen_timeout = float(self.get_parameter("camera_seen_timeout").value)
@@ -49,7 +51,7 @@ class MergedLocalPickupNode(Node):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.bind(("0.0.0.0", self.udp_port))
         self.sock.setblocking(False)
-        self.get_logger().info("[SOLVER READY]")
+        self.get_logger().info(f"[SOLVER READY] team_color={self.team_color}")
 
     def reset_lock(self):
         self.solution_locked = False

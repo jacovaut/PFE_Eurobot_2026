@@ -33,9 +33,12 @@ global_localization_node:
     detected_blocks_topic: "/detected_blocks"
     detected_enemy_topic: "/detected_enemy"
 
+    # Match setup
+    # blue/bleu: our robot IDs 1-5, enemy IDs 6-10.
+    # yellow/jaune: our robot IDs 6-10, enemy IDs 1-5.
+    team_color: "blue"
+
     # Marker setup
-    robot_marker_id: 1
-    enemy_robot_marker_id: 6
     table_marker_length_m: 0.10
     robot_marker_length_m: 0.07
     enemy_robot_marker_length_m: 0.07

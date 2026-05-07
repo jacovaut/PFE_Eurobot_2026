@@ -20,23 +20,20 @@ from rclpy.node import Node
 from std_msgs.msg import String
 
 from custom_msgs.action import DockToBlock, Pick
-
-# Color string from solver → Pick.Goal colors array value
-# 0 = not present, 1 = pick as-is, 2 = pick and flip
-_COLOR_TO_INT = {
-    "blue":    1,
-    "yellow":  2,
-    "unknown": 1,  # treat unknown as pick as-is
-}
+from .team_color import normalize_team_color, read_default_team_color
 
 
 class PickupOrchestrator(Node):
     def __init__(self):
         super().__init__("pickup_orchestrator")
 
+        self.declare_parameter("team_color", read_default_team_color())
         self.declare_parameter("dock_timeout_sec", 30.0)
         self.declare_parameter("pick_timeout_sec", 0.0)
 
+        self.team_color = normalize_team_color(
+            self.get_parameter("team_color").value
+        )
         self.dock_timeout = float(self.get_parameter("dock_timeout_sec").value)
         self.pick_timeout = float(self.get_parameter("pick_timeout_sec").value)
 
@@ -52,6 +49,16 @@ class PickupOrchestrator(Node):
 
         self._dock_client = ActionClient(self, DockToBlock, "dock_to_block")
         self._pick_client = ActionClient(self, Pick, "pick")
+        self.get_logger().info(f"[ORCHESTRATOR READY] team_color={self.team_color}")
+
+    def _color_to_pick_mode(self, color: str) -> int:
+        # Pick.Goal colors: 0 = absent, 1 = pick as-is, 2 = pick and flip.
+        if str(color).strip().lower() == "unknown":
+            return 1
+        color = normalize_team_color(color)
+        if color == self.team_color:
+            return 1
+        return 2
 
     def _best_pickup_cb(self, msg: String) -> None:
         try:
@@ -187,7 +194,7 @@ class PickupOrchestrator(Node):
             idx = cup_index.get(a.get("cup", ""), -1)
             if idx < 0:
                 continue
-            colors[idx] = _COLOR_TO_INT.get(a.get("color", "unknown"), 1)
+            colors[idx] = self._color_to_pick_mode(a.get("color", "unknown"))
 
         count = sum(1 for c in colors if c != 0)
         return colors, count
