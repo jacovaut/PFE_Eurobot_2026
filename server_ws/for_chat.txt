@@ -1,0 +1,57 @@
+dear chat,
+
+goal_checker:
+    plugin: "nav2_controller::SimpleGoalChecker"
+    stateful: true
+    xy_goal_tolerance: 0.03
+    yaw_goal_tolerance: 0.35
+
+ros2 topic echo /goal_pose
+
+---
+header:
+  stamp:
+    sec: 1778120978
+    nanosec: 484648992
+  frame_id: map
+pose:
+  position:
+    x: 0.9902787208557129
+    y: 1.1858181953430176
+    z: 0.0
+  orientation:
+    x: 0.0
+    y: 0.0
+    z: 0.9991222436598508
+    w: 0.04188964339912508
+---
+
+
+ros2 topic echo /camera/global_pose --field pose.pose
+
+
+---
+position:
+  x: 0.9485654545448934
+  y: 1.2916405110447204
+  z: 0.0
+orientation:
+  x: 0.0
+  y: 0.0
+  z: 0.9987050276068409
+  w: 0.05087502169846503
+---
+position:
+  x: 0.9487462466050182
+  y: 1.2913977272751223
+  z: 0.0
+orientation:
+  x: 0.0
+  y: 0.0
+  z: 0.9988274554374166
+  w: 0.04841192275065672
+---
+
+
+thank you for your help,
+user
