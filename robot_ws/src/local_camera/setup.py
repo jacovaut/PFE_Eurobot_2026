@@ -28,6 +28,7 @@ setup(
             'ros_node = local_camera.ros_node:main',
             'alignment_controller = local_camera.alignment_controller:main',
             'dock_action_server = local_camera.dock_action_server:main',
+            'scan_pointcloud_node = local_camera.scan_pointcloud_node:main',
         ],
     },
 )
