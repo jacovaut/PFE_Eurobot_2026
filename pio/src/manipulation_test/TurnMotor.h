@@ -15,6 +15,10 @@ public:
     void returnToZero();
     long getEncoderCount() { return encoder.getCount(); }
     bool isAtTarget() { return reached_target; }
+    void resetEncoder() { encoder.setCount(0); }
+    void disable() { disabled = true;  applyPWM(0); }
+    void enable()  { disabled = false; }
+
 
     static void staticHandleInterrupt();
     static TurnMotor* instance;
@@ -29,6 +33,7 @@ private:
     float prev_error      = 0.0f;
     float integral        = 0.0f;
     bool  reached_target  = false;
+    bool  disabled        = false;
 
     bool     return_zero_pending = false;
     uint32_t return_zero_timer   = 0;

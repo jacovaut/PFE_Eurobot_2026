@@ -63,7 +63,7 @@ ArmMotor armMotor(
     /*pwm_ch_fwd*/ PWM_CHANNEL_LIFT1, /*pwm_ch_rev*/ PWM_CHANNEL_LIFT2);
 
 TurnMotor turnMotor(
-    /*kp*/ 2.0f, /*ki*/ 0.0f, /*kd*/ 0.0f,
+    /*kp*/ 0.8f, /*ki*/ 0.05f, /*kd*/ 0.01f,
     /*in1*/ MOTOR_TURN1, /*in2*/ MOTOR_TURN2,
     /*enc_a*/ ENCODER_TURN_A, /*enc_b*/ ENCODER_TURN_B, /*enc_x*/ ENCODER_TURN_X,
     /*pwm_ch_fwd*/ PWM_CHANNEL_TURN1, /*pwm_ch_rev*/ PWM_CHANNEL_TURN2);
@@ -76,34 +76,65 @@ enum LiftState {
     LIFT_IDLE,
 
     // Pick sequence
-    PICK_ARM_TO_300,
-    PICK_WAIT_ARM_300,
+    PICK_ARM_500,
+    PICK_WAIT_ARM_500,
     PICK_PAUSE_1,
-    PICK_SIMULTANEOUS,          // turn -> 1000, arm -> 950
-    PICK_WAIT_SIMULTANEOUS,
+    PICK_TURN_400,
+    PICK_WAIT_TURN_400,
     PICK_PAUSE_2,
-    PICK_ARM_TO_1480,
-    PICK_WAIT_ARM_1480,
+    PICK_ARM_900,
+    PICK_WAIT_ARM_900,
+    PICK_PAUSE_3,
+    PICK_TURN_1050,
+    PICK_WAIT_TURN_1050,
+    PICK_PAUSE_4,
+    PICK_ARM_1475,
+    PICK_WAIT_ARM_1475,
+    PICK_PAUSE_5,
     PICK_PUMPS_ON,
-    PICK_PAUSE_HOLD,            // 2s hold after pumps on
+    WIGGLE,
+    WIGGLE_WAIT,
+    WIGGLE_START,
+    WIGGLE_END,
+    START_WIGGLE,
+    WIGGLE_WAIT2,
+    WIGGLE_WAIT3,
+    PICK_PAUSE_6,
+    PICK_PAUSE_7,
+    PICK_PAUSE_HOLD,
     PICK_DONE,
+    PICK_TURN,
+    PICK_WAIT_TURN,
+    PICK_ARM,
+    PICK_WAIT_ARM,
+    PICK_PAUSE_8,
+    PICK_PAUSE_9,
+    WIGGLE_END3,
+    WIGGLE_WAIT4,
+    PICK_PAUSE_HOLD2,
+
 
     // Home sequence
-    HOME_ARM_TO_800,
-    HOME_WAIT_ARM_800,
+    HOME_ARM_1200,
+    HOME_WAIT_ARM_1200,
     HOME_PAUSE_1,
-    HOME_SIMULTANEOUS,          // turn -> 500, arm -> 325
-    HOME_WAIT_SIMULTANEOUS,
+    HOME_TURN_450,
+    HOME_WAIT_TURN_450,
     HOME_PAUSE_2,
-    HOME_TURN_TO_0,
-    HOME_WAIT_TURN_0,
+    HOME_ARM_550,
+    HOME_WAIT_ARM_550,
     HOME_PAUSE_3,
-    HOME_ARM_TO_0,
-    HOME_WAIT_ARM_0,
+    HOME_TURN_0,
+    HOME_WAIT_TURN_0,
+    HOME_PAUSE_4,
+    HOME_ARM_200,
+    HOME_WAIT_ARM_200,
     HOME_PUMPS_OFF,
-    HOME_PUMPS_WAIT,
-    HOME_FINAL_RETURN,
-    HOME_DONE
+    HOME_PAUSE_5,
+    HOME_ARM_0,
+    HOME_WAIT_ARM_0,
+    HOME_DONE,
+    HOME_PAUSE_14
 };
 
 LiftState lift_state         = LIFT_IDLE;
@@ -111,20 +142,52 @@ uint32_t  lift_pause_timer   = 0;
 bool      requested_pumps[4] = {false, false, false, false};
 
 // ----------------------------------------
+// SECTION: Flipper sequence state machine
+// ----------------------------------------
+
+enum FlipperState {
+    FLIPPER_IDLE,
+
+    // B sequence (blue)
+    FLIPPER_B_STOPPER_OPEN,
+    FLIPPER_B_STOPPER_WAIT,
+    FLIPPER_B_STOPPER_CLOSE,
+    FLIPPER_B_STOPPER_CLOSE_WAIT,
+    FLIPPER_B_FLIP,
+    FLIPPER_B_FLIP_WAIT,
+    FLIPPER_B_RETURN,
+    FLIPPER_B_RETURN_WAIT,
+    FLIPPER_B_DONE,
+
+    // Y sequence (yellow)
+    FLIPPER_Y_STOPPER_OPEN,
+    FLIPPER_Y_STOPPER_WAIT,
+    FLIPPER_Y_STOPPER_CLOSE,
+    FLIPPER_Y_STOPPER_CLOSE_WAIT,
+    FLIPPER_Y_FLIP,
+    FLIPPER_Y_FLIP_WAIT,
+    FLIPPER_Y_RETURN,
+    FLIPPER_Y_RETURN_WAIT,
+    FLIPPER_Y_DONE,
+};
+
+FlipperState flipper_state       = FLIPPER_IDLE;
+uint32_t     flipper_pause_timer = 0;
+
+// ----------------------------------------
 // SECTION: Servo tuning values
 // ----------------------------------------
 
-constexpr int STOP_CLOSED_ANGLE  = 180;
-constexpr int STOP_OPEN_ANGLE    = 130;
+// Stopper
+constexpr int STOP_CLOSED_ANGLE = 180;   // tune this
+constexpr int STOP_OPEN_ANGLE   = 120;   // tune this
 
-constexpr int      FLIP_STOP        = 90;
-constexpr int      FLIP_B_START     = 65;
-constexpr int      FLIP_B_END       = 140;
-constexpr int      FLIP_Y           = 110;
-constexpr uint32_t FLIP_B_DELAY_MS  = 1000;
-
-// Pump shutoff delay between each pump (ms)
-constexpr uint32_t PUMP_SHUTOFF_DELAY = 500;
+// Flipper
+constexpr int      FLIP_STOP          = 60;    // resting position
+constexpr int      FLIP_COLOR_START   = 50;    // both colors go here first
+constexpr int      FLIP_B_END_COLOR   = 120;   // blue end position
+constexpr int      FLIP_Y_END_COLOR   = 40;    // yellow end position
+constexpr uint32_t FLIPPER_SEQ_DELAY  = 1000;   // delay between each action
 
 // ----------------------------------------
 // SECTION: Servo objects and state
@@ -133,10 +196,9 @@ constexpr uint32_t PUMP_SHUTOFF_DELAY = 500;
 Servo stopper_servo;
 Servo flipper_servo;
 
-bool     flipper_b_pending = false;
-uint32_t flipper_b_timer   = 0;
-bool     pump_states[4]    = {false, false, false, false};
-bool     stopper_open      = false;
+bool pump_states[4] = {false, false, false, false};
+bool stopper_open   = false;
+
 
 // ----------------------------------------
 // SECTION: Helper functions
@@ -177,14 +239,160 @@ void setStopperPosition(bool open) {
     Serial.println(open ? "Stopper OPEN" : "Stopper CLOSED");
 }
 
-void setFlipperStop() { flipper_servo.write(FLIP_STOP); Serial.println("Flipper STOP"); }
-void setFlipperY()    { flipper_servo.write(FLIP_Y);    Serial.println("Flipper Y"); }
+void setFlipperStop() {
+    flipper_servo.write(FLIP_STOP);
+    Serial.println("Flipper STOP");
+}
 
-void setFlipperB() {
-    flipper_servo.write(FLIP_B_START);
-    flipper_b_pending = true;
-    flipper_b_timer   = millis();
-    Serial.println("Flipper B: going to 65, then 140 in 1s");
+void startFlipperB() {
+    if (flipper_state != FLIPPER_IDLE) {
+        Serial.println("Flipper sequence already running");
+        return;
+    }
+    flipper_state = FLIPPER_B_STOPPER_OPEN;
+    Serial.println("Flipper B sequence started");
+}
+
+void startFlipperY() {
+    if (flipper_state != FLIPPER_IDLE) {
+        Serial.println("Flipper sequence already running");
+        return;
+    }
+    flipper_state = FLIPPER_Y_STOPPER_OPEN;
+    Serial.println("Flipper Y sequence started");
+}
+
+void updateFlipperSequence() {
+    switch (flipper_state) {
+        case FLIPPER_IDLE:
+            break;
+
+        // ----------------------------------------
+        // B sequence (blue)
+        // ----------------------------------------
+
+        case FLIPPER_B_STOPPER_OPEN:
+            setStopperPosition(true);
+            flipper_pause_timer = millis();
+            flipper_state = FLIPPER_B_STOPPER_WAIT;
+            break;
+
+        case FLIPPER_B_STOPPER_WAIT:
+            if (millis() - flipper_pause_timer >= FLIPPER_SEQ_DELAY) {
+                flipper_state = FLIPPER_B_STOPPER_CLOSE;
+            }
+            break;
+
+        case FLIPPER_B_STOPPER_CLOSE:
+            setStopperPosition(false);
+            flipper_pause_timer = millis();
+            flipper_state = FLIPPER_B_STOPPER_CLOSE_WAIT;
+            break;
+
+        case FLIPPER_B_STOPPER_CLOSE_WAIT:
+            if (millis() - flipper_pause_timer >= FLIPPER_SEQ_DELAY) {
+                flipper_state = FLIPPER_B_FLIP;
+            }
+            break;
+
+        case FLIPPER_B_FLIP:
+            flipper_servo.write(FLIP_COLOR_START);
+            flipper_pause_timer = millis();
+            flipper_state = FLIPPER_B_FLIP_WAIT;
+            Serial.println("Flipper B: at start, going to 120");
+            break;
+
+        case FLIPPER_B_FLIP_WAIT:
+            if (millis() - flipper_pause_timer >= FLIPPER_SEQ_DELAY) {
+                flipper_servo.write(FLIP_B_END_COLOR);
+                flipper_pause_timer = millis();
+                flipper_state = FLIPPER_B_RETURN;
+                Serial.println("Flipper B: at end position");
+            }
+            break;
+
+        case FLIPPER_B_RETURN:
+            if (millis() - flipper_pause_timer >= FLIPPER_SEQ_DELAY) {
+                setFlipperStop();
+                flipper_pause_timer = millis();
+                flipper_state = FLIPPER_B_RETURN_WAIT;
+            }
+            break;
+
+        case FLIPPER_B_RETURN_WAIT:
+            if (millis() - flipper_pause_timer >= FLIPPER_SEQ_DELAY) {
+                flipper_state = FLIPPER_B_DONE;
+            }
+            break;
+
+        case FLIPPER_B_DONE:
+            Serial.println("Flipper B sequence complete");
+            flipper_state = FLIPPER_IDLE;
+            break;
+
+        // ----------------------------------------
+        // Y sequence (yellow)
+        // ----------------------------------------
+
+        case FLIPPER_Y_STOPPER_OPEN:
+            setStopperPosition(true);
+            flipper_pause_timer = millis();
+            flipper_state = FLIPPER_Y_STOPPER_WAIT;
+            break;
+
+        case FLIPPER_Y_STOPPER_WAIT:
+            if (millis() - flipper_pause_timer >= FLIPPER_SEQ_DELAY) {
+                flipper_state = FLIPPER_Y_STOPPER_CLOSE;
+            }
+            break;
+
+        case FLIPPER_Y_STOPPER_CLOSE:
+            setStopperPosition(false);
+            flipper_pause_timer = millis();
+            flipper_state = FLIPPER_Y_STOPPER_CLOSE_WAIT;
+            break;
+
+        case FLIPPER_Y_STOPPER_CLOSE_WAIT:
+            if (millis() - flipper_pause_timer >= FLIPPER_SEQ_DELAY) {
+                flipper_state = FLIPPER_Y_FLIP;
+            }
+            break;
+
+        case FLIPPER_Y_FLIP:
+            flipper_servo.write(FLIP_COLOR_START);
+            flipper_pause_timer = millis();
+            flipper_state = FLIPPER_Y_FLIP_WAIT;
+            Serial.println("Flipper Y: at start, going to 40");
+            break;
+
+        case FLIPPER_Y_FLIP_WAIT:
+            if (millis() - flipper_pause_timer >= FLIPPER_SEQ_DELAY) {
+                flipper_servo.write(FLIP_Y_END_COLOR);
+                flipper_pause_timer = millis();
+                flipper_state = FLIPPER_Y_RETURN;
+                Serial.println("Flipper Y: at end position");
+            }
+            break;
+
+        case FLIPPER_Y_RETURN:
+            if (millis() - flipper_pause_timer >= FLIPPER_SEQ_DELAY) {
+                setFlipperStop();
+                flipper_pause_timer = millis();
+                flipper_state = FLIPPER_Y_RETURN_WAIT;
+            }
+            break;
+
+        case FLIPPER_Y_RETURN_WAIT:
+            if (millis() - flipper_pause_timer >= FLIPPER_SEQ_DELAY) {
+                flipper_state = FLIPPER_Y_DONE;
+            }
+            break;
+
+        case FLIPPER_Y_DONE:
+            Serial.println("Flipper Y sequence complete");
+            flipper_state = FLIPPER_IDLE;
+            break;
+    }
 }
 
 // ----------------------------------------
@@ -200,15 +408,18 @@ void updateLiftSequence() {
     // Pick sequence
     // ----------------------------------------
 
-    case PICK_ARM_TO_300:
-        armMotor.setTarget(300);
-        Serial.println("Pick seq: arm -> 300");
-        lift_state = PICK_WAIT_ARM_300;
+    case PICK_ARM_500:
+        armMotor.resetEncoder();
+        turnMotor.resetEncoder();
+        armMotor.enable();
+        turnMotor.enable();
+        armMotor.setTarget(500);
+        Serial.println("Pick: arm -> 500");
+        lift_state = PICK_WAIT_ARM_500;
         break;
 
-    case PICK_WAIT_ARM_300:
+    case PICK_WAIT_ARM_500:
         if (armMotor.isAtTarget()) {
-            Serial.println("Pick seq: arm at 300, waiting 0.5s");
             lift_pause_timer = millis();
             lift_state = PICK_PAUSE_1;
         }
@@ -216,20 +427,18 @@ void updateLiftSequence() {
 
     case PICK_PAUSE_1:
         if (millis() - lift_pause_timer >= 500) {
-            lift_state = PICK_SIMULTANEOUS;
+            lift_state = PICK_TURN_400;
         }
         break;
 
-    case PICK_SIMULTANEOUS:
-        turnMotor.setTarget(1025);
-        armMotor.setTarget(950);
-        Serial.println("Pick seq: turn -> 1025, arm -> 950 simultaneously");
-        lift_state = PICK_WAIT_SIMULTANEOUS;
+    case PICK_TURN_400:
+        turnMotor.setTarget(450);
+        Serial.println("Pick: turn -> 400");
+        lift_state = PICK_WAIT_TURN_400;
         break;
 
-    case PICK_WAIT_SIMULTANEOUS:
-        if (armMotor.isAtTarget() && turnMotor.isAtTarget()) {
-            Serial.println("Pick seq: both at position, waiting 0.5s");
+    case PICK_WAIT_TURN_400:
+        if (turnMotor.isAtTarget()) {
             lift_pause_timer = millis();
             lift_state = PICK_PAUSE_2;
         }
@@ -237,19 +446,101 @@ void updateLiftSequence() {
 
     case PICK_PAUSE_2:
         if (millis() - lift_pause_timer >= 500) {
-            lift_state = PICK_ARM_TO_1480;
+            lift_state = PICK_ARM_900;
         }
         break;
 
-    case PICK_ARM_TO_1480:
-        armMotor.setTarget(1480);
-        Serial.println("Pick seq: arm -> 1480");
-        lift_state = PICK_WAIT_ARM_1480;
+    case PICK_ARM_900:
+        armMotor.setTarget(1100);
+        Serial.println("Pick: arm -> 900");
+        lift_state = PICK_WAIT_ARM_900;
         break;
 
-    case PICK_WAIT_ARM_1480:
+    case PICK_WAIT_ARM_900:
         if (armMotor.isAtTarget()) {
-            Serial.println("Pick seq: arm at 1480, activating pumps");
+            lift_pause_timer = millis();
+            lift_state = PICK_PAUSE_3;
+        }
+        break;
+
+    case PICK_PAUSE_3:
+        if (millis() - lift_pause_timer >= 500) {
+            lift_state = PICK_TURN_1050;
+        }
+        break;
+
+    case PICK_TURN_1050:
+        turnMotor.setTarget(1050);
+        Serial.println("Pick: turn -> 1050");
+        lift_state = PICK_WAIT_TURN_1050;
+        break;
+
+    case PICK_WAIT_TURN_1050:
+        if (turnMotor.isAtTarget()) {
+            lift_pause_timer = millis();
+            lift_state = PICK_PAUSE_4;
+        }
+        break;
+
+    case PICK_PAUSE_4:
+        if (millis() - lift_pause_timer >= 500) {
+            lift_state = PICK_ARM;
+        }
+        break;
+
+    // case PICK_ARM_1475:
+    //     armMotor.setTarget(1100);
+    //     Serial.println("Pick: arm -> 1475");
+    //     lift_state = PICK_WAIT_ARM_1475;
+    //     break;
+
+    // case PICK_WAIT_ARM_1475:
+    //     if (armMotor.isAtTarget()) {
+    //         lift_pause_timer = millis();
+    //         lift_state = PICK_PAUSE_5;
+    //     }
+    //     break;
+
+    // case PICK_PAUSE_5:
+    //     if (millis() - lift_pause_timer >= 500) {
+    //         lift_state = PICK_TURN;
+    //     }
+    //     break;
+
+    //     case PICK_TURN:
+    //     turnMotor.setTarget(1050);
+    //     Serial.println("Pick: turn -> 1050");
+    //     lift_state = PICK_WAIT_TURN;
+    //     break;
+
+    // case PICK_WAIT_TURN:
+    //     if (turnMotor.isAtTarget()) {
+    //         lift_pause_timer = millis();
+    //         lift_state = PICK_PAUSE_9;
+    //     }
+    //     break;
+
+    // case PICK_PAUSE_9:
+    //     if (millis() - lift_pause_timer >= 500) {
+    //         lift_state = PICK_ARM;
+    //     }
+    //     break;
+
+        case PICK_ARM:
+        armMotor.setTarget(1350);
+        Serial.println("Pick: arm -> 1350");
+        lift_state = PICK_WAIT_ARM;
+        break;
+
+    case PICK_WAIT_ARM:
+        if (armMotor.isAtTarget()) {
+            lift_pause_timer = millis();
+            lift_state = PICK_PAUSE_8;
+        }
+        break;
+
+    case PICK_PAUSE_8:
+        if (millis() - lift_pause_timer >= 500) {
             lift_state = PICK_PUMPS_ON;
         }
         break;
@@ -258,35 +549,85 @@ void updateLiftSequence() {
         for (int i = 0; i < 4; i++) {
             if (requested_pumps[i]) setPumpState(i + 1, true);
         }
-        Serial.println("Pick seq: pumps ON, holding 2s");
+        Serial.println("Pick: pumps ON, holding 1s");
         lift_pause_timer = millis();
-        lift_state = PICK_PAUSE_HOLD;
+        lift_state = START_WIGGLE;
         break;
 
+    case START_WIGGLE:
+        armMotor.setTarget(1450);
+        Serial.println("Pick: arm -> 1450");
+        lift_state = WIGGLE_WAIT;
+        break;
+
+    case WIGGLE_WAIT:
+        if (armMotor.isAtTarget()) {
+            lift_pause_timer = millis();
+            lift_state = PICK_PAUSE_HOLD;
+        }
+        break;
+
+    // case PICK_PAUSE_6:
+    //     if (millis() - lift_pause_timer >= 500) {
+    //         lift_state = WIGGLE;
+    //     }
+    //     break;
+
+    // case WIGGLE:
+    //     turnMotor.setTarget(1075);
+    //     Serial.println("Pick: turn -> 1075");
+    //     lift_state = WIGGLE_WAIT2;
+    //     break;
+
+    // case WIGGLE_WAIT2:
+    //     if (turnMotor.isAtTarget()) {
+    //         lift_pause_timer = millis();
+    //         lift_state = PICK_PAUSE_7;
+    //     }
+    //     break;
+
+    // case PICK_PAUSE_7:
+    //     if (millis() - lift_pause_timer >= 500) {
+    //         lift_state = WIGGLE_END;
+    //     }
+    //     break;
+
+    // case WIGGLE_END:
+    //     turnMotor.setTarget(1050);
+    //     Serial.println("Pick: turn -> 1050");
+    //     lift_state = WIGGLE_WAIT3;
+    //     break;
+
+    // case WIGGLE_WAIT3:
+    //     if (turnMotor.isAtTarget()) {
+    //         lift_pause_timer = millis();
+    //         lift_state = PICK_PAUSE_HOLD;
+    //     }
+    //     break;
+
     case PICK_PAUSE_HOLD:
-        if (millis() - lift_pause_timer >= 2000) {
+        if (millis() - lift_pause_timer >= 1000) {
             lift_state = PICK_DONE;
         }
         break;
 
     case PICK_DONE:
         Serial.println("Pick done, starting home sequence");
-        lift_state = HOME_ARM_TO_800;
+        lift_state = HOME_ARM_1200;
         break;
 
     // ----------------------------------------
     // Home sequence
     // ----------------------------------------
 
-    case HOME_ARM_TO_800:
-        armMotor.setTarget(800);
-        Serial.println("Home seq: arm -> 800");
-        lift_state = HOME_WAIT_ARM_800;
+    case HOME_ARM_1200:
+        armMotor.setTarget(1000);
+        Serial.println("Home: arm -> 1200");
+        lift_state = HOME_WAIT_ARM_1200;
         break;
 
-    case HOME_WAIT_ARM_800:
+    case HOME_WAIT_ARM_1200:
         if (armMotor.isAtTarget()) {
-            Serial.println("Home seq: arm at 800, waiting 0.5s");
             lift_pause_timer = millis();
             lift_state = HOME_PAUSE_1;
         }
@@ -294,20 +635,18 @@ void updateLiftSequence() {
 
     case HOME_PAUSE_1:
         if (millis() - lift_pause_timer >= 500) {
-            lift_state = HOME_SIMULTANEOUS;
+            lift_state = HOME_TURN_450;
         }
         break;
 
-    case HOME_SIMULTANEOUS:
-        turnMotor.setTarget(500);
-        armMotor.setTarget(325);
-        Serial.println("Home seq: turn -> 500, arm -> 325 simultaneously");
-        lift_state = HOME_WAIT_SIMULTANEOUS;
+    case HOME_TURN_450:
+        turnMotor.setTarget(800);
+        Serial.println("Home: turn -> 450");
+        lift_state = HOME_WAIT_TURN_450;
         break;
 
-    case HOME_WAIT_SIMULTANEOUS:
-        if (armMotor.isAtTarget() && turnMotor.isAtTarget()) {
-            Serial.println("Home seq: both at position, waiting 0.5s");
+    case HOME_WAIT_TURN_450:
+        if (turnMotor.isAtTarget()) {
             lift_pause_timer = millis();
             lift_state = HOME_PAUSE_2;
         }
@@ -315,19 +654,18 @@ void updateLiftSequence() {
 
     case HOME_PAUSE_2:
         if (millis() - lift_pause_timer >= 500) {
-            lift_state = HOME_TURN_TO_0;
+            lift_state = HOME_ARM_550;
         }
         break;
 
-    case HOME_TURN_TO_0:
-        turnMotor.setTarget(0);
-        Serial.println("Home seq: turn -> 0");
-        lift_state = HOME_WAIT_TURN_0;
+    case HOME_ARM_550:
+        armMotor.setTarget(800);
+        Serial.println("Home: arm -> 550");
+        lift_state = HOME_WAIT_ARM_550;
         break;
 
-    case HOME_WAIT_TURN_0:
-        if (turnMotor.isAtTarget()) {
-            Serial.println("Home seq: turn at 0, waiting 0.5s");
+    case HOME_WAIT_ARM_550:
+        if (armMotor.isAtTarget()) {
             lift_pause_timer = millis();
             lift_state = HOME_PAUSE_3;
         }
@@ -335,48 +673,113 @@ void updateLiftSequence() {
 
     case HOME_PAUSE_3:
         if (millis() - lift_pause_timer >= 500) {
-            lift_state = HOME_ARM_TO_0;
+            lift_state = HOME_TURN_0;
         }
         break;
 
-    case HOME_ARM_TO_0:
-        armMotor.setTarget(-20);
-        turnMotor.setTarget(-20);
-        Serial.println("Home seq: arm -> 0");
+    case HOME_TURN_0:
+        turnMotor.setTarget(500);
+        Serial.println("Home: turn -> 0");
+        lift_state = HOME_WAIT_TURN_0;
+        break;
+
+    case HOME_WAIT_TURN_0:
+        if (turnMotor.isAtTarget()) {
+            lift_pause_timer = millis();
+            lift_state = HOME_PAUSE_4;
+        }
+        break;
+
+    case HOME_PAUSE_4:
+        if (millis() - lift_pause_timer >= 500) {
+            lift_state = HOME_ARM_200;
+        }
+        break;
+
+    case HOME_ARM_200:
+        armMotor.setTarget(500);
+        Serial.println("Home: arm -> 200");
+        lift_state = PICK_PAUSE_7;
+        break;
+
+    case PICK_PAUSE_7:
+        if (armMotor.isAtTarget()) {
+            lift_pause_timer = millis();
+            lift_state = HOME_PAUSE_14;
+        }
+        break;
+
+    case HOME_PAUSE_14:
+        if (millis() - lift_pause_timer >= 500) {
+            lift_state = WIGGLE_END;
+        }
+        break;
+
+    case WIGGLE_END:
+        turnMotor.setTarget(0);
+        Serial.println("Pick: turn -> 1050");
+        lift_state = WIGGLE_WAIT3;
+        break;
+
+    case WIGGLE_WAIT3:
+        if (turnMotor.isAtTarget()) {
+            lift_pause_timer = millis();
+            lift_state = PICK_PAUSE_HOLD2;
+        }
+        break;
+
+    case PICK_PAUSE_HOLD2:
+        if (millis() - lift_pause_timer >= 500) {
+            lift_state = WIGGLE_END3;
+        }
+        break;
+
+    case WIGGLE_END3:
+        armMotor.setTarget(200);
+        Serial.println("Pick: arm -> 200");
+        lift_state = WIGGLE_WAIT4;
+        break;
+
+    case WIGGLE_WAIT4:
+        if (armMotor.isAtTarget()) {
+            lift_state = HOME_PUMPS_OFF;
+        }
+        break;
+
+    case HOME_PUMPS_OFF:
+        allPumpsOff();
+        Serial.println("Home: pumps OFF");
+        lift_pause_timer = millis();
+        lift_state = HOME_PAUSE_5;
+        break;
+
+    case HOME_PAUSE_5:
+        if (millis() - lift_pause_timer >= 500) {
+            lift_state = HOME_ARM_0;
+        }
+        break;
+
+    case HOME_ARM_0:
+        armMotor.setTarget(0);
+        Serial.println("Home: arm -> 0");
         lift_state = HOME_WAIT_ARM_0;
         break;
 
     case HOME_WAIT_ARM_0:
         if (armMotor.isAtTarget()) {
-            Serial.println("Home seq: at home, turning pumps off");
-            lift_state = HOME_PUMPS_OFF;
+            lift_state = HOME_DONE;
         }
-        break;
-
-case HOME_PUMPS_OFF:
-        allPumpsOff();
-        Serial.println("Home seq: all pumps OFF, waiting");
-        lift_pause_timer = millis();
-        lift_state = HOME_PUMPS_WAIT;
-        break;
-
-    case HOME_PUMPS_WAIT:
-        if (millis() - lift_pause_timer >= 2000) {  // tune this
-            lift_state = HOME_FINAL_RETURN;
-        }
-        break;
-
-    case HOME_FINAL_RETURN:
-        turnMotor.setTarget(0);
-        armMotor.setTarget(0);
-        Serial.println("Home seq: complete!");
-        lift_state = HOME_DONE;
         break;
 
     case HOME_DONE:
+        Serial.println("Home sequence complete");
+        armMotor.disable();
+        turnMotor.disable();
+        lift_state = LIFT_IDLE;
         break;
     }
 }
+
 
 // ----------------------------------------
 // SECTION: Setup
@@ -403,6 +806,8 @@ void setup() {
 
     armMotor.setup();
     turnMotor.setup();
+    armMotor.enable();
+    turnMotor.enable();
 }
 
 // ----------------------------------------
@@ -420,13 +825,9 @@ void loop() {
         turnMotor.update();
     }
 
-    if (flipper_b_pending && (millis() - flipper_b_timer >= FLIP_B_DELAY_MS)) {
-        flipper_b_pending = false;
-        flipper_servo.write(FLIP_B_END);
-        Serial.println("Flipper B: now at 140");
-    }
-
+    updateFlipperSequence();
     updateLiftSequence();
+
 
     if (Serial.available() > 0) {
         String command = Serial.readStringUntil('\n');
@@ -471,9 +872,7 @@ void loop() {
         cmd_value_upper.toUpperCase();
 
         if (cmd_type_upper.startsWith("P") && cmd_type_upper.length() > 1) {
-            if (lift_state != LIFT_IDLE &&
-                lift_state != PICK_DONE &&
-                lift_state != HOME_DONE) {
+            if (lift_state != LIFT_IDLE) {
                 Serial.println("Sequence already running");
                 return;
             }
@@ -499,7 +898,7 @@ void loop() {
 
             Serial.print("Starting pick+home sequence with pumps: ");
             Serial.println(pump_nums);
-            lift_state = PICK_ARM_TO_300;
+            lift_state = PICK_ARM_500;
         }
         else if (cmd_type_upper == "S") {
             if      (cmd_value_upper == "0") setStopperPosition(false);
@@ -507,9 +906,12 @@ void loop() {
             else Serial.println("Error: Use S 0 or S 1");
         }
         else if (cmd_type_upper == "F") {
-            if      (cmd_value_upper == "0") setFlipperStop();
-            else if (cmd_value_upper == "B") setFlipperB();
-            else if (cmd_value_upper == "Y") setFlipperY();
+            if (cmd_value_upper == "0") {
+                flipper_state = FLIPPER_IDLE;
+                setFlipperStop();
+            }
+            else if (cmd_value_upper == "B") startFlipperB();
+            else if (cmd_value_upper == "Y") startFlipperY();
             else Serial.println("Error: Use F 0, F B, or F Y");
         }
         else {
