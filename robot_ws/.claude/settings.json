@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(apt-get source *)",
+      "Read(//home/jacob/**)",
+      "Read(//tmp/**)",
+      "Bash(dpkg -l)"
+    ]
+  }
+}

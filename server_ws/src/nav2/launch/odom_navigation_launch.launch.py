@@ -42,14 +42,13 @@ def generate_launch_description():
     map_yaml = LaunchConfiguration('map')
 
     lifecycle_nodes = [
+        'planner_server',
         'controller_server',
         'smoother_server',
-        'planner_server',
         'behavior_server',
         'velocity_smoother',
         'bt_navigator',
         'waypoint_follower',
-        'map_server',
     ]
 
     # Map fully qualified names to relative ones so the node's namespace can be prepended.
@@ -131,6 +130,25 @@ def generate_launch_description():
         condition=IfCondition(PythonExpression(['not ', use_composition])),
         actions=[
             SetParameter('use_sim_time', use_sim_time),
+            Node(
+                package='nav2_map_server',
+                executable='map_server',
+                name='map_server',
+                output='screen',
+                arguments=['--ros-args', '--log-level', log_level],
+                parameters=[
+                    configured_params,
+                    {'yaml_filename': LaunchConfiguration('map')},
+                ],
+            ),
+            Node(
+                package='nav2_lifecycle_manager',
+                executable='lifecycle_manager',
+                name='lifecycle_manager_map_server',
+                output='screen',
+                arguments=['--ros-args', '--log-level', log_level],
+                parameters=[{'autostart': autostart}, {'node_names': ['map_server']}],
+            ),
             Node(
                 package='nav2_controller',
                 executable='controller_server',
@@ -214,17 +232,6 @@ def generate_launch_description():
                 output='screen',
                 arguments=['--ros-args', '--log-level', log_level],
                 parameters=[{'autostart': autostart}, {'node_names': lifecycle_nodes}],
-            ),
-            Node(
-                package='nav2_map_server',
-                executable='map_server',
-                name='map_server',
-                output='screen',
-                arguments=['--ros-args', '--log-level', log_level],
-                parameters=[
-                    configured_params,
-                    {'yaml_filename': LaunchConfiguration('map')},
-                ],
             ),
         ],
     )

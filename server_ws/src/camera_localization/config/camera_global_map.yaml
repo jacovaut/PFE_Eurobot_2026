@@ -31,6 +31,7 @@ global_localization_node:
     map_frame: "map"
     pose_topic: "/camera/global_pose"
     detected_blocks_topic: "/detected_blocks"
+    detected_enemy_topic: "/detected_enemy"
 
     # Marker setup
     robot_marker_id: 1
@@ -38,12 +39,12 @@ global_localization_node:
     table_marker_length_m: 0.10
     robot_marker_length_m: 0.07
     enemy_robot_marker_length_m: 0.07
-    enemy_robot_size_x_m: 0.35
-    enemy_robot_size_y_m: 0.35
+    enemy_robot_size_x_m: 0.40
+    enemy_robot_size_y_m: 0.30
     enemy_robot_obstacle_z_m: 0.05
     block_marker_length_m: 0.03
-    block_marker_ids: [36, 47]
-    block_marker_colors: ["bleu", "jaune"]
+    block_marker_ids: [36, 47, 41]
+    block_marker_colors: ["bleu", "jaune", "black"]
     block_size_x_m: 0.15
     block_size_y_m: 0.05
     block_center_z_m: 0.03
@@ -81,11 +82,11 @@ global_localization_node:
     # 4th pass: bird's-eye-view rescue (requires valid camera pose)
     # Warps image to a top-down table view to eliminate perspective distortion
     # at borders. BEV scale: 1000 px/m = 1px per mm (3cm marker = 30px).
-    enable_bev_block_rescue_pass: true
+    enable_bev_block_rescue_pass: false
     bev_block_rescue_scale_px_per_m: 1000.0
 
     # Snapshot-based pose stabilization
-    pose_update_interval_s: 5.0
+    pose_update_interval_s: 0.1
     block_rescue_period_s: 0.5
     bev_block_rescue_period_s: 1.0
 
@@ -94,7 +95,9 @@ global_localization_node:
     entity_tracking_match_gate_m: 0.12
     entity_tracking_ema_alpha: 0.5
     entity_tracking_yaw_alpha: 0.5
-    entity_tracking_max_missed_frames: 5
+    entity_tracking_max_missed_frames: 3
+    enemy_entity_tracking_max_missed_frames: 5
+    enemy_entity_tracking_match_gate_m: 0.5
 
     # base_link -> robot ArUco transform, measured on the robot.
     # X is forward from base_link, Y is left, Z is up, yaw is radians.
@@ -116,7 +119,7 @@ external_perception_node:
     # Measurement covariance
     position_variance_x: 0.01
     position_variance_y: 0.01
-    yaw_variance: 0.03
+    yaw_variance: 0.08
 
     # -----------------------------
     # World map (table marker poses in map frame)
@@ -160,8 +163,24 @@ external_perception_node:
 
 camera_map_visualizer_node:
   ros__parameters:
+    detected_blocks_topic: "/detected_blocks"
+    detected_enemy_topic: "/detected_enemy"
+    publish_period_s: 0.10
+    dynamic_obstacle_stale_timeout_s: 2.0
+    dynamic_obstacle_max_miss_count: 1
+    enemy_stale_timeout_s: 2.0
+    enemy_max_miss_count: 5
+    stamp_obstacle_cloud_with_now: true
     detected_obstacle_point_spacing_m: 0.04
-    detected_obstacle_padding_m: 0.06
+    detected_obstacle_padding_m: 0.01
+    enemy_robot_obstacle_padding_m: 0.0
+    static_pointcloud_topic: "/camera/static_obstacles"
+    enemy_pointcloud_topic: "/camera/enemy_obstacles"
+    dynamic_obstacle_grid_topic: "/camera/block_obstacle_grid"
+    dynamic_obstacle_grid_resolution_m: 0.01
+    static_obstacle_padding_m: 0.0
+    arena_wall_spacing_m: 0.02
+    publish_arena_walls_as_obstacles: false
 
     nids_noms: ["nid_jaune", "nid_bleu"]
     nids_centre_x_m: [0.300, 2.700]

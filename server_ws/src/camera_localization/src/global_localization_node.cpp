@@ -19,6 +19,8 @@
 #include <iomanip>
 #include <chrono>
 #include <atomic>
+#include <condition_variable>
+#include <limits>
 #include <mutex>
 #include <thread>
 #include <ament_index_cpp/get_package_share_directory.hpp>
@@ -71,6 +73,7 @@ public:
     map_frame_ = declare_parameter<std::string>("map_frame", "map");
     pose_topic_ = declare_parameter<std::string>("pose_topic", "/camera/global_pose");
     detected_blocks_topic_ = declare_parameter<std::string>("detected_blocks_topic", "/detected_blocks");
+    detected_enemy_topic_ = declare_parameter<std::string>("detected_enemy_topic", "/detected_enemy");
     debug_view_ = declare_parameter<bool>("debug_view", true);
 
     // Marker IDs / sizes
@@ -88,9 +91,9 @@ public:
     block_center_z_m_ = declare_parameter<double>("block_center_z_m", 0.03);
 
     const auto block_marker_ids =
-      declare_parameter<std::vector<int64_t>>("block_marker_ids", std::vector<int64_t>{36, 47});
+      declare_parameter<std::vector<int64_t>>("block_marker_ids", std::vector<int64_t>{36, 47, 41});
     const auto block_marker_colors =
-      declare_parameter<std::vector<std::string>>("block_marker_colors", std::vector<std::string>{"bleu", "jaune"});
+      declare_parameter<std::vector<std::string>>("block_marker_colors", std::vector<std::string>{"bleu", "jaune", "black"});
 
     if (block_marker_ids.size() != block_marker_colors.size()) {
       throw std::runtime_error(
@@ -199,6 +202,10 @@ public:
       declare_parameter<double>("entity_tracking_yaw_alpha", 0.5);
     entity_tracking_max_missed_frames_ =
       declare_parameter<int>("entity_tracking_max_missed_frames", 5);
+    enemy_entity_tracking_max_missed_frames_ =
+      declare_parameter<int>("enemy_entity_tracking_max_missed_frames", 5);
+    enemy_entity_tracking_match_gate_m_ =
+      declare_parameter<double>("enemy_entity_tracking_match_gate_m", 0.5);
 
     // ----------------------------
     // Publisher
@@ -209,7 +216,9 @@ public:
       pose_topic_, qos);
     detected_blocks_pub_ = create_publisher<std_msgs::msg::String>(
       detected_blocks_topic_, qos);
-    
+    detected_enemy_pub_ = create_publisher<std_msgs::msg::String>(
+      detected_enemy_topic_, qos);
+
     RCLCPP_INFO(get_logger(), "Publishers configured with RELIABLE QoS policy");
 
     // ----------------------------
@@ -229,6 +238,7 @@ public:
     }
 
     running_.store(true, std::memory_order_release);
+    capture_thread_ = std::thread(&CameraLocalizationNode::cameraCaptureLoop, this);
     processing_thread_ = std::thread(&CameraLocalizationNode::processingLoop, this);
 
     RCLCPP_INFO(get_logger(), "global_localization_node started");
@@ -238,10 +248,14 @@ public:
   ~CameraLocalizationNode() override
   {
     running_.store(false, std::memory_order_release);
-    cap_.release();
+    latest_frame_cv_.notify_all();
+    if (capture_thread_.joinable()) {
+      capture_thread_.join();
+    }
     if (processing_thread_.joinable()) {
       processing_thread_.join();
     }
+    cap_.release();
     if (debug_view_) {
       cv::destroyAllWindows();
     }
@@ -466,56 +480,98 @@ private:
     dictionary_ = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_4X4_50);
   }
 
-  void processingLoop()
+  void cameraCaptureLoop()
   {
     while (running_.load(std::memory_order_acquire) && rclcpp::ok()) {
-      cameraTick();
+      const auto read_start = std::chrono::high_resolution_clock::now();
+
+      cv::Mat frame;
+      if (!cap_.read(frame) || frame.empty()) {
+        empty_frame_count_.fetch_add(1, std::memory_order_relaxed);
+        RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 2000, "Empty camera frame");
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        continue;
+      }
+
+      const rclcpp::Time frame_stamp = now();
+      const auto read_end = std::chrono::high_resolution_clock::now();
+      const double read_ms =
+        std::chrono::duration<double, std::milli>(read_end - read_start).count();
+      last_frame_read_ms_.store(read_ms, std::memory_order_relaxed);
+
+      {
+        std::lock_guard<std::mutex> lock(latest_frame_mutex_);
+        latest_frame_ = frame;
+        latest_frame_stamp_ = frame_stamp;
+        latest_frame_seq_++;
+      }
+      latest_frame_cv_.notify_one();
     }
   }
 
-  void cameraTick()
+  void processingLoop()
   {
-    auto tick_start = std::chrono::high_resolution_clock::now();
-    frame_counter_++;
+    uint64_t processed_frame_seq = 0;
+
+    while (running_.load(std::memory_order_acquire) && rclcpp::ok()) {
+      cv::Mat frame;
+      rclcpp::Time frame_stamp;
+
+      {
+        std::unique_lock<std::mutex> lock(latest_frame_mutex_);
+        latest_frame_cv_.wait(
+          lock,
+          [this, processed_frame_seq]() {
+            return !running_.load(std::memory_order_acquire) ||
+                   latest_frame_seq_ != processed_frame_seq;
+          });
+
+        if (!running_.load(std::memory_order_acquire) || latest_frame_.empty()) {
+          return;
+        }
+
+        frame = latest_frame_.clone();
+        frame_stamp = latest_frame_stamp_;
+        processed_frame_seq = latest_frame_seq_;
+      }
+
+      const auto process_start = std::chrono::high_resolution_clock::now();
+      frame_counter_.fetch_add(1, std::memory_order_relaxed);
+
+      processFrame(frame, frame_stamp);
     
-    cv::Mat frame;
-    if (!cap_.read(frame) || frame.empty()) {
-      empty_frame_count_++;
-      RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 2000, "Empty camera frame");
-      std::this_thread::sleep_for(std::chrono::milliseconds(1));
-      return;
-    }
+      const auto process_end = std::chrono::high_resolution_clock::now();
+      double process_ms =
+        std::chrono::duration<double, std::milli>(process_end - process_start).count();
+      last_frame_process_ms_ = process_ms;
     
-    auto read_end = std::chrono::high_resolution_clock::now();
-    double read_ms = std::chrono::duration<double, std::milli>(read_end - tick_start).count();
-    last_frame_read_ms_ = read_ms;
-    
-    processFrame(frame);
-    
-    auto process_end = std::chrono::high_resolution_clock::now();
-    double process_ms = std::chrono::duration<double, std::milli>(process_end - read_end).count();
-    last_frame_process_ms_ = process_ms;
-    double total_ms = std::chrono::duration<double, std::milli>(process_end - tick_start).count();
-    
-    if (frame_counter_ % 100 == 0) {
-      RCLCPP_INFO(get_logger(),
-        "[DIAGNOSTIC] Frames: %ld, Empty: %ld, Total: %.2f ms (read: %.2f ms, process: %.2f ms, json: %.2f ms, pub: %.2f ms)",
-        frame_counter_, empty_frame_count_, total_ms, read_ms, process_ms,
-        last_json_build_ms_, last_publish_ms_);
-      RCLCPP_INFO(get_logger(),
-        "[DETECTION] Initial: %d markers, Tables B4 rescue: %d, Tables after: %d, Rescue helped: %ld, solvePnP ok: %ld, fail: %ld",
-        last_initial_marker_count_, last_table_markers_before_rescue_,
-        last_table_markers_after_rescue_, rescue_pass_helped_,
-        successful_solvepnp_, failed_solvepnp_);
-      RCLCPP_INFO(get_logger(),
-        "[MARKER 20] before rescue: %ld, after rescue: %ld, recovered by rescue: %ld",
-        marker20_seen_before_rescue_,
-        marker20_seen_after_rescue_,
-        marker20_recovered_by_rescue_);
+      const uint64_t frame_count = frame_counter_.load(std::memory_order_relaxed);
+      if (frame_count % 100 == 0) {
+        RCLCPP_INFO(get_logger(),
+          "[DIAGNOSTIC] Frames: %lu, Empty: %lu, read: %.2f ms, process: %.2f ms, json: %.2f ms, pub: %.2f ms",
+          static_cast<unsigned long>(frame_count),
+          static_cast<unsigned long>(empty_frame_count_.load(std::memory_order_relaxed)),
+          last_frame_read_ms_.load(std::memory_order_relaxed),
+          process_ms,
+          last_json_build_ms_,
+          last_publish_ms_);
+        RCLCPP_INFO(get_logger(),
+          "[DETECTION] Initial: %d markers, Tables B4 rescue: %d, Tables after: %d, Rescue helped: %lu, solvePnP ok: %lu, fail: %lu",
+          last_initial_marker_count_, last_table_markers_before_rescue_,
+          last_table_markers_after_rescue_,
+          static_cast<unsigned long>(rescue_pass_helped_),
+          static_cast<unsigned long>(successful_solvepnp_),
+          static_cast<unsigned long>(failed_solvepnp_));
+        RCLCPP_INFO(get_logger(),
+          "[MARKER 20] before rescue: %lu, after rescue: %lu, recovered by rescue: %lu",
+          static_cast<unsigned long>(marker20_seen_before_rescue_),
+          static_cast<unsigned long>(marker20_seen_after_rescue_),
+          static_cast<unsigned long>(marker20_recovered_by_rescue_));
+      }
     }
   }
 
-  void processFrame(const cv::Mat &frame)
+  void processFrame(const cv::Mat &frame, const rclcpp::Time &frame_stamp)
   {
     cv::Mat gray;
     cv::cvtColor(frame, gray, cv::COLOR_BGR2GRAY);
@@ -615,6 +671,7 @@ private:
 }
 
 if (ids.empty()) {
+  publishEnemyEntities(updateTrackedEnemyEntities({}));
   publishDetectedEntities(updateTrackedEntities({}));
   showDebug(debug_image);
   return;
@@ -704,6 +761,7 @@ if (ids.empty()) {
       failed_solvepnp_++;
       RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 2000,
         "No camera pose available yet (waiting for table markers)");
+      publishEnemyEntities(updateTrackedEnemyEntities({}));
       publishDetectedEntities(updateTrackedEntities({}));
       showDebug(debug_image);
       return;
@@ -741,34 +799,21 @@ if (ids.empty()) {
         get_logger(), *get_clock(), 1000,
         "Robot marker ID %d not visible", robot_marker_id_);
     } else {
-      const bool ok_robot = cv::solvePnP(
+      std::vector<cv::Mat> robot_rvec_candidates;
+      std::vector<cv::Mat> robot_tvec_candidates;
+      const bool ok_robot = cv::solvePnPGeneric(
         obj_points_robot_,
         corners[robot_index],
         camera_matrix_,
         dist_coeffs_,
-        rvec_camera_marker,
-        tvec_camera_marker,
+        robot_rvec_candidates,
+        robot_tvec_candidates,
         false,
         cv::SOLVEPNP_IPPE_SQUARE);
 
-      if (!ok_robot) {
+      if (!ok_robot || robot_rvec_candidates.empty() || robot_tvec_candidates.empty()) {
         RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 1000, "Robot marker solvePnP failed");
       } else {
-        cv::Mat Rcv_camera_marker;
-        cv::Rodrigues(rvec_camera_marker, Rcv_camera_marker);
-
-        // Fix Z-axis ambiguity: marker Z should point toward camera (positive Z in camera frame).
-        // If it points away (R's 3rd column Z < 0), flip by rotating 180° around X.
-        if (Rcv_camera_marker.at<double>(2, 2) < 0) {
-          Rcv_camera_marker.col(1) *= -1.0;
-          Rcv_camera_marker.col(2) *= -1.0;
-          cv::Rodrigues(Rcv_camera_marker, rvec_camera_marker);
-        }
-
-        const cv::Matx33d R_camera_marker(Rcv_camera_marker);
-        const cv::Matx33d R_map_marker = R_map_camera * R_camera_marker;
-        const cv::Vec3d t_map_marker = R_map_camera * tvec_camera_marker + t_map_camera;
-
         const cv::Matx33d R_base_aruco = rotationZ(base_link_to_aruco_yaw_);
         const cv::Vec3d t_base_aruco(
           base_link_to_aruco_x_,
@@ -778,21 +823,118 @@ if (ids.empty()) {
         const cv::Matx33d R_aruco_base = R_base_aruco.t();
         const cv::Vec3d t_aruco_base = -(R_aruco_base * t_base_aruco);
 
-        const cv::Matx33d R_map_base = R_map_marker * R_aruco_base;
-        t_map_base = R_map_marker * t_aruco_base + t_map_marker;
-        yaw_map_base = std::atan2(R_map_base(1, 0), R_map_base(0, 0));
+        bool selected_robot_candidate = false;
+        double best_candidate_score = std::numeric_limits<double>::infinity();
+        cv::Vec3d best_t_map_base(0.0, 0.0, 0.0);
+        double best_yaw_map_base = 0.0;
 
-        robot_entity.marker_id = robot_marker_id_;
-        robot_entity.color = "robot";
-        robot_entity.position_map = cv::Vec3d(t_map_base[0], t_map_base[1], t_map_base[2]);
-        robot_entity.yaw_rad = yaw_map_base;
-        robot_entity.size_x_m = 0.0;
-        robot_entity.size_y_m = 0.0;
-        robot_entity.is_dynamic = true;
+        const auto mat_to_vec3d = [](const cv::Mat &mat) {
+          cv::Mat mat64;
+          mat.convertTo(mat64, CV_64F);
+          return cv::Vec3d(mat64.at<double>(0), mat64.at<double>(1), mat64.at<double>(2));
+        };
 
-        publishPose(t_map_base, yaw_map_base);
-        have_robot_pose = true;
+        const std::size_t candidate_count =
+          std::min(robot_rvec_candidates.size(), robot_tvec_candidates.size());
+        for (std::size_t candidate_i = 0; candidate_i < candidate_count; ++candidate_i) {
+          const cv::Vec3d candidate_rvec = mat_to_vec3d(robot_rvec_candidates[candidate_i]);
+          const cv::Vec3d candidate_tvec = mat_to_vec3d(robot_tvec_candidates[candidate_i]);
+
+          cv::Mat Rcv_camera_marker;
+          cv::Rodrigues(candidate_rvec, Rcv_camera_marker);
+
+          const cv::Matx33d R_camera_marker(Rcv_camera_marker);
+          const cv::Matx33d R_map_marker = R_map_camera * R_camera_marker;
+          const cv::Vec3d t_map_marker = R_map_camera * candidate_tvec + t_map_camera;
+
+          cv::Matx33d candidate_R_map_base = R_map_marker * R_aruco_base;
+          cv::Vec3d candidate_t_map_base = R_map_marker * t_aruco_base + t_map_marker;
+          const double raw_base_z_axis = candidate_R_map_base(2, 2);
+
+          // The robot is always flat on the table, so base_link Z must point up.
+          if (candidate_R_map_base(2, 2) < 0.0) {
+            candidate_R_map_base(0, 1) *= -1.0;  candidate_R_map_base(0, 2) *= -1.0;
+            candidate_R_map_base(1, 1) *= -1.0;  candidate_R_map_base(1, 2) *= -1.0;
+            candidate_R_map_base(2, 1) *= -1.0;  candidate_R_map_base(2, 2) *= -1.0;
+          }
+
+          const double candidate_yaw =
+            std::atan2(candidate_R_map_base(1, 0), candidate_R_map_base(0, 0));
+          double candidate_score = raw_base_z_axis < 0.0 ? 1000.0 : -raw_base_z_axis;
+          if (have_last_robot_pose_estimate_) {
+            const double dx = candidate_t_map_base[0] - last_robot_t_map_base_[0];
+            const double dy = candidate_t_map_base[1] - last_robot_t_map_base_[1];
+            const double distance = std::hypot(dx, dy);
+            const double yaw_delta = std::abs(wrapAngle(candidate_yaw - last_robot_yaw_map_base_));
+            candidate_score += distance + 0.05 * yaw_delta;
+          }
+
+          if (candidate_score < best_candidate_score) {
+            best_candidate_score = candidate_score;
+            best_t_map_base = candidate_t_map_base;
+            best_yaw_map_base = candidate_yaw;
+            selected_robot_candidate = true;
+          }
+        }
+
+        if (!selected_robot_candidate) {
+          RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 1000, "No usable robot pose candidate");
+        } else {
+          t_map_base = best_t_map_base;
+          t_map_base[2] = 0.0;
+          yaw_map_base = best_yaw_map_base;
+          last_robot_t_map_base_ = t_map_base;
+          last_robot_yaw_map_base_ = yaw_map_base;
+          have_last_robot_pose_estimate_ = true;
+
+          have_robot_pose = true;
+          robot_entity.marker_id = robot_marker_id_;
+          robot_entity.color = "robot";
+          robot_entity.position_map = cv::Vec3d(t_map_base[0], t_map_base[1], 0.0);
+          robot_entity.yaw_rad = yaw_map_base;
+          robot_entity.size_x_m = 0.0;
+          robot_entity.size_y_m = 0.0;
+          robot_entity.is_dynamic = true;
+
+          publishPose(t_map_base, yaw_map_base, frame_stamp);
+        }
       }
+    }
+
+    // Detect and publish the enemy robot on every frame (before rescue passes so it
+    // runs at full camera rate, not just at rescue-pass cadence).
+    {
+      std::vector<DetectedEntity> enemy_detections;
+      for (size_t i = 0; i < ids.size(); ++i) {
+        if (ids[i] != enemy_robot_marker_id_) {
+          continue;
+        }
+        cv::Matx33d R_map_enemy;
+        cv::Vec3d t_map_enemy;
+        if (!estimateMarkerPoseInMap(
+              obj_points_enemy_robot_,
+              corners[i],
+              R_map_camera,
+              t_map_camera,
+              R_map_enemy,
+              t_map_enemy)) {
+          continue;
+        }
+        DetectedEntity enemy_entity;
+        enemy_entity.marker_id = ids[i];
+        enemy_entity.color = "enemy_robot";
+        enemy_entity.position_map = cv::Vec3d(
+          t_map_enemy[0],
+          t_map_enemy[1],
+          enemy_robot_obstacle_z_m_);
+        enemy_entity.yaw_rad = std::atan2(R_map_enemy(1, 0), R_map_enemy(0, 0));
+        enemy_entity.size_x_m = enemy_robot_size_x_m_;
+        enemy_entity.size_y_m = enemy_robot_size_y_m_;
+        enemy_entity.is_dynamic = true;
+        enemy_detections.push_back(enemy_entity);
+        break;
+      }
+      publishEnemyEntities(updateTrackedEnemyEntities(enemy_detections));
     }
 
     // These passes are useful for obstacle/strategy output, but they are expensive.
@@ -849,39 +991,6 @@ if (ids.empty()) {
       e.size_y_m = block_size_y_m_;
       e.is_dynamic = true;
       detected_entities.push_back(e);
-    }
-
-    for (size_t i = 0; i < ids.size(); ++i) {
-      const int id = ids[i];
-      if (id != enemy_robot_marker_id_) {
-        continue;
-      }
-
-      cv::Matx33d R_map_enemy;
-      cv::Vec3d t_map_enemy;
-      if (!estimateMarkerPoseInMap(
-            obj_points_enemy_robot_,
-            corners[i],
-            R_map_camera,
-            t_map_camera,
-            R_map_enemy,
-            t_map_enemy)) {
-        continue;
-      }
-
-      DetectedEntity enemy_entity;
-      enemy_entity.marker_id = id;
-      enemy_entity.color = "enemy_robot";
-      enemy_entity.position_map = cv::Vec3d(
-        t_map_enemy[0],
-        t_map_enemy[1],
-        enemy_robot_obstacle_z_m_);
-      enemy_entity.yaw_rad = std::atan2(R_map_enemy(1, 0), R_map_enemy(0, 0));
-      enemy_entity.size_x_m = enemy_robot_size_x_m_;
-      enemy_entity.size_y_m = enemy_robot_size_y_m_;
-      enemy_entity.is_dynamic = true;
-      detected_entities.push_back(enemy_entity);
-      break;
     }
 
     if (have_robot_pose) {
@@ -1365,6 +1474,60 @@ if (ids.empty()) {
     last_publish_ms_ = publish_ms;
   }
 
+  std::vector<DetectedEntity> updateTrackedEnemyEntities(const std::vector<DetectedEntity> &detections)
+  {
+    if (!detections.empty()) {
+      // Singleton: one enemy robot, always overwrite position with latest detection.
+      // No match gate, no EMA lag — position jumps instantly to wherever the enemy is.
+      if (tracked_enemy_entities_.empty()) {
+        tracked_enemy_entities_.push_back(TrackedEntity{detections[0], 0});
+      } else {
+        auto &entity = tracked_enemy_entities_[0].entity;
+        entity.position_map = detections[0].position_map;
+        entity.yaw_rad = detections[0].yaw_rad;
+        entity.size_x_m = detections[0].size_x_m;
+        entity.size_y_m = detections[0].size_y_m;
+        entity.is_dynamic = detections[0].is_dynamic;
+        tracked_enemy_entities_[0].missed_frames = 0;
+      }
+    }
+    // If no detection: hold last known position — no eviction.
+
+    std::vector<DetectedEntity> result;
+    result.reserve(tracked_enemy_entities_.size());
+    for (const auto &track : tracked_enemy_entities_) {
+      result.push_back(track.entity);
+    }
+    return result;
+  }
+
+  void publishEnemyEntities(const std::vector<DetectedEntity> &entities)
+  {
+    std::ostringstream ss;
+    ss << std::fixed << std::setprecision(6) << "[";
+    for (std::size_t i = 0; i < entities.size(); ++i) {
+      const auto &e = entities[i];
+      if (i > 0) ss << ",";
+      const double angle_z_deg = e.yaw_rad * 180.0 / M_PI;
+      ss << "{";
+      ss << "\"marker_id\":" << e.marker_id << ",";
+      ss << "\"color\":\"" << jsonEscape(e.color) << "\",";
+      ss << "\"x\":" << e.position_map[0] << ",";
+      ss << "\"y\":" << e.position_map[1] << ",";
+      ss << "\"z\":" << e.position_map[2] << ",";
+      ss << "\"yaw\":" << e.yaw_rad << ",";
+      ss << "\"angle_z_deg\":" << angle_z_deg << ",";
+      ss << "\"size_x_m\":" << e.size_x_m << ",";
+      ss << "\"size_y_m\":" << e.size_y_m << ",";
+      ss << "\"dynamic\":" << (e.is_dynamic ? "true" : "false");
+      ss << "}";
+    }
+    ss << "]";
+    std_msgs::msg::String msg;
+    msg.data = ss.str();
+    detected_enemy_pub_->publish(msg);
+  }
+
   cv::Matx33d rotationZ(double yaw) const
   {
     const double c = std::cos(yaw);
@@ -1469,10 +1632,13 @@ if (ids.empty()) {
     return true;
   }
 
-  void publishPose(const cv::Vec3d &t_map_base, double yaw_map_base)
+  void publishPose(
+    const cv::Vec3d &t_map_base,
+    double yaw_map_base,
+    const rclcpp::Time &stamp)
   {
     geometry_msgs::msg::PoseWithCovarianceStamped msg;
-    msg.header.stamp = now();
+    msg.header.stamp = stamp;
     msg.header.frame_id = map_frame_;
 
     msg.pose.pose.position.x = t_map_base[0];
@@ -1614,6 +1780,7 @@ if (ids.empty()) {
   // ROS
   rclcpp::Publisher<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr pose_pub_;
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr detected_blocks_pub_;
+  rclcpp::Publisher<std_msgs::msg::String>::SharedPtr detected_enemy_pub_;
   rclcpp::TimerBase::SharedPtr display_timer_;
 
   // Camera / calibration
@@ -1623,7 +1790,13 @@ if (ids.empty()) {
 
   // Background camera processing
   std::atomic<bool> running_{false};
+  std::thread capture_thread_;
   std::thread processing_thread_;
+  std::mutex latest_frame_mutex_;
+  std::condition_variable latest_frame_cv_;
+  cv::Mat latest_frame_;
+  rclcpp::Time latest_frame_stamp_;
+  uint64_t latest_frame_seq_{0};
 
   // Debug display is kept on the ROS executor thread for OpenCV GUI stability.
   std::mutex debug_frame_mutex_;
@@ -1666,19 +1839,25 @@ if (ids.empty()) {
   std::chrono::steady_clock::time_point last_bev_block_rescue_time_{};
   double block_rescue_period_s_{0.5};
   double bev_block_rescue_period_s_{1.0};
+  bool have_last_robot_pose_estimate_{false};
+  cv::Vec3d last_robot_t_map_base_{0.0, 0.0, 0.0};
+  double last_robot_yaw_map_base_{0.0};
 
   // EMA tracking for the JSON detection stream consumed by strategy and obstacle publishing.
   std::vector<TrackedEntity> tracked_entities_;
+  std::vector<TrackedEntity> tracked_enemy_entities_;
   bool enable_entity_tracking_{true};
   double entity_tracking_match_gate_m_{0.12};
   double entity_tracking_ema_alpha_{0.5};
   double entity_tracking_yaw_alpha_{0.5};
   int entity_tracking_max_missed_frames_{5};
+  int enemy_entity_tracking_max_missed_frames_{5};
+  double enemy_entity_tracking_match_gate_m_{0.5};
   
   // Diagnostics: frame counting and timing
-  uint64_t frame_counter_{0};
-  uint64_t empty_frame_count_{0};
-  double last_frame_read_ms_{0.0};
+  std::atomic<uint64_t> frame_counter_{0};
+  std::atomic<uint64_t> empty_frame_count_{0};
+  std::atomic<double> last_frame_read_ms_{0.0};
   double last_frame_process_ms_{0.0};
   double last_json_build_ms_{0.0};
   double last_publish_ms_{0.0};
@@ -1702,6 +1881,7 @@ if (ids.empty()) {
   std::string map_frame_;
   std::string pose_topic_;
   std::string detected_blocks_topic_;
+  std::string detected_enemy_topic_;
   int width_{0};
   int height_{0};
   int fps_{30};

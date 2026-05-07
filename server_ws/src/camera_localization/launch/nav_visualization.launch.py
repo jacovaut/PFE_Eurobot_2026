@@ -126,7 +126,7 @@ def generate_launch_description():
         ),
 
         Node(
-            package='pfe',
+            package='strategy',
             executable='cluster_analyze_node',
             name='cluster_analyze_node',
             output='screen',

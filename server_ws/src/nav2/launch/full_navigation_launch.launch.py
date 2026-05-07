@@ -42,14 +42,14 @@ def generate_launch_description():
     map_yaml = LaunchConfiguration('map')
 
     lifecycle_nodes = [
+        'planner_server',
         'controller_server',
         'smoother_server',
-        'planner_server',
         'behavior_server',
         'velocity_smoother',
+        'collision_monitor',
         'bt_navigator',
         'waypoint_follower',
-        'map_server',
     ]
 
     # Map fully qualified names to relative ones so the node's namespace can be prepended.
@@ -132,6 +132,25 @@ def generate_launch_description():
         actions=[
             SetParameter('use_sim_time', use_sim_time),
             Node(
+                package='nav2_map_server',
+                executable='map_server',
+                name='map_server',
+                output='screen',
+                arguments=['--ros-args', '--log-level', log_level],
+                parameters=[
+                    configured_params,
+                    {'yaml_filename': LaunchConfiguration('map')},
+                ],
+            ),
+            Node(
+                package='nav2_lifecycle_manager',
+                executable='lifecycle_manager',
+                name='lifecycle_manager_map_server',
+                output='screen',
+                arguments=['--ros-args', '--log-level', log_level],
+                parameters=[{'autostart': autostart}, {'node_names': ['map_server']}],
+            ),
+            Node(
                 package='nav2_controller',
                 executable='controller_server',
                 output='screen',
@@ -139,7 +158,7 @@ def generate_launch_description():
                 respawn_delay=2.0,
                 parameters=[configured_params],
                 arguments=['--ros-args', '--log-level', log_level],
-                remappings=remappings,
+                remappings=remappings + [('cmd_vel', 'cmd_vel_raw')],
             ),
             Node(
                 package='nav2_smoother',
@@ -205,6 +224,17 @@ def generate_launch_description():
                 respawn_delay=2.0,
                 parameters=[configured_params],
                 arguments=['--ros-args', '--log-level', log_level],
+                remappings=remappings + [('cmd_vel', 'cmd_vel_raw')],
+            ),
+            Node(
+                package='nav2_collision_monitor',
+                executable='collision_monitor',
+                name='collision_monitor',
+                output='screen',
+                respawn=use_respawn,
+                respawn_delay=2.0,
+                parameters=[configured_params],
+                arguments=['--ros-args', '--log-level', log_level],
                 remappings=remappings,
             ),
             Node(
@@ -214,17 +244,6 @@ def generate_launch_description():
                 output='screen',
                 arguments=['--ros-args', '--log-level', log_level],
                 parameters=[{'autostart': autostart}, {'node_names': lifecycle_nodes}],
-            ),
-            Node(
-                package='nav2_map_server',
-                executable='map_server',
-                name='map_server',
-                output='screen',
-                arguments=['--ros-args', '--log-level', log_level],
-                parameters=[
-                    configured_params,
-                    {'yaml_filename': LaunchConfiguration('map')},
-                ],
             ),
         ],
     )
@@ -241,7 +260,7 @@ def generate_launch_description():
                         plugin='nav2_controller::ControllerServer',
                         name='controller_server',
                         parameters=[configured_params],
-                        remappings=remappings,
+                        remappings=remappings + [('cmd_vel', 'cmd_vel_raw')],
                     ),
                     ComposableNode(
                         package='nav2_smoother',
@@ -283,15 +302,14 @@ def generate_launch_description():
                         plugin='nav2_velocity_smoother::VelocitySmoother',
                         name='velocity_smoother',
                         parameters=[configured_params],
-                        remappings=remappings,
+                        remappings=remappings + [('cmd_vel', 'cmd_vel_raw')],
                     ),
                     ComposableNode(
-                        package='nav2_lifecycle_manager',
-                        plugin='nav2_lifecycle_manager::LifecycleManager',
-                        name='lifecycle_manager_navigation',
-                        parameters=[
-                            {'autostart': autostart, 'node_names': lifecycle_nodes}
-                        ],
+                        package='nav2_collision_monitor',
+                        plugin='nav2_collision_monitor::CollisionMonitor',
+                        name='collision_monitor',
+                        parameters=[configured_params],
+                        remappings=remappings,
                     ),
                     ComposableNode(
                         package='nav2_map_server',
@@ -300,6 +318,22 @@ def generate_launch_description():
                         parameters=[
                             configured_params,
                             {'yaml_filename': LaunchConfiguration('map')},
+                        ],
+                    ),
+                    ComposableNode(
+                        package='nav2_lifecycle_manager',
+                        plugin='nav2_lifecycle_manager::LifecycleManager',
+                        name='lifecycle_manager_map_server',
+                        parameters=[
+                            {'autostart': autostart, 'node_names': ['map_server']}
+                        ],
+                    ),
+                    ComposableNode(
+                        package='nav2_lifecycle_manager',
+                        plugin='nav2_lifecycle_manager::LifecycleManager',
+                        name='lifecycle_manager_navigation',
+                        parameters=[
+                            {'autostart': autostart, 'node_names': lifecycle_nodes}
                         ],
                     ),
                 ],

@@ -99,6 +99,8 @@ def generate_launch_description():
             executable='camera_map_visualizer_node.py',
             name='camera_map_visualizer_node',
             output='screen',
+            emulate_tty=True,
+            prefix='python3 -u -X faulthandler',
             condition=IfCondition(launch_map_visualizer),
             parameters=[camera_map_config, {
                 'publish_block_obstacles': publish_block_obstacles,
@@ -112,7 +114,7 @@ def generate_launch_description():
 
         # Cluster analysis node: consumes /detected_blocks and publishes /cluster_info
         Node(
-            package='pfe',
+            package='strategy',
             executable='cluster_analyze_node',
             name='cluster_analyze_node',
             output='screen',

@@ -7,7 +7,7 @@ import math
 import numpy as np
 import tf_transformations
 from geometry_msgs.msg import Pose2D, TransformStamped
-from std_msgs.msg import String
+from std_msgs.msg import String, Int32
 from tf2_ros import Buffer, TransformBroadcaster, TransformListener
 
 from .modules.data_structures import XY, Block, PickupCandidate
@@ -42,6 +42,7 @@ class MergedLocalPickupNode(Node):
         self.locked_targets = {}
         self.current_cups = {}
         self.pickup_pose_pub = self.create_publisher(Pose2D, "/pickup_pose", 10)
+        self.pickup_n_pub    = self.create_publisher(Int32, "/pickup_n", 10)
         self.best_pickup_pub = self.create_publisher(String, "/best_pickup", 10)
         self.manip_info_pub = self.create_publisher(String, "/manip_info", 10)
         self.pickup_status_sub = self.create_subscription(String, "/pickup_status", self.pickup_status_callback, 10)
@@ -55,6 +56,7 @@ class MergedLocalPickupNode(Node):
         self.locked_signature = None
         self.locked_best = None
         self.locked_targets = {}
+        self.primary_block_name = None   # block assigned to cup_0 — only one tracked after lock
         self.candidate_signature = None
         self.candidate_count = 0
         self.block_targets = {"cup_0": None, "cup_1": None, "cup_2": None, "cup_3": None}
@@ -72,7 +74,9 @@ class MergedLocalPickupNode(Node):
             frozen_blocks = {}
             for a in self.locked_best.assignments:
                 block_name = a["block"]
-                if block_name in self.block_tracker.tracked_blocks:
+                # After lock: only refresh the primary block from live tracker.
+                # All others stay frozen to avoid pose jumps when a block leaves FOV.
+                if block_name == self.primary_block_name and block_name in self.block_tracker.tracked_blocks:
                     frozen_blocks[block_name] = self.block_tracker.tracked_blocks[block_name]
                 elif block_name in self.locked_targets:
                     frozen_blocks[block_name] = self.locked_targets[block_name]
@@ -99,10 +103,16 @@ class MergedLocalPickupNode(Node):
             self.locked_signature = sig
             self.locked_best = best
             self.locked_targets = {}
+            self.primary_block_name = None
             for a in best.assignments:
                 block_name = a["block"]
                 if block_name in self.block_tracker.tracked_blocks:
                     self.locked_targets[block_name] = self.block_tracker.tracked_blocks[block_name]
+                if a["cup"] == "cup_0":
+                    self.primary_block_name = block_name
+            # Fallback: if cup_0 not in assignment, use first block
+            if self.primary_block_name is None and best.assignments:
+                self.primary_block_name = best.assignments[0]["block"]
             self.get_logger().info(f"[LOCKED] {sig}")
             return best
         self.get_logger().info(f"[CANDIDATE] {sig} ({self.candidate_count}/{self.lock_required_frames})")
@@ -166,8 +176,8 @@ class MergedLocalPickupNode(Node):
         if detections:
             self.last_detection_time = now
 
-        # If camera hasn't seen any block recently, stop publishing entirely
-        if self.last_detection_time is not None:
+        # If camera hasn't seen any block recently, stop publishing entirely (only before lock)
+        if not self.solution_locked and self.last_detection_time is not None:
             camera_age = now - self.last_detection_time
             if camera_age > self.camera_seen_timeout:
                 self.tf_publisher.publish_block_transforms(self.block_targets)
@@ -204,8 +214,23 @@ class MergedLocalPickupNode(Node):
         pose = Pose2D()
         pose.x = best.dx
         pose.y = best.dy
-        pose.theta = best.yaw
+        if len(best.assignments) == 1:
+            # For a single block, solver yaw is always 0 (dx/dy correct).
+            # Publish the actual block orientation so the orbit phase can align.
+            block_name = best.assignments[0]["block"]
+            block = (self.locked_targets.get(block_name)
+                     or self.block_tracker.tracked_blocks.get(block_name))
+            if block is not None:
+                yaw_rad = math.radians(block.yaw_deg) + math.pi / 2.0  # align robot X with block Y
+                pose.theta = math.atan2(math.sin(2.0 * yaw_rad), math.cos(2.0 * yaw_rad)) / 2.0
+            else:
+                pose.theta = 0.0
+        else:
+            pose.theta = best.yaw
         self.pickup_pose_pub.publish(pose)
+        n_msg = Int32()
+        n_msg.data = len(best.assignments)
+        self.pickup_n_pub.publish(n_msg)
         msg = String()
         msg.data = json.dumps({
             "dx": best.dx,

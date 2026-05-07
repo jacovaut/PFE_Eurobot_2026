@@ -172,10 +172,10 @@ void timercallback(rcl_timer_t *timer, int64_t last_call_time)
 FastAccelStepperEngine engine;
 
 // Motor definitions (StepPin, DirPin, CSPin)
-MotorDriver motor1(23, 22, 21);
-MotorDriver motor2(15, 13, 12);
-MotorDriver motor3(26, 25, 33);
-MotorDriver motor4(17, 16, 4);
+MotorDriver motor1(26, 25, 33);
+MotorDriver motor2(17, 16, 4);
+MotorDriver motor3(23, 22, 21);
+MotorDriver motor4(15, 13, 12);
 MotorDriver* motors[] = { &motor1, &motor2, &motor3, &motor4 }; // FL, FR, RR, RL
 
 // Robot motion and dimmention variables

@@ -3,25 +3,15 @@
 <package format="3">
   <name>pfe</name>
   <version>0.0.0</version>
-  <description>TODO: Package description</description>
+  <description>Compatibility package for renamed match robot description.</description>
   <maintainer email="pfe@todo.todo">pfe</maintainer>
   <license>TODO: License declaration</license>
-
-  <depend>rclpy</depend>
-  <depend>cv_bridge</depend>
-  <depend>geometry_msgs</depend>
-  <depend>sensor_msgs</depend>
-  <depend>std_msgs</depend>
-  <depend>tf2_msgs</depend>
-  <depend>tf2_ros</depend>
-  <depend>tf_transformations</depend>
-  <depend>visualization_msgs</depend>
-
-  <test_depend>ament_copyright</test_depend>
-  <test_depend>ament_flake8</test_depend>
-  <test_depend>ament_pep257</test_depend>
-  <test_depend>python3-pytest</test_depend>
-
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+  <exec_depend>match</exec_depend>
+  <exec_depend>robot_state_publisher</exec_depend>
+  <exec_depend>joint_state_publisher</exec_depend>
+  <exec_depend>xacro</exec_depend>
   <export>
     <build_type>ament_python</build_type>
   </export>
