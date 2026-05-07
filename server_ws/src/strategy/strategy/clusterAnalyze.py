@@ -142,6 +142,7 @@ class ClusterAnalyzeNode(Node):
                 float(self.zones_interdites_taille_x_m[i]),
                 float(self.zones_interdites_taille_y_m[i]),
             )
+        self.zones_interdites.update(self.zones_nid)
 
         self.last_robot_pos: Optional[Tuple[float, float]] = None
         self.frame_count = 0

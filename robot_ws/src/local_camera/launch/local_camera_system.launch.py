@@ -34,8 +34,28 @@ def _read_team_color_default():
         return 'blue'
 
 
+def _scan_filter_launch(enable_condition):
+    try:
+        scan_filter_share = get_package_share_directory('scan_filter')
+    except PackageNotFoundError:
+        return []
+
+    return [
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource(
+                os.path.join(scan_filter_share, 'launch', 'scan_filter_launch.py')
+            ),
+            launch_arguments={
+                'input_topic': '/scan_cloud',
+                'output_topic': '/scan_cloud_filtered',
+            }.items(),
+            condition=enable_condition,
+        )
+    ]
+
+
 def generate_launch_description():
-    pkg_path = get_package_share_directory('pfe')
+    pkg_path = get_package_share_directory('match')
     local_camera_share = get_package_share_directory('local_camera')
     default_team_color = _read_team_color_default()
     urdf_file = os.path.join(pkg_path, 'urdf', 'my_robot.urdf.xacro')
@@ -62,6 +82,7 @@ def generate_launch_description():
         PythonLaunchDescriptionSource(lidar_launch_file),
         condition=IfCondition(LaunchConfiguration('enable_lidar')),
     )
+    lidar_condition = IfCondition(LaunchConfiguration('enable_lidar'))
 
     return LaunchDescription([
         enable_lidar_arg,
@@ -98,4 +119,5 @@ def generate_launch_description():
             }],
         ),
         lidar_launch,
+        *_scan_filter_launch(lidar_condition),
     ])

@@ -147,15 +147,15 @@ external_perception_node:
     nids_taille_y_m: [0.450, 0.450]
 
     # Garde-manger (zones communes), dimensions: 200 x 200 mm
-    # Numbering follows table columns left-to-right, each column bottom-to-top.
     garde_manger_noms: [
       "garde_manger_1", "garde_manger_2", "garde_manger_3", "garde_manger_4",
-      "garde_manger_5", "garde_manger_6", "garde_manger_7", "garde_manger_8"
+      "garde_manger_5", "garde_manger_6", "garde_manger_7", "garde_manger_8",
+      "garde_manger_9", "garde_manger_10"
     ]
-    garde_manger_centre_x_m: [1.250, 1.750, 0.800, 1.500, 2.200, 0.700, 1.500, 2.300]
-    garde_manger_centre_y_m: [1.450, 1.450, 0.800, 0.800, 0.800, 0.100, 0.100, 0.100]
-    garde_manger_taille_x_m: [0.200, 0.200, 0.200, 0.200, 0.200, 0.200, 0.200, 0.200]
-    garde_manger_taille_y_m: [0.200, 0.200, 0.200, 0.200, 0.200, 0.200, 0.200, 0.200]
+    garde_manger_centre_x_m: [1.250, 1.750, 0.100, 0.800, 1.500, 2.200, 2.900, 0.700, 1.500, 2.300]
+    garde_manger_centre_y_m: [1.450, 1.450, 0.800, 0.800, 0.800, 0.800, 0.800, 0.100, 0.100, 0.100]
+    garde_manger_taille_x_m: [0.200, 0.200, 0.200, 0.200, 0.200, 0.200, 0.200, 0.200, 0.200, 0.200]
+    garde_manger_taille_y_m: [0.200, 0.200, 0.200, 0.200, 0.200, 0.200, 0.200, 0.200, 0.200, 0.200]
 
     # Zones interdites pour la navigation, dimensions: 1800 x 450 mm
     zones_interdites_noms: ["grenier"]
@@ -181,6 +181,7 @@ camera_map_visualizer_node:
     enemy_pointcloud_topic: "/camera/enemy_obstacles"
     dynamic_obstacle_grid_topic: "/camera/block_obstacle_grid"
     dynamic_obstacle_grid_resolution_m: 0.01
+    publish_enemy_nid_as_static_obstacle: true
     static_obstacle_padding_m: 0.0
     arena_wall_spacing_m: 0.02
     publish_arena_walls_as_obstacles: false
@@ -193,12 +194,13 @@ camera_map_visualizer_node:
 
     garde_manger_noms: [
       "garde_manger_1", "garde_manger_2", "garde_manger_3", "garde_manger_4",
-      "garde_manger_5", "garde_manger_6", "garde_manger_7", "garde_manger_8"
+      "garde_manger_5", "garde_manger_6", "garde_manger_7", "garde_manger_8",
+      "garde_manger_9", "garde_manger_10"
     ]
-    garde_manger_centre_x_m: [1.250, 1.750, 0.800, 1.500, 2.200, 0.700, 1.500, 2.300]
-    garde_manger_centre_y_m: [1.450, 1.450, 0.800, 0.800, 0.800, 0.100, 0.100, 0.100]
-    garde_manger_taille_x_m: [0.200, 0.200, 0.200, 0.200, 0.200, 0.200, 0.200, 0.200]
-    garde_manger_taille_y_m: [0.200, 0.200, 0.200, 0.200, 0.200, 0.200, 0.200, 0.200]
+    garde_manger_centre_x_m: [1.250, 1.750, 0.100, 0.800, 1.500, 2.200, 2.900, 0.700, 1.500, 2.300]
+    garde_manger_centre_y_m: [1.450, 1.450, 0.800, 0.800, 0.800, 0.800, 0.800, 0.100, 0.100, 0.100]
+    garde_manger_taille_x_m: [0.200, 0.200, 0.200, 0.200, 0.200, 0.200, 0.200, 0.200, 0.200, 0.200]
+    garde_manger_taille_y_m: [0.200, 0.200, 0.200, 0.200, 0.200, 0.200, 0.200, 0.200, 0.200, 0.200]
 
     zones_interdites_noms: ["grenier"]
     zones_interdites_centre_x_m: [1.500]

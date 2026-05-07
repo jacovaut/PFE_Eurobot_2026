@@ -132,6 +132,7 @@ def generate_launch_description():
                 'detected_blocks_topic': '/detected_blocks',
                 'marker_topic': '/camera_map/markers',
                 'block_pointcloud_topic': '/camera/block_obstacles',
+                'team_color': team_color,
             }],
         ),
 

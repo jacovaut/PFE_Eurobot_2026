@@ -245,19 +245,6 @@ def generate_launch_description():
                 arguments=['--ros-args', '--log-level', log_level],
                 parameters=[{'autostart': autostart}, {'node_names': lifecycle_nodes}],
             ),
-            Node(
-                package='camera_localization',
-                executable='enemy_reactive_avoidance_node.py',
-                name='enemy_reactive_avoidance',
-                output='screen',
-                parameters=[{
-                    'reactive_distance_m': 0.50,
-                    'reactive_speed_m_s': 0.25,
-                    'cooldown_s': 0.5,
-                    'enemy_stale_s': 2.0,
-                    'output_topic': '/cmd_vel_match_input',
-                }],
-            ),
         ],
     )
 
@@ -375,6 +362,20 @@ def generate_launch_description():
         }],
     )
 
+    enemy_reactive_avoidance = Node(
+        package='camera_localization',
+        executable='enemy_reactive_avoidance_node.py',
+        name='enemy_reactive_avoidance',
+        output='screen',
+        parameters=[{
+            'reactive_distance_m': 0.50,
+            'reactive_speed_m_s': 0.25,
+            'cooldown_s': 0.5,
+            'enemy_stale_s': 2.0,
+            'output_topic': '/cmd_vel_match_input',
+        }],
+    )
+
     # Create the launch description and populate
     ld = LaunchDescription()
 
@@ -394,6 +395,7 @@ def generate_launch_description():
     # Add the actions to launch all of the navigation nodes
     ld.add_action(match_node)
     ld.add_action(cmd_vel_match_gate)
+    ld.add_action(enemy_reactive_avoidance)
     ld.add_action(load_nodes)
     ld.add_action(load_composable_nodes)
 
