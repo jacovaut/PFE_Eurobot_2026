@@ -346,7 +346,7 @@ def generate_launch_description():
         executable='match_node',
         name='match_node',
         output='screen',
-        parameters=[{'autostart': False, 'duration_s': 98.0}],
+        parameters=[{'autostart': False, 'duration_s': 98.0, 'force_running': True}],
     )
 
     cmd_vel_match_gate = Node(

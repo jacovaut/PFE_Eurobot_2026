@@ -25,8 +25,10 @@ class MatchNode(Node):
 
         self.declare_parameter('autostart', False)
         self.declare_parameter('duration_s', MATCH_DURATION)
+        self.declare_parameter('force_running', False)
 
         self._duration = Duration(seconds=float(self.get_parameter('duration_s').value))
+        self._force_running = bool(self.get_parameter('force_running').value)
         self._start_time = None
         self._running = False
 
@@ -34,14 +36,20 @@ class MatchNode(Node):
 
         self.create_subscription(Bool, 'match/start', self._on_start, 10)
 
-        self._publish_state()
-
-        if bool(self.get_parameter('autostart').value):
+        if self._force_running:
+            self._running = True
+            self._publish_state()
+            self.get_logger().info('Match running forced true for testing.')
+        elif bool(self.get_parameter('autostart').value):
             self._begin_match()
         else:
+            self._publish_state()
             self.get_logger().info('Match node ready. Publish True to match/start to begin.')
 
     def _on_start(self, msg: Bool):
+        if self._force_running:
+            return
+
         if msg.data:
             if not self._running:
                 self._begin_match()
@@ -49,6 +57,12 @@ class MatchNode(Node):
             self._end_match('Match stopped.')
 
     def _on_tick(self):
+        if self._force_running:
+            if not self._running:
+                self._running = True
+            self._publish_state()
+            return
+
         if not self._running or self._start_time is None:
             return
 
