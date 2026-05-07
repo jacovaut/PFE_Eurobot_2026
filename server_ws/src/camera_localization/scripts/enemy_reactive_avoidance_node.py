@@ -39,7 +39,7 @@ class EnemyReactiveAvoidance(Node):
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self)
 
-        self._pub = self.create_publisher(Twist, 'cmd_vel', 10)
+        self._pub = self.create_publisher(Twist, 'cmd_vel_smoothed', 10)
         self.create_subscription(Twist, 'cmd_vel_nav', self._nav_cb, 10)
         self.create_subscription(String, '/detected_enemy', self._enemy_cb, 10)
 
