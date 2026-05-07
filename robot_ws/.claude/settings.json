@@ -3,7 +3,8 @@
     "allow": [
       "Bash(apt-get source *)",
       "Read(//home/jacob/**)",
-      "Read(//tmp/**)"
+      "Read(//tmp/**)",
+      "Bash(dpkg -l)"
     ]
   }
 }

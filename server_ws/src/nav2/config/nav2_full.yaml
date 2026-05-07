@@ -23,7 +23,9 @@ collision_monitor:
     EnemyStop:
       type: "polygon"
       points: "[[0.32, 0.22], [0.32, -0.22], [-0.32, -0.22], [-0.32, 0.22]]"
-      action_type: "stop"
+      action_type: "approach"
+      time_before_collision: 0.5
+      simulation_time_step: 0.02
       min_points: 1
       visualize: true
       polygon_pub_topic: "enemy_stop_polygon"
@@ -124,7 +126,7 @@ controller_server:
       BaseObstacle.scale: 16.0
       PathAlign.scale: 0.0
       GoalAlign.scale: 0.0
-      PathDist.scale: 2.0
+      PathDist.scale: 8.0
       GoalDist.scale: 8.0
       Oscillation.scale: 1.0
       Twirling.scale: 8.0
@@ -241,8 +243,8 @@ global_costmap:
         subscribe_to_updates: false
         track_unknown_space: false
         use_maximum: true
-        trinary_costmap: false
-        lethal_cost_threshold: 101
+        trinary_costmap: true
+        lethal_cost_threshold: 65
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         enabled: true
@@ -265,7 +267,7 @@ local_costmap:
       transform_tolerance: 0.5
       footprint: "[[-0.200, -0.150], [-0.200, 0.150], [0.200, 0.150], [0.200, -0.150]]"
       footprint_padding: 0.02
-      plugins: ["static_obstacle_layer", "dynamic_obstacle_layer", "enemy_obstacle_layer", "inflation_layer"]
+      plugins: ["static_obstacle_layer", "dynamic_obstacle_layer", "inflation_layer", "enemy_obstacle_layer"]
       static_obstacle_layer:
         plugin: "nav2_costmap_2d::VoxelLayer"
         enabled: false
@@ -306,8 +308,8 @@ local_costmap:
         subscribe_to_updates: false
         track_unknown_space: false
         use_maximum: true
-        trinary_costmap: false
-        lethal_cost_threshold: 101
+        trinary_costmap: true
+        lethal_cost_threshold: 65
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         enabled: true

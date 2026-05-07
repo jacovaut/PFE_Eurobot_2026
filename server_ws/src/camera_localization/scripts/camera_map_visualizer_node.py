@@ -472,20 +472,13 @@ class CameraMapVisualizer(Node):
         sin_yaw = math.sin(yaw)
 
         if is_enemy:
-            # Enemy robot: 3-ring gradient, all non-lethal (layer uses lethal_cost_threshold: 101).
-            # Outer 30 cm ring (OGM 60 → ~150 cost), inner 10 cm ring (OGM 75 → ~188 cost),
-            # core (OGM 100 → ~250 cost). Planner strongly avoids but can route through if needed;
-            # collision monitor provides the real-time hard stop.
-            self._fill_rect_cells(grid, center_x, center_y, cos_yaw, sin_yaw,
-                                  size_x + 0.60, size_y + 0.60, 60)
-            self._fill_rect_cells(grid, center_x, center_y, cos_yaw, sin_yaw,
-                                  size_x + 0.20, size_y + 0.20, 75)
+            # Enemy robot: LETHAL core only. Inflation layer (25cm radius) handles the gradient.
             self._fill_rect_cells(grid, center_x, center_y, cos_yaw, sin_yaw, size_x, size_y, 100)
         else:
-            # Blocks: 2 cm shadow ring (OGM 30 → ~117 cost), core (OGM 60 → ~233 cost).
+            # Blocks: 5 cm shadow ring (OGM 30 → ~117 cost), core (OGM 60 → ~233 cost).
             # Layer uses lethal_cost_threshold: 65, so both values are non-lethal.
             self._fill_rect_cells(grid, center_x, center_y, cos_yaw, sin_yaw,
-                                  size_x + 0.04, size_y + 0.04, 30)
+                                  size_x + 0.10, size_y + 0.10, 30)
             self._fill_rect_cells(grid, center_x, center_y, cos_yaw, sin_yaw, size_x, size_y, 60)
 
     def _build_wall_points(self) -> List[List[float]]:
