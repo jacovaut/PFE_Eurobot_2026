@@ -29,10 +29,10 @@ void TurnMotor::setup() {
     encoder.attachHalfQuad(pin_enc_a, pin_enc_b);
     encoder.setCount(0);
 
-    pinMode(pin_enc_x, INPUT_PULLUP);
-    instance = this;
-    attachInterrupt(digitalPinToInterrupt(pin_enc_x),
-                    staticHandleInterrupt, FALLING);
+    // pinMode(pin_enc_x, INPUT_PULLUP);
+    // instance = this;
+    // attachInterrupt(digitalPinToInterrupt(pin_enc_x),
+    //                 staticHandleInterrupt, FALLING);
 }
 
 void TurnMotor::setTarget(long ticks) {
@@ -65,6 +65,7 @@ void TurnMotor::applyPWM(int pwm) {
 }
 
 void TurnMotor::runPID() {
+    if (disabled) return;
     if (reached_target) {
         applyPWM(0);   // keep braking, not just once
         return;

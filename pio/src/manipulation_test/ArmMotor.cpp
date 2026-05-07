@@ -29,10 +29,10 @@ void ArmMotor::setup() {
     encoder.attachHalfQuad(pin_enc_a, pin_enc_b);
     encoder.setCount(0);
 
-    pinMode(pin_enc_x, INPUT_PULLUP);
-    instance = this;
-    attachInterrupt(digitalPinToInterrupt(pin_enc_x),
-                    staticHandleInterrupt, RISING);
+    // pinMode(pin_enc_x, INPUT_PULLUP);
+    // instance = this;
+    // attachInterrupt(digitalPinToInterrupt(pin_enc_x),
+    //                 staticHandleInterrupt, RISING);
 }
 
 void ArmMotor::setTarget(long ticks) {
@@ -65,6 +65,10 @@ void ArmMotor::applyPWM(int pwm) {
 }
 
 void ArmMotor::runPID() {
+    if (disabled) {
+        applyPWM(0);
+        return;
+    }
     long  counts = encoder.getCount();
     float error  = (float)(target_ticks - counts);
 

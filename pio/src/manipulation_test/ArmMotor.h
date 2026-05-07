@@ -15,6 +15,16 @@ public:
     void returnToZero();
     long getEncoderCount() { return encoder.getCount(); }
     bool isAtTarget()      { return reached_target; }
+    void resetEncoder() { encoder.setCount(0); }
+    void disable() { disabled = true; applyPWM(0); }
+    void enable()  {
+        target_ticks   = encoder.getCount();
+        integral       = 0.0f;
+        prev_error     = 0.0f;
+        reached_target = false;
+        disabled       = false;
+    }
+
 
     static void staticHandleInterrupt();
     static ArmMotor* instance;
@@ -29,7 +39,7 @@ private:
     float prev_error         = 0.0f;
     float integral           = 0.0f;
     bool  reached_target     = false;
-
+    bool     disabled        = false;
     bool     return_zero_pending = false;
     uint32_t return_zero_timer   = 0;
 
@@ -37,7 +47,7 @@ private:
     static constexpr float INTEGRAL_MAX = 80.0f;
     static constexpr float DEADBAND     = 8.0f;
     static constexpr int   PWM_MAX      = 255;
-    static constexpr int   PWM_MIN      = 180;
+    static constexpr int   PWM_MIN      = 200;
 
     ESP32Encoder encoder;
 
