@@ -9,11 +9,11 @@ directly away from the enemy (taking advantage of mecanum wheels).
 When the enemy is clear, cmd_vel is passed through unchanged.
 
 Pipeline (requires collision_monitor.cmd_vel_out_topic: "cmd_vel_nav"):
-  nav2 → cmd_vel_smoothed → collision_monitor → cmd_vel_nav
+  nav2 → cmd_vel_pre_reactive → collision_monitor → cmd_vel_nav
                                                       |
                                       enemy_reactive_avoidance
                                                       |
-                                                 cmd_vel → robot
+                                             cmd_vel_match_input
 """
 import json
 import math
@@ -35,11 +35,14 @@ class EnemyReactiveAvoidance(Node):
         self.speed = self.declare_parameter('reactive_speed_m_s', 0.25).value
         self.cooldown_s = self.declare_parameter('cooldown_s', 0.5).value
         self.enemy_stale_s = self.declare_parameter('enemy_stale_s', 1.0).value
+        self.output_topic = self.declare_parameter(
+            'output_topic', 'cmd_vel_match_input'
+        ).value
 
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self)
 
-        self._pub = self.create_publisher(Twist, 'cmd_vel_smoothed', 10)
+        self._pub = self.create_publisher(Twist, self.output_topic, 10)
         self.create_subscription(Twist, 'cmd_vel_nav', self._nav_cb, 10)
         self.create_subscription(String, '/detected_enemy', self._enemy_cb, 10)
 
