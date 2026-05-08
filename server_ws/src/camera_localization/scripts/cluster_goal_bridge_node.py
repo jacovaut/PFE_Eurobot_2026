@@ -9,7 +9,7 @@ from geometry_msgs.msg import PoseStamped
 from nav2_msgs.action import NavigateToPose
 from rclpy.action import ActionClient
 from rclpy.node import Node
-from std_msgs.msg import String
+from std_msgs.msg import Bool, String
 
 
 class ClusterGoalBridgeNode(Node):
@@ -21,6 +21,8 @@ class ClusterGoalBridgeNode(Node):
         self.goal_frame = self.declare_parameter('goal_frame', 'map').value
 
         self.enabled = bool(self.declare_parameter('enabled', True).value)
+        self.opener_active_topic = self.declare_parameter('opener_active_topic', '/match/opener_active').value
+        self.closer_active_topic = self.declare_parameter('closer_active_topic', '/match/closer_active').value
         self.min_score = float(self.declare_parameter('min_score', 0.0).value)
         self.approach_offset_m = float(self.declare_parameter('approach_offset_m', 0.18).value)
         self.min_goal_separation_m = float(self.declare_parameter('min_goal_separation_m', 0.08).value)
@@ -30,14 +32,18 @@ class ClusterGoalBridgeNode(Node):
         self._last_goal_yaw: Optional[float] = None
         self._last_goal_sent_time: float = 0.0
         self._active_goal = None
+        self._opener_active = False
+        self._closer_active = False
 
         self._action_client = ActionClient(self, NavigateToPose, self.action_name)
         self.create_subscription(String, self.cluster_topic, self._cluster_cb, 20)
+        self.create_subscription(Bool, self.opener_active_topic, self._opener_active_cb, 10)
+        self.create_subscription(Bool, self.closer_active_topic, self._closer_active_cb, 10)
 
         self.get_logger().info('cluster_goal_bridge_node started')
 
     def _cluster_cb(self, msg: String) -> None:
-        if not self.enabled:
+        if not self.enabled or self._blocked_by_match_sequence():
             return
 
         best_cluster, robot_xy = self._parse_best_cluster(msg.data)
@@ -62,6 +68,35 @@ class ClusterGoalBridgeNode(Node):
             return
 
         self._send_nav_goal(goal_x, goal_y, goal_yaw)
+
+    def _opener_active_cb(self, msg: Bool) -> None:
+        previous = self._opener_active
+        self._opener_active = bool(msg.data)
+        if self._opener_active and not previous:
+            self.get_logger().info('Cluster goal bridge paused for opener')
+            self._cancel_active_goal()
+
+    def _closer_active_cb(self, msg: Bool) -> None:
+        previous = self._closer_active
+        self._closer_active = bool(msg.data)
+        if self._closer_active and not previous:
+            self.get_logger().info('Cluster goal bridge paused for closer')
+            self._cancel_active_goal()
+
+    def _blocked_by_match_sequence(self) -> bool:
+        return self._opener_active or self._closer_active
+
+    def _cancel_active_goal(self) -> None:
+        if self._active_goal is None:
+            return
+
+        try:
+            self._active_goal.cancel_goal_async()
+            self.get_logger().info('Canceled active cluster Nav2 goal')
+        except Exception as exc:
+            self.get_logger().warning(f'Failed to cancel active cluster goal: {exc}')
+        finally:
+            self._active_goal = None
 
     def _parse_best_cluster(self, data: str):
         try:
@@ -113,6 +148,9 @@ class ClusterGoalBridgeNode(Node):
         return delta_xy > self.min_goal_separation_m or delta_yaw > 0.30
 
     def _send_nav_goal(self, x: float, y: float, yaw: float) -> None:
+        if self._blocked_by_match_sequence():
+            return
+
         if not self._action_client.wait_for_server(timeout_sec=0.2):
             self.get_logger().warn('navigate_to_pose action server not available yet')
             return
@@ -141,12 +179,21 @@ class ClusterGoalBridgeNode(Node):
         self.get_logger().info(f'Sent goal from best cluster: x={x:.3f} y={y:.3f} yaw={yaw:.2f} rad')
 
     def _goal_response_cb(self, future) -> None:
-        goal_handle = future.result()
+        try:
+            goal_handle = future.result()
+        except Exception as exc:
+            self.get_logger().warning(f'Cluster goal request failed: {exc}')
+            return
+
         if not goal_handle.accepted:
             self.get_logger().warning('Cluster goal rejected by Nav2')
             return
 
         self._active_goal = goal_handle
+        if self._blocked_by_match_sequence():
+            self._cancel_active_goal()
+            return
+
         self.get_logger().info('Cluster goal accepted by Nav2')
         result_future = goal_handle.get_result_async()
         result_future.add_done_callback(self._result_cb)
@@ -161,6 +208,8 @@ class ClusterGoalBridgeNode(Node):
             self.get_logger().info(f'Cluster goal finished with status={status}')
         except Exception as exc:
             self.get_logger().warning(f'Cluster goal result failed: {exc}')
+        finally:
+            self._active_goal = None
 
 
 def main(args=None) -> None:
