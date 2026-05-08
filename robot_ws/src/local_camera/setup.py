@@ -29,6 +29,7 @@ setup(
             'alignment_controller = local_camera.alignment_controller:main',
             'dock_action_server = local_camera.dock_action_server:main',
             'scan_pointcloud_node = local_camera.scan_pointcloud_node:main',
+            'pickup_orchestrator = local_camera.pickup_orchestrator:main',
         ],
     },
 )

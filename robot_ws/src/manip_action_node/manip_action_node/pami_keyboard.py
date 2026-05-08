@@ -54,7 +54,7 @@ class PamiKeyboard(Node):
         self.min_angular_speed = 0.05
         self.max_angular_speed = 1.00
         self.get_logger().info(
-            "Publishing keys on /pami_ninja/keyboard and movement on /cmd_vel_smoothed"
+            "Publishing keys on /pami_ninja/keyboard and movement on /cmd_vel_match_input"
         )
 
     def publish_key(self, key: str, show: bool = False):

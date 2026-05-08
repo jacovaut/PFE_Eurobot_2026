@@ -160,6 +160,11 @@ def compute_best_pickup(cups, blocks, team_color="blue"):
 
     Robot orientation does NOT affect target choice.
     """
+    team_color = str(team_color).strip().lower()
+    if team_color == "bleu":
+        team_color = "blue"
+    elif team_color == "jaune":
+        team_color = "yellow"
 
     MAX_ERROR = 0.040               # max cup-to-block alignment error (m)
     MAX_LINE_ERROR = 0.030          # max block inline deviation (m)

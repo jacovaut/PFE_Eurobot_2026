@@ -1,22 +1,12 @@
 #include "ArmMotor.h"
 
-ArmMotor* ArmMotor::instance = nullptr;
-
-void ArmMotor::staticHandleInterrupt() {
-    if (instance) instance->onIndexPulse();
-}
-
-void ArmMotor::onIndexPulse() {
-    encoder.setCount(0);
-}
-
 ArmMotor::ArmMotor(float kp, float ki, float kd,
                    int motor_in1, int motor_in2,
-                   int encoder_a, int encoder_b, int encoder_x,
+                   int encoder_a, int encoder_b,
                    int pwm_ch_fwd, int pwm_ch_rev)
     : kp(kp), ki(ki), kd(kd),
       pin_in1(motor_in1), pin_in2(motor_in2),
-      pin_enc_a(encoder_a), pin_enc_b(encoder_b), pin_enc_x(encoder_x),
+      pin_enc_a(encoder_a), pin_enc_b(encoder_b),
       pwm_ch_fwd(pwm_ch_fwd), pwm_ch_rev(pwm_ch_rev)
 {}
 
@@ -28,11 +18,6 @@ void ArmMotor::setup() {
 
     encoder.attachHalfQuad(pin_enc_a, pin_enc_b);
     encoder.setCount(0);
-
-    // pinMode(pin_enc_x, INPUT_PULLUP);
-    // instance = this;
-    // attachInterrupt(digitalPinToInterrupt(pin_enc_x),
-    //                 staticHandleInterrupt, RISING);
 }
 
 void ArmMotor::setTarget(long ticks) {
@@ -40,10 +25,6 @@ void ArmMotor::setTarget(long ticks) {
     integral       = 0.0f;
     prev_error     = 0.0f;
     reached_target = false;   // re-enable PID on new target
-}
-
-void ArmMotor::returnToZero() {
-    setTarget(0);
 }
 
 void ArmMotor::applyPWM(int pwm) {
@@ -96,9 +77,5 @@ void ArmMotor::runPID() {
 }
 
 void ArmMotor::update() {
-    if (return_zero_pending && (millis() - return_zero_timer >= 1000)) {
-        return_zero_pending = false;
-        setTarget(0);
-    }
     runPID();
 }

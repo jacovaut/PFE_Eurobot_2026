@@ -18,6 +18,15 @@ def _read_cluster_pipeline_default(camera_map_path: str) -> str:
     except Exception:
         return 'true'
 
+def _read_team_color_default(camera_map_path: str) -> str:
+    try:
+        with open(camera_map_path, 'r', encoding='utf-8') as handle:
+            data = yaml.safe_load(handle) or {}
+        color = data.get('global_localization_node', {}).get('ros__parameters', {}).get('team_color', 'blue')
+        return str(color)
+    except Exception:
+        return 'blue'
+
 
 def generate_launch_description():
     pkg_share = get_package_share_directory('camera_localization')
@@ -25,6 +34,7 @@ def generate_launch_description():
     default_camera_map = os.path.join(pkg_share, 'config', 'camera_global_map.yaml')
     default_rviz_config = os.path.join(pkg_share, 'config', 'camera_global_map.rviz')
     default_use_cluster_pipeline = _read_cluster_pipeline_default(default_camera_map)
+    default_team_color = _read_team_color_default(default_camera_map)
 
     camera_global_map_config = LaunchConfiguration('camera_global_map_config')
     use_camera_global_localization = LaunchConfiguration('use_camera_global_localization')
@@ -32,12 +42,9 @@ def generate_launch_description():
     rviz_config = LaunchConfiguration('rviz_config')
     publish_block_obstacles = LaunchConfiguration('publish_block_obstacles')
     use_cluster_pipeline = LaunchConfiguration('use_cluster_pipeline')
-    cluster_team_color = LaunchConfiguration('cluster_team_color')
+    team_color = LaunchConfiguration('team_color')
     cluster_robot_marker_id = LaunchConfiguration('cluster_robot_marker_id')
     cluster_show_debug_window = LaunchConfiguration('cluster_show_debug_window')
-    cluster_goal_min_score = LaunchConfiguration('cluster_goal_min_score')
-    cluster_goal_offset_m = LaunchConfiguration('cluster_goal_offset_m')
-    cluster_goal_update_period_s = LaunchConfiguration('cluster_goal_update_period_s')
 
     return LaunchDescription([
         DeclareLaunchArgument(
@@ -71,9 +78,9 @@ def generate_launch_description():
             description='Master switch for cluster nodes (default read from camera_global_map.yaml use_cluster_pipeline)'
         ),
         DeclareLaunchArgument(
-            'cluster_team_color',
-            default_value='jaune',
-            description='Team color for cluster scoring (jaune|bleu)'
+            'team_color',
+            default_value=default_team_color,
+            description='Team color for robot IDs and cluster scoring (blue|yellow, bleu|jaune)'
         ),
         DeclareLaunchArgument(
             'cluster_robot_marker_id',
@@ -85,21 +92,6 @@ def generate_launch_description():
             default_value='true',
             description='Show OpenCV debug window for cluster analysis'
         ),
-        DeclareLaunchArgument(
-            'cluster_goal_min_score',
-            default_value='0.0',
-            description='Minimum best-cluster score required to send goal'
-        ),
-        DeclareLaunchArgument(
-            'cluster_goal_offset_m',
-            default_value='0.18',
-            description='Offset before cluster center to avoid driving into block cluster'
-        ),
-        DeclareLaunchArgument(
-            'cluster_goal_update_period_s',
-            default_value='0.7',
-            description='Minimum interval between goal updates to Nav2'
-        ),
 
         Node(
             package='camera_localization',
@@ -107,7 +99,7 @@ def generate_launch_description():
             name='global_localization_node',
             output='screen',
             condition=IfCondition(use_camera_global_localization),
-            parameters=[camera_global_map_config],
+            parameters=[camera_global_map_config, {'team_color': team_color}],
         ),
 
         Node(
@@ -122,6 +114,7 @@ def generate_launch_description():
                 'detected_blocks_topic': '/detected_blocks',
                 'marker_topic': '/camera_map/markers',
                 'block_pointcloud_topic': '/camera/block_obstacles',
+                'team_color': team_color,
             }],
         ),
 
@@ -132,26 +125,9 @@ def generate_launch_description():
             output='screen',
             condition=IfCondition(use_cluster_pipeline),
             parameters=[{
-                'team_color': cluster_team_color,
+                'team_color': team_color,
                 'robot_marker_id': cluster_robot_marker_id,
                 'show_debug_window': cluster_show_debug_window,
-            }],
-        ),
-
-        Node(
-            package='camera_localization',
-            executable='cluster_goal_bridge_node.py',
-            name='cluster_goal_bridge_node',
-            output='screen',
-            condition=IfCondition(use_cluster_pipeline),
-            parameters=[{
-                'cluster_topic': '/cluster_info',
-                'action_name': 'navigate_to_pose',
-                'goal_frame': 'map',
-                'enabled': True,
-                'min_score': cluster_goal_min_score,
-                'approach_offset_m': cluster_goal_offset_m,
-                'min_goal_update_period_s': cluster_goal_update_period_s,
             }],
         ),
 

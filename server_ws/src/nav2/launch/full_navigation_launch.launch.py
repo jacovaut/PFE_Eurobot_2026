@@ -245,18 +245,6 @@ def generate_launch_description():
                 arguments=['--ros-args', '--log-level', log_level],
                 parameters=[{'autostart': autostart}, {'node_names': lifecycle_nodes}],
             ),
-            Node(
-                package='camera_localization',
-                executable='enemy_reactive_avoidance_node.py',
-                name='enemy_reactive_avoidance',
-                output='screen',
-                parameters=[{
-                    'reactive_distance_m': 0.50,
-                    'reactive_speed_m_s': 0.25,
-                    'cooldown_s': 0.5,
-                    'enemy_stale_s': 2.0,
-                }],
-            ),
         ],
     )
 
@@ -293,7 +281,7 @@ def generate_launch_description():
                         plugin='behavior_server::BehaviorServer',
                         name='behavior_server',
                         parameters=[configured_params],
-                        remappings=remappings,
+                        remappings=remappings + [('cmd_vel', 'cmd_vel_pre_reactive')],
                     ),
                     ComposableNode(
                         package='nav2_bt_navigator',
@@ -314,7 +302,7 @@ def generate_launch_description():
                         plugin='nav2_velocity_smoother::VelocitySmoother',
                         name='velocity_smoother',
                         parameters=[configured_params],
-                        remappings=remappings + [('cmd_vel', 'cmd_vel_raw')],
+                        remappings=remappings + [('cmd_vel', 'cmd_vel_raw'), ('cmd_vel_smoothed', 'cmd_vel_pre_reactive')],
                     ),
                     ComposableNode(
                         package='nav2_collision_monitor',
@@ -353,6 +341,41 @@ def generate_launch_description():
         ],
     )
 
+    match_node = Node(
+        package='match',
+        executable='match_node',
+        name='match_node',
+        output='screen',
+        parameters=[{'autostart': False, 'duration_s': 98.0, 'force_running': True}],
+    )
+
+    cmd_vel_match_gate = Node(
+        package='match',
+        executable='cmd_vel_match_gate',
+        name='cmd_vel_match_gate',
+        output='screen',
+        parameters=[{
+            'input_topic': '/cmd_vel_match_input',
+            'output_topic': '/cmd_vel_smoothed',
+            'match_running_topic': '/match/running',
+            'zero_publish_hz': 20.0,
+        }],
+    )
+
+    enemy_reactive_avoidance = Node(
+        package='camera_localization',
+        executable='enemy_reactive_avoidance_node.py',
+        name='enemy_reactive_avoidance',
+        output='screen',
+        parameters=[{
+            'reactive_distance_m': 0.50,
+            'reactive_speed_m_s': 0.25,
+            'cooldown_s': 0.5,
+            'enemy_stale_s': 2.0,
+            'output_topic': '/cmd_vel_match_input',
+        }],
+    )
+
     # Create the launch description and populate
     ld = LaunchDescription()
 
@@ -370,6 +393,9 @@ def generate_launch_description():
     ld.add_action(declare_log_level_cmd)
     ld.add_action(declare_map_file_cmd)
     # Add the actions to launch all of the navigation nodes
+    ld.add_action(match_node)
+    ld.add_action(cmd_vel_match_gate)
+    ld.add_action(enemy_reactive_avoidance)
     ld.add_action(load_nodes)
     ld.add_action(load_composable_nodes)
 

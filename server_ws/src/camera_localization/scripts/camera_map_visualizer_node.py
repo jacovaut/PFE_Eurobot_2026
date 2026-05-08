@@ -47,6 +47,9 @@ class CameraMapVisualizer(Node):
         super().__init__('camera_map_visualizer_node')
 
         self.map_frame = self.declare_parameter('map_frame', 'map').value
+        self.team_color = self._normalize_team_color(
+            self.declare_parameter('team_color', 'blue').value
+        )
         self.robot_pose_topic = self.declare_parameter('robot_pose_topic', '/camera/global_pose').value
         self.detected_blocks_topic = self.declare_parameter('detected_blocks_topic', '/detected_blocks').value
         self.detected_enemy_topic = self.declare_parameter('detected_enemy_topic', '/detected_enemy').value
@@ -106,6 +109,12 @@ class CameraMapVisualizer(Node):
         self.garde_manger_taille_x_m = self._declare_double_array_parameter('garde_manger_taille_x_m')
         self.garde_manger_taille_y_m = self._declare_double_array_parameter('garde_manger_taille_y_m')
 
+        self.stocks_noms = self._declare_string_array_parameter('stocks_noms')
+        self.stocks_centre_x_m = self._declare_double_array_parameter('stocks_centre_x_m')
+        self.stocks_centre_y_m = self._declare_double_array_parameter('stocks_centre_y_m')
+        self.stocks_taille_x_m = self._declare_double_array_parameter('stocks_taille_x_m')
+        self.stocks_taille_y_m = self._declare_double_array_parameter('stocks_taille_y_m')
+
         self.zones_interdites_noms = self._declare_string_array_parameter('zones_interdites_noms')
         self.zones_interdites_centre_x_m = self._declare_double_array_parameter('zones_interdites_centre_x_m')
         self.zones_interdites_centre_y_m = self._declare_double_array_parameter('zones_interdites_centre_y_m')
@@ -113,6 +122,9 @@ class CameraMapVisualizer(Node):
         self.zones_interdites_taille_y_m = self._declare_double_array_parameter('zones_interdites_taille_y_m')
         self.zones_interdites_point_spacing_m = float(
             self.declare_parameter('zones_interdites_point_spacing_m', 0.05).value
+        )
+        self.publish_enemy_nid_as_static_obstacle = bool(
+            self.declare_parameter('publish_enemy_nid_as_static_obstacle', True).value
         )
         self.static_obstacle_padding_m = float(
             self.declare_parameter('static_obstacle_padding_m', 0.0).value
@@ -170,7 +182,10 @@ class CameraMapVisualizer(Node):
         self.create_subscription(String, self.detected_enemy_topic, self._enemy_cb, 20)
         self.create_timer(max(self.publish_period_s, 0.05), self._publish_visualization)
 
-        self.get_logger().info('camera_map_visualizer_node started')
+        self.get_logger().info(
+            f'camera_map_visualizer_node started; team={self.team_color}, '
+            f'enemy_nid_static_obstacle={self.publish_enemy_nid_as_static_obstacle}'
+        )
 
     def _robot_pose_cb(self, msg: PoseWithCovarianceStamped) -> None:
         self.has_received_robot_pose = True
@@ -276,6 +291,18 @@ class CameraMapVisualizer(Node):
             marker_array,
             now,
             marker_id,
+            ns='stocks',
+            names=self.stocks_noms,
+            xs=self.stocks_centre_x_m,
+            ys=self.stocks_centre_y_m,
+            size_xs=self.stocks_taille_x_m,
+            size_ys=self.stocks_taille_y_m,
+            color=(0.1, 0.6, 1.0, 0.18),
+        )
+        marker_id = self._append_zone_markers(
+            marker_array,
+            now,
+            marker_id,
             ns='zones_interdites',
             names=self.zones_interdites_noms,
             xs=self.zones_interdites_centre_x_m,
@@ -295,6 +322,8 @@ class CameraMapVisualizer(Node):
             size_xs=self.zones_interdites_taille_x_m,
             size_ys=self.zones_interdites_taille_y_m,
         )
+        if self.publish_enemy_nid_as_static_obstacle:
+            self._append_enemy_nid_obstacle_points(static_points)
 
         for i, block in enumerate(blocks[: self.max_blocks_visualized]):
             child_name = f'block_{i:02d}'
@@ -595,6 +624,40 @@ class CameraMapVisualizer(Node):
                     y = y_min + min(iy * spacing, size_y)
                     obstacle_points.append([x, y, point_z])
 
+    def _append_enemy_nid_obstacle_points(self, obstacle_points: List[List[float]]) -> None:
+        enemy_nid_name = self._enemy_nid_name()
+        nid_count = min(
+            len(self.nids_noms),
+            len(self.nids_centre_x_m),
+            len(self.nids_centre_y_m),
+            len(self.nids_taille_x_m),
+            len(self.nids_taille_y_m),
+        )
+        enemy_indices = [
+            i for i, name in enumerate(self.nids_noms[:nid_count])
+            if str(name).strip().lower() == enemy_nid_name
+        ]
+        if not enemy_indices:
+            self.get_logger().warning(
+                f'Enemy nid {enemy_nid_name} is not present in nids_noms; '
+                'not publishing it as a static obstacle.',
+                throttle_duration_sec=5.0,
+            )
+            return
+
+        self._append_zone_obstacle_points(
+            obstacle_points,
+            xs=[self.nids_centre_x_m[i] for i in enemy_indices],
+            ys=[self.nids_centre_y_m[i] for i in enemy_indices],
+            size_xs=[self.nids_taille_x_m[i] for i in enemy_indices],
+            size_ys=[self.nids_taille_y_m[i] for i in enemy_indices],
+        )
+
+    def _enemy_nid_name(self) -> str:
+        if self.team_color == 'blue':
+            return 'nid_jaune'
+        return 'nid_bleu'
+
     def _append_detected_obstacle_points(
         self,
         obstacle_points: List[List[float]],
@@ -697,6 +760,15 @@ class CameraMapVisualizer(Node):
             ParameterValue(type=ParameterType.PARAMETER_DOUBLE_ARRAY, double_array_value=[]),
         ).value
         return [float(v) for v in value]
+
+    @staticmethod
+    def _normalize_team_color(color: str) -> str:
+        normalized = str(color).strip().lower()
+        if normalized in ('blue', 'bleu'):
+            return 'blue'
+        if normalized in ('yellow', 'jaune'):
+            return 'yellow'
+        return 'blue'
 
 
 def main(args=None) -> None:

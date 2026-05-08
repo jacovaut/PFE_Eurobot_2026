@@ -9,6 +9,8 @@
 
   <depend>nav2_bringup</depend>
   <depend>nav2_rotation_shim_controller</depend>
+  <depend>match</depend>
+  <depend>match_nav2_bt</depend>
   <depend>rclpy</depend>
   <depend>geometry_msgs</depend>
 

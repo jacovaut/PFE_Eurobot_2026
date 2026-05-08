@@ -28,7 +28,9 @@ setup(
     entry_points={
         'console_scripts': [
             'dispense_action = manip_action_node.dispense_action:main',
+            'flip_action = manip_action_node.flip_action:main',
             'pick_action = manip_action_node.pick_action:main',
+            'pickup_action = manip_action_node.pickup_action:main',
             'pami_keyboard = manip_action_node.pami_keyboard:main',
             'therm_action = manip_action_node.therm_action:main',
         ],
