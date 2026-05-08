@@ -295,7 +295,7 @@ class DockActionServer(Node):
                 else:
                     stable_start = None
                     vx = clamp(self.kx * dx, -self.max_vx, self.max_vx)
-                    vy = clamp(-self.ky * dy, -self.max_vy, self.max_vy)
+                    vy = clamp(self.ky * dy, -self.max_vy, self.max_vy)
                 w = 0#clamp(self.kt * dtheta, -self.max_w, self.max_w)
 
             # ==================
@@ -393,7 +393,7 @@ class DockActionServer(Node):
 
             cmd = Twist()
             cmd.linear.x  = vx
-            cmd.linear.y  = -vy
+            cmd.linear.y  = vy
             cmd.angular.z = w
             self.cmd_pub.publish(cmd)
             self.last_cmd = cmd
