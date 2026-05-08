@@ -201,12 +201,11 @@ def compute_best_pickup(cups, blocks, team_color="blue"):
             combinations(cup_items, n)
         )
 
-        # Case a: camera cannot see cup_0 when docked — never assign a single
-        # block to cup_0.  For multi-block picks cup_0 is still allowed in the
-        # assignment set (its pose contribution is handled separately in
-        # ros_node.py).
+        # Case a: for a single block, force assignment to cup_2 only.
+        # cup_0 is blind when docked; cup_2 is preferred for single picks.
+        # For multi-block picks all cups remain available.
         if n == 1:
-            cup_subsets = [cs for cs in cup_subsets if cs[0][0] != "cup_0"]
+            cup_subsets = [cs for cs in cup_subsets if cs[0][0] == "cup_2"]
         if not cup_subsets:
             continue
 

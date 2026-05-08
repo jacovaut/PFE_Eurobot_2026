@@ -4,7 +4,7 @@ Docking Action Server for block pickup alignment.
 
 Exposes a ROS2 action: custom_msgs/action/DockToBlock
 - Subscribes to /pickup_pose (published by ros_node.py)
-- Drives the robot via /cmd_vel_match_input using a P controller
+- Drives the robot via /cmd_vel_smoothed using a P controller
 - Reports feedback (dx, dy, yaw_deg, error_m, state) at 50 Hz
 - Succeeds when aligned within tolerance for a stable duration
 - Fails on timeout or preempt
@@ -57,9 +57,9 @@ class DockActionServer(Node):
         super().__init__("dock_action_server")
 
         # ----- Parameters -----
-        self.declare_parameter("k_x",          0.5)
-        self.declare_parameter("k_y",          0.5)
-        self.declare_parameter("k_theta",      0.5)
+        self.declare_parameter("k_x",          0.4)
+        self.declare_parameter("k_y",          0.4)
+        self.declare_parameter("k_theta",      0.4)
         self.declare_parameter("max_vx",       0.4)
         self.declare_parameter("max_vy",       0.7)
         self.declare_parameter("max_w",        0.8)
@@ -101,12 +101,13 @@ class DockActionServer(Node):
         self.last_cmd = Twist()
         self.pose_max_age = 0.5       # seconds before pose considered stale
         self.last_good_error: float = float("inf")  # error when pose was last valid
+        self.last_good_yaw_deg: float = 0.0           # yaw when pose was last valid
         self.last_good_state: int = self.STATE_SEARCHING
 
         # ----- ROS interfaces -----
         cb_group = ReentrantCallbackGroup()
 
-        self.cmd_pub = self.create_publisher(Twist, "/cmd_vel_match_input", 10)
+        self.cmd_pub = self.create_publisher(Twist, "/cmd_vel_smoothed", 10)
         self.status_pub = self.create_publisher(String, "/pickup_status", 10)
 
         self.create_subscription(
@@ -166,14 +167,20 @@ class DockActionServer(Node):
         start_time  = time.time()
         feedback = DockToBlock.Feedback()
         self.last_good_error = float("inf")
+        self.last_good_yaw_deg = 0.0
         self.last_good_state = self.STATE_SEARCHING
 
         self.get_logger().info(
             f"[DOCK] Executing (timeout={timeout_sec:.1f}s)"
         )
 
-        # Reset pickup solver lock so it starts fresh
+        # Reset pickup solver lock so it starts fresh.
+        # Also clear the cached pose so we never act on a stale pose from a
+        # previous run — the controller will stay in SEARCHING until the solver
+        # publishes a fresh solution after processing the unlock.
         self._publish_status("unlock")
+        self.current_pose = None
+        self.pose_stamp   = 0.0
 
         phase        = "approach"           # approach | orbit | approach2
         stable_start: float | None = None   # position/angle stable timer
@@ -245,7 +252,7 @@ class DockActionServer(Node):
                 self._stop()
                 feedback.dx      = 0.0
                 feedback.dy      = 0.0
-                feedback.yaw_deg = 0.0
+                feedback.yaw_deg = self.last_good_yaw_deg
                 feedback.error_m = self.last_good_error
                 feedback.state   = self.STATE_SEARCHING
                 goal_handle.publish_feedback(feedback)
@@ -258,7 +265,8 @@ class DockActionServer(Node):
             dy     = pose.y
             dtheta = math.atan2(math.sin(pose.theta), math.cos(pose.theta))
             error  = math.hypot(dx, dy)
-            self.last_good_error = error
+            self.last_good_error   = error
+            self.last_good_yaw_deg = math.degrees(dtheta)
 
             # ==================
             # PHASE: APPROACH
@@ -275,7 +283,6 @@ class DockActionServer(Node):
 
                 if in_pos:
                     vx = vy = 0.0
-                    w = clamp(-self.kt * dtheta, -self.max_w, self.max_w)
                     if stable_start is None:
                         stable_start = time.time()
                     if time.time() - stable_start >= self.stable_time_required:
@@ -288,8 +295,8 @@ class DockActionServer(Node):
                 else:
                     stable_start = None
                     vx = clamp(self.kx * dx, -self.max_vx, self.max_vx)
-                    vy = clamp(self.ky * dy, -self.max_vy, self.max_vy)
-                    w = 0.0  # no rotation during translation — orbit phase handles yaw
+                    vy = clamp(-self.ky * dy, -self.max_vy, self.max_vy)
+                w = 0#clamp(self.kt * dtheta, -self.max_w, self.max_w)
 
             # ==================
             # PHASE: ORBIT
@@ -341,8 +348,8 @@ class DockActionServer(Node):
                     # orbit_dir < 0 → CW  orbit (w < 0, cmd.linear.y < 0)
                     orbit_omega = self.orbit_speed / self.orbit_radius
                     vx = 0.0
-                    vy = -orbit_dir * self.orbit_speed
-                    w  = clamp(-orbit_dir * orbit_omega, -self.max_w, self.max_w)
+                    vy = orbit_dir * self.orbit_speed
+                    w  = clamp(orbit_dir * orbit_omega, -self.max_w, self.max_w)
 
             # ==================
             # PHASE: APPROACH2

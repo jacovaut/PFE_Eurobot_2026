@@ -71,13 +71,9 @@
   </link>
 
   <joint name="arm_joint" type="continuous">
-    <parent link="base_link"/>
+    <parent link="base_cad"/>
     <child link="arm_link"/>
-<<<<<<< HEAD
-    <origin xyz="-0.3689156752862411 0.07293206200904699 -0.14265636918407304" #maybe change vals (+20cm and stuff)
-=======
-    <origin xyz="-0.3919156752862411 0.08793206200904699 -0.14265636918407304"
->>>>>>> 6cb7edb98e5ac57d8948d188ac50322464205e20
+    <origin xyz="-0.4009156752862411 0.107293206200904699 -0.15465636918407304"
             rpy="-1.5707963267948974 -1.5265566588595922e-16 7.21644966006352e-16"/>
     <axis xyz="0 0 1"/>
   </joint>
@@ -239,7 +235,7 @@
     <parent link="base_cad"/>
     <child link="arducam_link"/>
     <origin xyz="-0.2678761652862411 0.16593206200904703 0.06147094081592663"
-            rpy="-3.141592653589792 -0.7853981633974493 -3.141592653589792"/>
+            rpy="-3.1415926535897922 -0.6973907898697068 -3.141592653589792"/>
   </joint>
 
   <!-- ROS optical frame -->
@@ -307,41 +303,25 @@
   <joint name="arm_to_cup_0" type="fixed">
     <parent link="arm_link"/>
     <child link="cup_0"/>
-<<<<<<< HEAD
-    <origin xyz="0.1 0.0255 0.0365" rpy="1.5707963267948966 0 0"/>
-=======
-    <origin xyz="0.125 0.0105 0.0365" rpy="1.5707963267948966 0 0"/>
->>>>>>> 6cb7edb98e5ac57d8948d188ac50322464205e20
+    <origin xyz="0.075 0.0255 0.0365" rpy="1.5707963267948966 0 0"/>
   </joint>
 
   <joint name="arm_to_cup_1" type="fixed">
     <parent link="arm_link"/>
     <child link="cup_1"/>
-<<<<<<< HEAD
-    <origin xyz="0.05 0.025 0.0365" rpy="-1.5707963267948966 0 0"/>
-=======
-    <origin xyz="0.075 0.0100 0.0365" rpy="-1.5707963267948966 0 0"/>
->>>>>>> 6cb7edb98e5ac57d8948d188ac50322464205e20
+    <origin xyz="0.025 0.0255 0.0365" rpy="1.5707963267948966 0 0"/>
   </joint>
 
   <joint name="arm_to_cup_2" type="fixed">
     <parent link="arm_link"/>
     <child link="cup_2"/>
-<<<<<<< HEAD
-    <origin xyz="0 0.0255 0.0365" rpy="1.5707963267948966 0 0"/>
-=======
-    <origin xyz="0.025 0.0105 0.0365" rpy="1.5707963267948966 0 0"/>
->>>>>>> 6cb7edb98e5ac57d8948d188ac50322464205e20
+    <origin xyz="-0.025 0.0255 0.0365" rpy="1.5707963267948966 0 0"/>
   </joint>
 
   <joint name="arm_to_cup_3" type="fixed">
     <parent link="arm_link"/>
     <child link="cup_3"/>
-<<<<<<< HEAD
-    <origin xyz="-0.05 0.0255 0.0365" rpy="1.5707963267948966 0 0"/>
-=======
-    <origin xyz="-0.025 0.0105 0.0365" rpy="1.5707963267948966 0 0"/>
->>>>>>> 6cb7edb98e5ac57d8948d188ac50322464205e20
+    <origin xyz="-0.075 0.0255 0.0365" rpy="1.5707963267948966 0 0"/>
   </joint>
 
 </robot>
