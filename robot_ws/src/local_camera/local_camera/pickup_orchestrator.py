@@ -18,14 +18,14 @@ from rclpy.action import ActionClient
 from rclpy.node import Node
 from std_msgs.msg import String
 
-from custom_msgs.action import DockToBlock, Flip, Pickup
+from custom_msgs.action import DockToBlock, Pick
 
-# Color string from solver → Flip.Goal colors array value
-# 0 = skip, 1 = blue flip sequence, 2 = yellow flip sequence
-_FLIP_COLOR_TO_INT = {
-    "blue": 1,
-    "yellow": 2,
-    "unknown": 0,
+# Color string from solver → Pick.Goal colors array value
+# 0 = not present, 1 = pick as-is, 2 = pick and flip
+_COLOR_TO_INT = {
+    "blue":    1,
+    "yellow":  2,
+    "unknown": 1,  # treat unknown as pick as-is
 }
 
 
@@ -33,10 +33,14 @@ class PickupOrchestrator(Node):
     def __init__(self):
         super().__init__("pickup_orchestrator")
 
+        self.declare_parameter("team_color", read_default_team_color())
         self.declare_parameter("dock_timeout_sec", 30.0)
         self.declare_parameter("pickup_timeout_sec", 60.0)
         self.declare_parameter("flip_timeout_sec", 30.0)
 
+        self.team_color = normalize_team_color(
+            self.get_parameter("team_color").value
+        )
         self.dock_timeout = float(self.get_parameter("dock_timeout_sec").value)
         self.pickup_timeout = float(self.get_parameter("pickup_timeout_sec").value)
         self.flip_timeout = float(self.get_parameter("flip_timeout_sec").value)
@@ -52,8 +56,7 @@ class PickupOrchestrator(Node):
         )
 
         self._dock_client = ActionClient(self, DockToBlock, "dock_to_block")
-        self._pickup_client = ActionClient(self, Pickup, "pickup")
-        self._flip_client = ActionClient(self, Flip, "flip")
+        self._pick_client = ActionClient(self, Pick, "pick")
 
     def _best_pickup_cb(self, msg: String) -> None:
         try:
@@ -241,8 +244,7 @@ class PickupOrchestrator(Node):
             idx = cup_index.get(a.get("cup", ""), -1)
             if idx < 0:
                 continue
-            if a.get("color") == "yellow":
-                colors[idx] = _FLIP_COLOR_TO_INT.get(a.get("color", "unknown"), 0)
+            colors[idx] = _COLOR_TO_INT.get(a.get("color", "unknown"), 1)
 
         count = sum(1 for c in colors if c != 0)
         return colors, count

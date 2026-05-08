@@ -17,6 +17,10 @@ setup(
         (os.path.join('share', package_name, 'launch'),
             glob('launch/*.py')),
 
+        # Install RViz configs
+        (os.path.join('share', package_name),
+            glob('*.rviz')),
+
         # Install urdf files
         (os.path.join('share', package_name, 'urdf'),
             glob('description/*.urdf*')),

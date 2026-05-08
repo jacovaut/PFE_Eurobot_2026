@@ -7,6 +7,7 @@
 #include <tf2/LinearMath/Quaternion.h>
 
 #include <array>
+#include <cctype>
 #include <cstdint>
 #include <cmath>
 #include <algorithm>
@@ -76,9 +77,12 @@ public:
     detected_enemy_topic_ = declare_parameter<std::string>("detected_enemy_topic", "/detected_enemy");
     debug_view_ = declare_parameter<bool>("debug_view", true);
 
-    // Marker IDs / sizes
-    robot_marker_id_ = declare_parameter<int>("robot_marker_id", 1);
-    enemy_robot_marker_id_ = declare_parameter<int>("enemy_robot_marker_id", 6);
+    // Team color decides robot marker ownership:
+    // blue/bleu: our robot IDs 1-5, enemy robot IDs 6-10.
+    // yellow/jaune: our robot IDs 6-10, enemy robot IDs 1-5.
+    team_color_ = normalizeTeamColor(declare_parameter<std::string>("team_color", "blue"));
+    declare_parameter<int>("robot_marker_id", 1);        // Legacy; no longer used.
+    declare_parameter<int>("enemy_robot_marker_id", 6);  // Legacy; no longer used.
     table_marker_length_m_ = declare_parameter<double>("table_marker_length_m", 0.10);
     robot_marker_length_m_ = declare_parameter<double>("robot_marker_length_m", 0.07);
     enemy_robot_marker_length_m_ = declare_parameter<double>("enemy_robot_marker_length_m", 0.07);
@@ -243,6 +247,12 @@ public:
 
     RCLCPP_INFO(get_logger(), "global_localization_node started");
     RCLCPP_INFO(get_logger(), "Publishing global pose on %s", pose_topic_.c_str());
+    RCLCPP_INFO(
+      get_logger(),
+      "Team color %s: our robot ArUco IDs %s, enemy robot ArUco IDs %s",
+      team_color_.c_str(),
+      robotMarkerRangeLabel(true).c_str(),
+      robotMarkerRangeLabel(false).c_str());
   }
 
   ~CameraLocalizationNode() override
@@ -278,6 +288,48 @@ private:
     double size_y_m{0.0};
     bool is_dynamic{true};
   };
+
+  static std::string normalizeTeamColor(std::string color)
+  {
+    std::transform(color.begin(), color.end(), color.begin(),
+      [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+
+    if (color == "blue" || color == "bleu") {
+      return "blue";
+    }
+    if (color == "yellow" || color == "jaune") {
+      return "yellow";
+    }
+    throw std::runtime_error(
+      "team_color must be blue/bleu or yellow/jaune");
+  }
+
+  bool markerIdInRange(const int id, const int min_id, const int max_id) const
+  {
+    return min_id <= id && id <= max_id;
+  }
+
+  bool isOurRobotMarkerId(const int id) const
+  {
+    if (team_color_ == "blue") {
+      return markerIdInRange(id, 1, 5);
+    }
+    return markerIdInRange(id, 6, 10);
+  }
+
+  bool isEnemyRobotMarkerId(const int id) const
+  {
+    if (team_color_ == "blue") {
+      return markerIdInRange(id, 6, 10);
+    }
+    return markerIdInRange(id, 1, 5);
+  }
+
+  std::string robotMarkerRangeLabel(const bool our_robot) const
+  {
+    const bool blue_range = our_robot ? team_color_ == "blue" : team_color_ != "blue";
+    return blue_range ? "1-5" : "6-10";
+  }
 
   struct TrackedEntity
   {
@@ -477,7 +529,7 @@ private:
       ? cv::aruco::CORNER_REFINE_SUBPIX
       : cv::aruco::CORNER_REFINE_NONE;
 
-    dictionary_ = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_4X4_50);
+    dictionary_ = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_4X4_100);
   }
 
   void cameraCaptureLoop()
@@ -788,7 +840,7 @@ if (ids.empty()) {
 
     int robot_index = -1;
     for (size_t i = 0; i < ids.size(); ++i) {
-      if (ids[i] == robot_marker_id_) {
+      if (isOurRobotMarkerId(ids[i])) {
         robot_index = static_cast<int>(i);
         break;
       }
@@ -797,7 +849,7 @@ if (ids.empty()) {
     if (robot_index < 0) {
       RCLCPP_WARN_THROTTLE(
         get_logger(), *get_clock(), 1000,
-        "Robot marker ID %d not visible", robot_marker_id_);
+        "Our robot marker range %s not visible", robotMarkerRangeLabel(true).c_str());
     } else {
       std::vector<cv::Mat> robot_rvec_candidates;
       std::vector<cv::Mat> robot_tvec_candidates;
@@ -888,7 +940,7 @@ if (ids.empty()) {
           have_last_robot_pose_estimate_ = true;
 
           have_robot_pose = true;
-          robot_entity.marker_id = robot_marker_id_;
+          robot_entity.marker_id = ids[robot_index];
           robot_entity.color = "robot";
           robot_entity.position_map = cv::Vec3d(t_map_base[0], t_map_base[1], 0.0);
           robot_entity.yaw_rad = yaw_map_base;
@@ -906,7 +958,7 @@ if (ids.empty()) {
     {
       std::vector<DetectedEntity> enemy_detections;
       for (size_t i = 0; i < ids.size(); ++i) {
-        if (ids[i] != enemy_robot_marker_id_) {
+        if (!isEnemyRobotMarkerId(ids[i])) {
           continue;
         }
         cv::Matx33d R_map_enemy;
@@ -1896,8 +1948,7 @@ if (ids.empty()) {
   int clahe_tile_size_{16};
   bool debug_view_{true};
 
-  int robot_marker_id_{1};
-  int enemy_robot_marker_id_{6};
+  std::string team_color_{"blue"};
   int min_table_markers_{1};
 
   double table_marker_length_m_{0.10};

@@ -14,6 +14,8 @@ from geometry_msgs.msg import Pose2D, TransformStamped
 from std_msgs.msg import String
 from tf2_ros import Buffer, TransformBroadcaster, TransformListener
 
+from .team_color import normalize_team_color, read_default_team_color
+
 
 # =========================
 # DATA STRUCTURES
@@ -365,7 +367,7 @@ class MergedLocalPickupNode(
         )
         self.declare_parameter(
             "team_color",
-            "blue"
+            read_default_team_color()
         )
         self.declare_parameter(
             "block_timeout_sec",
@@ -382,7 +384,7 @@ class MergedLocalPickupNode(
             ).value
         )
 
-        self.team_color = str(
+        self.team_color = normalize_team_color(
             self.get_parameter(
                 "team_color"
             ).value
