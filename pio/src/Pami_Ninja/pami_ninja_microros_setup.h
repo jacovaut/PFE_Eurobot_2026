@@ -15,6 +15,7 @@
 
 extern bool hasRun;
 extern volatile bool startRequested;
+extern volatile bool stopRequested;
 extern volatile uint8_t selectedAutonomousRun;
 
 char MICROROS_WIFI_SSID[] = "GRUM";
@@ -59,7 +60,9 @@ void runningCallback(const void* msgin) {
 
   if (msg->data) {
     startRequested = true;
+    stopRequested = false;
   } else {
+    stopRequested = true;
     startRequested = false;
     hasRun = false;
   }
@@ -78,16 +81,16 @@ void teamColorCallback(const void* msgin) {
     color[i] = static_cast<char>(tolower(color[i]));
   }
 
-  if (strcmp(color, "blue") == 0 || strcmp(color, "bleu") == 0 ||
+  if (strcmp(color, "yellow") == 0 || strcmp(color, "jaune") == 0 ||
       strcmp(color, "1") == 0 || strcmp(color, "run1") == 0) {
     selectedAutonomousRun = 1;
     hasRun = false;
-    Serial.println("team_color selected autonomous run 1");
-  } else if (strcmp(color, "yellow") == 0 || strcmp(color, "jaune") == 0 ||
+    Serial.println("team_color selected yellow run");
+  } else if (strcmp(color, "blue") == 0 || strcmp(color, "bleu") == 0 ||
              strcmp(color, "2") == 0 || strcmp(color, "run2") == 0) {
     selectedAutonomousRun = 2;
     hasRun = false;
-    Serial.println("team_color selected autonomous run 2");
+    Serial.println("team_color selected blue run");
   } else {
     Serial.printf("Ignoring unknown team_color: %s\n", color);
   }
@@ -151,7 +154,7 @@ void setupMicroRosTrigger() {
   ));
 
   Serial.println("Listening to match/running (std_msgs/Bool).");
-  Serial.println("Listening to team_color (std_msgs/String): blue=run 1, yellow=run 2.");
+  Serial.println("Listening to team_color (std_msgs/String): yellow=run 1, blue=run 2.");
   Serial.println("true starts the script. false resets the trigger.");
 }
 
