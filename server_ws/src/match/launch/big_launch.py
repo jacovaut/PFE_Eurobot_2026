@@ -177,7 +177,7 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             'enable_opener',
-            default_value='true',
+            default_value='false',
             description='Run the stock opener sequence when /match/running becomes true.',
         ),
     ]
