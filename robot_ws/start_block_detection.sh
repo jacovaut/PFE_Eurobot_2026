@@ -24,8 +24,8 @@ echo "[INFO] Starting LOW-LATENCY MJPEG TCP stream (internal port 8887)..."
 rpicam-vid -t 0 -n \
   --listen \
   --codec mjpeg \
-  --width 2328 \
-  --height 1748 \
+  --width 1640 \
+  --height 1232 \
   --framerate 30 \
   --flush \
   -o tcp://0.0.0.0:8888 &
@@ -35,7 +35,7 @@ CAMERA_PID=$!
 sleep 1
 
 echo "[INFO] Starting MJPEG broadcast proxy (8887 -> raw:8888, HTTP:8080)..."
-# python3 "$(dirname "$0")/mjpeg_broadcast.py"
+#python3 "$(dirname "$0")/mjpeg_broadcast.py"
 python3 "$(dirname "$0")/block_publisher.py"
 # python3 "$(dirname "$0")/calibrate_onboard_cam.py"
 
