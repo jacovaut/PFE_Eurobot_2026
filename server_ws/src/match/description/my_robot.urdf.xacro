@@ -62,9 +62,9 @@
   </link>
 
   <joint name="arm_joint" type="continuous">
-    <parent link="base_cad"/>
+    <parent link="base_link"/>
     <child link="arm_link"/>
-    <origin xyz="-0.3689156752862411 0.07293206200904699 -0.14265636918407304"
+    <origin xyz="-0.3919156752862411 0.08793206200904699 -0.14265636918407304"
             rpy="-1.5707963267948974 -1.5265566588595922e-16 7.21644966006352e-16"/>
     <axis xyz="0 0 1"/>
   </joint>
@@ -287,25 +287,25 @@
   <joint name="arm_to_cup_0" type="fixed">
     <parent link="arm_link"/>
     <child link="cup_0"/>
-    <origin xyz="0.075 0.0105 0.0365" rpy="1.5707963267948966 0 0"/>
+    <origin xyz="0.125 0.0105 0.0365" rpy="1.5707963267948966 0 0"/>
   </joint>
 
   <joint name="arm_to_cup_1" type="fixed">
     <parent link="arm_link"/>
     <child link="cup_1"/>
-    <origin xyz="0.025 0.0100 0.0365" rpy="-1.5707963267948966 0 0"/>
+    <origin xyz="0.075 0.0100 0.0365" rpy="-1.5707963267948966 0 0"/>
   </joint>
 
   <joint name="arm_to_cup_2" type="fixed">
     <parent link="arm_link"/>
     <child link="cup_2"/>
-    <origin xyz="-0.025 0.0105 0.0365" rpy="1.5707963267948966 0 0"/>
+    <origin xyz="0.025 0.0105 0.0365" rpy="1.5707963267948966 0 0"/>
   </joint>
 
   <joint name="arm_to_cup_3" type="fixed">
     <parent link="arm_link"/>
     <child link="cup_3"/>
-    <origin xyz="-0.075 0.0105 0.0365" rpy="1.5707963267948966 0 0"/>
+    <origin xyz="-0.025 0.0105 0.0365" rpy="1.5707963267948966 0 0"/>
   </joint>
 
 </robot>
