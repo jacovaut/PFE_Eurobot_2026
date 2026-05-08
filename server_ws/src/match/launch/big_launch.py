@@ -74,6 +74,7 @@ def generate_launch_description():
     use_respawn = LaunchConfiguration('use_respawn')
     log_level = LaunchConfiguration('log_level')
     force_match_running = LaunchConfiguration('force_match_running')
+    enable_opener = LaunchConfiguration('enable_opener')
 
     lifecycle_nodes = [
         'planner_server',
@@ -173,6 +174,11 @@ def generate_launch_description():
             'force_match_running',
             default_value='true',
             description='Force /match/running true for testing outside a match.',
+        ),
+        DeclareLaunchArgument(
+            'enable_opener',
+            default_value='true',
+            description='Run the stock opener sequence when /match/running becomes true.',
         ),
     ]
 
@@ -293,6 +299,8 @@ def generate_launch_description():
                 'autostart': False,
                 'duration_s': 98.0,
                 'force_running': ParameterValue(force_match_running, value_type=bool),
+                'team_color': team_color,
+                'enable_opener': ParameterValue(enable_opener, value_type=bool),
             }],
         ),
         Node(
