@@ -130,7 +130,7 @@ void cmdvel_callback(const void* msgin)
   // Sequence-lock update
   cmdvel.seq++;
   cmdvel.vx = msg->linear.x;
-  cmdvel.vy = msg->linear.y;
+  cmdvel.vy = -msg->linear.y;  // Invert strafe direction
   cmdvel.w  = msg->angular.z;
   cmdvel.seq++;
 }
@@ -172,10 +172,10 @@ void timercallback(rcl_timer_t *timer, int64_t last_call_time)
 FastAccelStepperEngine engine;
 
 // Motor definitions (StepPin, DirPin, CSPin)
-MotorDriver motor1(26, 25, 33);
-MotorDriver motor2(17, 16, 4);
-MotorDriver motor3(23, 22, 21);
-MotorDriver motor4(15, 13, 12);
+MotorDriver motor1(15, 13, 12);
+MotorDriver motor2(26, 25, 33);
+MotorDriver motor3(17, 16, 4);
+MotorDriver motor4(23, 22, 21);
 MotorDriver* motors[] = { &motor1, &motor2, &motor3, &motor4 }; // FL, FR, RR, RL
 
 // Robot motion and dimmention variables
@@ -286,18 +286,18 @@ void setup() {
     motor4.Enabledriver(true);
 
     // Test motor position
-    // for (int i = 0; i < 4; i++) {        
-    //     motors[i]->setSpeedRPM(60); // set speed in RPM
-    //     motors[i]->runForward();
+    for (int i = 0; i < 4; i++) {        
+        motors[i]->setSpeedRPM(60); // set speed in RPM
+        motors[i]->runForward();
 
-    //     delay(1000);
+        delay(1000);
 
-    //     motors[i]->runBackward();
+        motors[i]->runBackward();
 
-    //     delay(1000);
+        delay(1000);
 
-    //     motors[i]->stop();
-    // }
+        motors[i]->stop();
+    }
     
     xTaskCreatePinnedToCore(
         core1,

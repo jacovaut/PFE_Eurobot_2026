@@ -4,13 +4,10 @@
 #include <ESP32Servo.h>
 
 #include "ArmMotor.h"
-#include "BlockManager.h"
 #include "TurnMotor.h"
 
 class HardwareManager {
 private:
-    BlockManager* BlockList;
-
     ArmMotor armMotor;
     TurnMotor turnMotor;
     Servo stopperServo;
@@ -25,7 +22,7 @@ private:
     static constexpr int STOP_OPEN_ANGLE = 120;
     static constexpr int FLIP_STOP = 60;
     static constexpr int FLIP_COLOR_START = 50;
-    static constexpr int FLIP_B_END_COLOR = 120;
+    static constexpr int FLIP_B_END_COLOR = 140;
     static constexpr int FLIP_Y_END_COLOR = 40;
 
     bool pauseWithUpdate(uint32_t duration_ms);
@@ -41,7 +38,7 @@ private:
     bool runFlipYellow();
 
 public:
-    HardwareManager(BlockManager* blockList);
+    HardwareManager();
     void init();
     bool pickUp(const int* cups);
     bool flip(const int* colors);

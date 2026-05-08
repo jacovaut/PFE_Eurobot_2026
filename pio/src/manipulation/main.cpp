@@ -9,7 +9,6 @@
 #include <rclc/executor.h>
 #include <rmw_microros/rmw_microros.h>
 
-#include "BlockManager.h"
 #include "HardwareManager.h"
 
 rclc_executor_t executor;  // executor to handle timers/callbacks
@@ -42,8 +41,7 @@ enum ManipStatus : uint8_t {
   STATUS_DISPENSE_FAILED = 9,
 };
 
-BlockManager BlockList;
-HardwareManager Hardware(&BlockList);
+HardwareManager Hardware;
 
 void publish_status(uint8_t code) {
   status_msg.data = code;
@@ -58,6 +56,7 @@ void legacy_blocks_callback(const void * msgin) {
 
   int cups[4];
   int flip_colors[4];
+  // CHANGE: else condition
   for (int i = 0; i < 4; i++) {
     cups[i] = msg->colors[i] != 0 ? 1 : 0;
     flip_colors[i] = msg->colors[i] == 2 ? 2 : 0;
@@ -87,7 +86,7 @@ void legacy_blocks_callback(const void * msgin) {
 void pickup_callback(const void * msgin) {
   const custom_msgs__msg__Blocks * msg =
       (const custom_msgs__msg__Blocks *)msgin;
-
+  // CHANGE: else condition | pump order
   int cups[4];
   for (int i = 0; i < 4; i++) {
     cups[i] = msg->colors[i] != 0 ? 1 : 0;
@@ -105,6 +104,8 @@ void flip_callback(const void * msgin) {
   const custom_msgs__msg__Blocks * msg =
       (const custom_msgs__msg__Blocks *)msgin;
 
+
+  // CHANGE:  missing block / delete block manager
   int colors[4];
   for (int i = 0; i < 4; i++) {
     colors[i] = msg->colors[i];
@@ -123,6 +124,7 @@ void flip_callback(const void * msgin) {
 void dispense_callback(const void * msgin) {
   // const std_msgs__msg__UInt8 * msg = (const std_msgs__msg__UInt8 *)msgin;
   // uint8_t count = msg->data;
+  // Change: what???
   publish_status(STATUS_DISPENSE_STARTED);
   if (Hardware.dropOff()) {
     publish_status(STATUS_DISPENSE_DONE);
@@ -133,9 +135,20 @@ void dispense_callback(const void * msgin) {
 
 void setup() {
   Serial.begin(115200);
-  set_microros_serial_transports(Serial);
-  delay(2000); // give the agent time to connect
+  // set_microros_serial_transports(Serial);
+  IPAddress agent_ip(192,168,1,131);
 
+  set_microros_wifi_transports(
+      "GRUM",
+      "GELE>GMEC",
+      agent_ip,
+      7777
+  );
+  
+  // Wait for agent
+  while (rmw_uros_ping_agent(1000, 1) != RMW_RET_OK) {
+      delay(1000);
+  }
   Hardware.init();
 
   allocator = rcl_get_default_allocator();
@@ -232,6 +245,8 @@ void setup() {
     &dispense_callback,
     ON_NEW_DATA
   );
+
+  // Change: blocking blocks (dual core????)
 }
 
 void loop() {
