@@ -64,7 +64,6 @@ install(TARGETS
 
 install(PROGRAMS
   scripts/camera_map_visualizer_node.py
-  scripts/cluster_goal_bridge_node.py
   scripts/enemy_reactive_avoidance_node.py
   DESTINATION lib/${PROJECT_NAME}
 )

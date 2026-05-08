@@ -57,16 +57,26 @@ class MatchNode(Node):
         self.declare_parameter('opener_therm_direction', 'auto')
         self.declare_parameter('opener_step_retries', 3)
         self.declare_parameter('closer_start_before_end_s', 40.0)
-        self.declare_parameter('closer_final_before_end_s', 15.0)
+        self.declare_parameter('end_before_end_s', 15.0)
         self.declare_parameter('closer_plan_timeout_s', 5.0)
         self.declare_parameter('closer_cluster_topic', '/cluster_info')
         self.declare_parameter('closer_pickups_before_nid', 2)
+        self.declare_parameter('enable_midgame', False)
+        self.declare_parameter('enable_end', False)
+        self.declare_parameter('midgame_cluster_min_score', 0.0)
+        self.declare_parameter('midgame_cluster_approach_offset_m', 0.18)
 
         self._duration = Duration(seconds=float(self.get_parameter('duration_s').value))
         self._force_running = bool(self.get_parameter('force_running').value)
         self._team_color = self._normalize_team_color(self.get_parameter('team_color').value)
         self._enable_opener = bool(self.get_parameter('enable_opener').value)
         self._enable_closer = bool(self.get_parameter('enable_closer').value)
+        self._enable_midgame = bool(self.get_parameter('enable_midgame').value)
+        self._enable_end = bool(self.get_parameter('enable_end').value)
+        self._midgame_cluster_min_score = float(self.get_parameter('midgame_cluster_min_score').value)
+        self._midgame_cluster_approach_offset_m = float(
+            self.get_parameter('midgame_cluster_approach_offset_m').value
+        )
         self._opener_dock_timeout_s = float(self.get_parameter('opener_dock_timeout_s').value)
         self._opener_pick_timeout_s = float(self.get_parameter('opener_pick_timeout_s').value)
         self._opener_dispense_timeout_s = float(self.get_parameter('opener_dispense_timeout_s').value)
@@ -77,8 +87,8 @@ class MatchNode(Node):
         self._closer_start_before_end = Duration(
             seconds=float(self.get_parameter('closer_start_before_end_s').value)
         )
-        self._closer_final_before_end = Duration(
-            seconds=float(self.get_parameter('closer_final_before_end_s').value)
+        self._end_before_end = Duration(
+            seconds=float(self.get_parameter('end_before_end_s').value)
         )
         self._closer_plan_timeout_s = float(self.get_parameter('closer_plan_timeout_s').value)
         self._closer_pickups_before_nid = int(self.get_parameter('closer_pickups_before_nid').value)
@@ -92,17 +102,33 @@ class MatchNode(Node):
         self._closer_active_plan_handle = None
         self._closer_active_nav_handle = None
         self._closer_active_pick_handle = None
-        self._closer_active_dispense_handle = None
         self._closer_plan_attempt_id = 0
         self._closer_nav_attempt_id = 0
         self._closer_current_zone_name = None
         self._closer_zone_deadline_time = 0.0
-        self._closer_final_started = False
         self._closer_successful_pickups = 0
         self._closer_blocks_picked_count = 0
         self._closer_last_pick_count = 0
-        self._closer_nav_goal_kind = 'garde_manger'
+        self._end_started = False
+        self._end_finished = False
+        self._end_nav_attempt_id = 0
+        self._end_active_nav_handle = None
+        self._end_active_dispense_handle = None
+        self._end_blocks_to_dispense = 1
         self._last_cluster_info = None
+        self._midgame_busy = False
+        self._midgame_cycle_id = 0
+        self._midgame_nav_attempt_id = 0
+        self._midgame_active_nav_handle = None
+        self._midgame_active_pick_handle = None
+        self._midgame_active_dispense_handle = None
+        self._midgame_current_cluster = None
+        self._midgame_drop_candidates = []
+        self._midgame_drop_candidate_index = 0
+        self._midgame_drop_target = None
+        self._midgame_last_pick_count = 0
+        self._midgame_blocks_picked_count = 0
+        self._midgame_waiting_for_data_logged = False
         self._opener_started = False
         self._opener_finished = False
         self._opener_stage_index = 0
@@ -170,8 +196,9 @@ class MatchNode(Node):
                 self._running = True
             self._publish_state()
             self._start_opener_if_needed()
-            self._start_closer_final_if_needed()
+            self._start_end_if_needed()
             self._start_closer_if_needed()
+            self._start_midgame_if_needed()
             return
 
         if not self._running or self._start_time is None:
@@ -179,8 +206,9 @@ class MatchNode(Node):
             return
 
         self._publish_activity_state()
-        self._start_closer_final_if_needed()
+        self._start_end_if_needed()
         self._start_closer_if_needed()
+        self._start_midgame_if_needed()
 
         if self.get_clock().now() - self._start_time >= self._duration:
             self._end_match(
@@ -200,6 +228,9 @@ class MatchNode(Node):
         self._running = False
         self._opener_finished = True
         self._closer_finished = True
+        self._end_finished = True
+        self._cancel_midgame_active_goal_handles()
+        self._cancel_end_active_goal_handles()
         self._publish_state()
         self.get_logger().info(log_message)
 
@@ -230,13 +261,623 @@ class MatchNode(Node):
         except json.JSONDecodeError:
             self.get_logger().warning('Could not parse /cluster_info JSON for closer')
 
+    def _start_midgame_if_needed(self):
+        if (
+            not self._enable_midgame
+            or not self._running
+            or self._midgame_busy
+            or (self._opener_started and not self._opener_finished)
+            or self._closer_started
+            or self._end_started
+        ):
+            return
+
+        best_cluster = self._best_cluster_from_cluster_info()
+        if best_cluster is None:
+            if not self._midgame_waiting_for_data_logged:
+                self.get_logger().info('Midgame waiting for /cluster_info best_cluster')
+                self._midgame_waiting_for_data_logged = True
+            return
+
+        score = float(best_cluster.get('score', 0.0))
+        if score < self._midgame_cluster_min_score:
+            return
+
+        if not self._ensure_manip_action_types():
+            return
+
+        self._midgame_waiting_for_data_logged = False
+        self._start_midgame_cycle(best_cluster)
+
+    def _best_cluster_from_cluster_info(self):
+        if self._last_cluster_info is None:
+            return None
+        best_cluster = (
+            self._last_cluster_info
+            .get('step_2_selection', {})
+            .get('best_cluster')
+        )
+        if isinstance(best_cluster, dict) and isinstance(best_cluster.get('center'), list):
+            return best_cluster
+        return None
+
+    def _start_midgame_cycle(self, best_cluster):
+        self._midgame_busy = True
+        self._midgame_cycle_id += 1
+        self._midgame_current_cluster = best_cluster
+        self._midgame_drop_candidates = []
+        self._midgame_drop_candidate_index = 0
+        self._midgame_drop_target = None
+        self._midgame_last_pick_count = 0
+        self._midgame_blocks_picked_count = 0
+
+        center = best_cluster.get('center', [0.0, 0.0])
+        zone_type = best_cluster.get('zone_type', 'free')
+        zone_name = best_cluster.get('zone_name')
+        self.get_logger().info(
+            f'Midgame targeting cluster C{best_cluster.get("id", "?")} '
+            f'in {zone_type}:{zone_name or "none"} at ({float(center[0]):.3f}, {float(center[1]):.3f})'
+        )
+        self._send_midgame_cluster_nav_goal(self._midgame_cycle_id)
+
+    def _send_midgame_cluster_nav_goal(self, cycle_id: int):
+        if not self._nav_client.wait_for_server(timeout_sec=0.2):
+            self.get_logger().warning('navigate_to_pose action server not available for midgame')
+            self._finish_midgame_cycle()
+            return
+
+        cluster = self._midgame_current_cluster
+        if cluster is None:
+            self._finish_midgame_cycle()
+            return
+
+        x, y, yaw = self._midgame_cluster_approach_pose(cluster)
+        nav_goal = NavigateToPose.Goal()
+        nav_goal.pose = self._pose_from_xy_yaw(x, y, yaw)
+        self._midgame_nav_attempt_id += 1
+        attempt_id = self._midgame_nav_attempt_id
+        send_future = self._nav_client.send_goal_async(nav_goal)
+        send_future.add_done_callback(
+            lambda future: self._on_midgame_nav_goal_response(
+                future,
+                cycle_id,
+                attempt_id,
+                'cluster',
+            )
+        )
+
+    def _midgame_cluster_approach_pose(self, cluster):
+        center = cluster.get('center', [0.0, 0.0])
+        center_x = float(center[0])
+        center_y = float(center[1])
+        robot_xy = self._closer_robot_xy()
+        if robot_xy is None:
+            return center_x, center_y, 0.0
+
+        dx = center_x - robot_xy[0]
+        dy = center_y - robot_xy[1]
+        dist = math.hypot(dx, dy)
+        if dist <= 1e-6:
+            return center_x, center_y, 0.0
+
+        offset = min(max(0.0, self._midgame_cluster_approach_offset_m), max(0.0, dist - 0.02))
+        goal_x = center_x - (dx / dist) * offset
+        goal_y = center_y - (dy / dist) * offset
+        yaw = math.atan2(center_y - goal_y, center_x - goal_x)
+        return goal_x, goal_y, yaw
+
+    def _on_midgame_nav_goal_response(self, future, cycle_id: int, attempt_id: int, goal_kind: str):
+        if cycle_id != self._midgame_cycle_id or attempt_id != self._midgame_nav_attempt_id:
+            return
+
+        try:
+            goal_handle = future.result()
+        except Exception as exc:
+            self.get_logger().warning(f'Midgame Nav2 goal request failed: {exc}')
+            self._handle_midgame_nav_failure(goal_kind)
+            return
+
+        if not goal_handle.accepted:
+            self.get_logger().warning('Midgame Nav2 goal was rejected')
+            self._handle_midgame_nav_failure(goal_kind)
+            return
+
+        self._midgame_active_nav_handle = goal_handle
+        result_future = goal_handle.get_result_async()
+        result_future.add_done_callback(
+            lambda result: self._on_midgame_nav_result(result, cycle_id, attempt_id, goal_kind)
+        )
+
+    def _on_midgame_nav_result(self, future, cycle_id: int, attempt_id: int, goal_kind: str):
+        if cycle_id != self._midgame_cycle_id or attempt_id != self._midgame_nav_attempt_id:
+            return
+
+        self._midgame_active_nav_handle = None
+        try:
+            result = future.result().result
+        except Exception as exc:
+            self.get_logger().warning(f'Midgame Nav2 result failed: {exc}')
+            self._handle_midgame_nav_failure(goal_kind)
+            return
+
+        if not result or getattr(result, 'error_code', 0) != 0:
+            self.get_logger().warning(
+                f'Midgame Nav2 goal failed with error_code={getattr(result, "error_code", "unknown")}'
+            )
+            self._handle_midgame_nav_failure(goal_kind)
+            return
+
+        if goal_kind == 'cluster':
+            self.get_logger().info('Midgame reached cluster; starting pickup')
+            self._send_midgame_pick_goal(cycle_id)
+            return
+
+        self.get_logger().info('Midgame reached drop zone; starting dispense')
+        self._send_midgame_dispense_goal(cycle_id)
+
+    def _handle_midgame_nav_failure(self, goal_kind: str):
+        if goal_kind == 'drop':
+            self._midgame_drop_candidate_index += 1
+            self._send_midgame_drop_nav_goal(self._midgame_cycle_id)
+            return
+        self._finish_midgame_cycle()
+
+    def _send_midgame_pick_goal(self, cycle_id: int):
+        if not self._pick_client.wait_for_server(timeout_sec=2.0):
+            self.get_logger().warning('pick action server is not available for midgame')
+            self._finish_midgame_cycle()
+            return
+
+        colors, count = self._build_pick_colors()
+        if count == 0:
+            self.get_logger().warning('No /best_pickup available for midgame; using single-block fallback')
+            colors = [1, 0, 0, 0]
+            count = 1
+
+        pick_goal = self._pick_action_type.Goal()
+        pick_goal.colors = colors
+        pick_goal.count = count
+        pick_goal.timeout_sec = self._opener_pick_timeout_s
+        self._midgame_last_pick_count = count
+        self.get_logger().info(f'Midgame sending Pick goal: colors={colors}, count={count}')
+        send_future = self._pick_client.send_goal_async(pick_goal)
+        send_future.add_done_callback(
+            lambda future: self._on_midgame_pick_goal_response(future, cycle_id)
+        )
+
+    def _on_midgame_pick_goal_response(self, future, cycle_id: int):
+        if cycle_id != self._midgame_cycle_id:
+            return
+
+        try:
+            goal_handle = future.result()
+        except Exception as exc:
+            self.get_logger().warning(f'Midgame pick goal request failed: {exc}')
+            self._finish_midgame_cycle()
+            return
+
+        if not goal_handle.accepted:
+            self.get_logger().warning('Midgame pick goal was rejected')
+            self._finish_midgame_cycle()
+            return
+
+        self._midgame_active_pick_handle = goal_handle
+        result_future = goal_handle.get_result_async()
+        result_future.add_done_callback(
+            lambda result: self._on_midgame_pick_result(result, cycle_id)
+        )
+
+    def _on_midgame_pick_result(self, future, cycle_id: int):
+        if cycle_id != self._midgame_cycle_id:
+            return
+
+        self._midgame_active_pick_handle = None
+        try:
+            result = future.result().result
+        except Exception as exc:
+            self.get_logger().warning(f'Midgame pick result failed: {exc}')
+            self._finish_midgame_cycle()
+            return
+
+        if not getattr(result, 'success', False):
+            self.get_logger().warning(f'Midgame pickup failed: {getattr(result, "message", "")}')
+            self._finish_midgame_cycle()
+            return
+
+        picked_count = int(getattr(result, 'count', 0))
+        if picked_count <= 0:
+            picked_count = self._midgame_last_pick_count
+        self._midgame_blocks_picked_count = max(1, picked_count)
+        self.get_logger().info(f'Midgame pickup succeeded: {getattr(result, "message", "")}')
+        self._prepare_midgame_drop_candidates()
+        self._send_midgame_drop_nav_goal(cycle_id)
+
+    def _prepare_midgame_drop_candidates(self):
+        target_zone = self._choose_midgame_drop_zone()
+        if target_zone is None:
+            self._midgame_drop_candidates = []
+            self._midgame_drop_target = None
+            return
+
+        self._midgame_drop_target = target_zone.get('name')
+        candidates = self._drop_zone_goal_poses(target_zone)
+        robot_xy = self._closer_robot_xy()
+        if robot_xy is not None:
+            candidates.sort(
+                key=lambda candidate: math.hypot(candidate['x'] - robot_xy[0], candidate['y'] - robot_xy[1])
+            )
+        self._midgame_drop_candidates = candidates
+        self._midgame_drop_candidate_index = 0
+
+    def _choose_midgame_drop_zone(self):
+        summaries = self._last_cluster_info.get('garde_manger_summary', []) if self._last_cluster_info else []
+        cluster = self._midgame_current_cluster or {}
+        zone_type = cluster.get('zone_type', 'free')
+        zone_name = cluster.get('zone_name')
+        if zone_type == 'garde_manger' and zone_name:
+            for zone in summaries:
+                if zone.get('name') == zone_name:
+                    return zone
+
+        if not summaries:
+            return None
+
+        center = cluster.get('center', [0.0, 0.0])
+        center_x = float(center[0])
+        center_y = float(center[1])
+        return min(
+            summaries,
+            key=lambda zone: (
+                int(zone.get('total_count', 0)),
+                math.hypot(float(zone.get('center', [center_x, center_y])[0]) - center_x,
+                           float(zone.get('center', [center_x, center_y])[1]) - center_y),
+            ),
+        )
+
+    def _drop_zone_goal_poses(self, zone):
+        bounds = zone.get('bounds', {})
+        center = zone.get('center', [])
+        if len(center) < 2:
+            return []
+
+        x_min = float(bounds.get('x_min', center[0]))
+        x_max = float(bounds.get('x_max', center[0]))
+        y_min = float(bounds.get('y_min', center[1]))
+        y_max = float(bounds.get('y_max', center[1]))
+        center_x = float(center[0])
+        center_y = float(center[1])
+        zone_name = zone.get('name', 'garde_manger')
+
+        raw_candidates = [
+            {
+                'zone_name': zone_name,
+                'x': x_min - OPENER_ROBOT_REAR_EXTENT_M,
+                'y': center_y,
+                'yaw': math.pi,
+                'side': 'left',
+            },
+            {
+                'zone_name': zone_name,
+                'x': x_max + OPENER_ROBOT_REAR_EXTENT_M,
+                'y': center_y,
+                'yaw': 0.0,
+                'side': 'right',
+            },
+            {
+                'zone_name': zone_name,
+                'x': center_x,
+                'y': y_min - OPENER_ROBOT_REAR_EXTENT_M,
+                'yaw': -math.pi / 2.0,
+                'side': 'bottom',
+            },
+            {
+                'zone_name': zone_name,
+                'x': center_x,
+                'y': y_max + OPENER_ROBOT_REAR_EXTENT_M,
+                'yaw': math.pi / 2.0,
+                'side': 'top',
+            },
+        ]
+        return [
+            candidate for candidate in raw_candidates
+            if self._closer_pose_fits_table(candidate['x'], candidate['y'], candidate['yaw'])
+        ]
+
+    def _send_midgame_drop_nav_goal(self, cycle_id: int):
+        if cycle_id != self._midgame_cycle_id:
+            return
+
+        if self._midgame_drop_candidate_index >= len(self._midgame_drop_candidates):
+            self.get_logger().warning('Midgame found no usable outside drop pose')
+            self._finish_midgame_cycle()
+            return
+
+        if not self._nav_client.wait_for_server(timeout_sec=0.2):
+            self.get_logger().warning('navigate_to_pose action server not available for midgame drop')
+            self._finish_midgame_cycle()
+            return
+
+        candidate = self._midgame_drop_candidates[self._midgame_drop_candidate_index]
+        nav_goal = NavigateToPose.Goal()
+        nav_goal.pose = self._pose_from_xy_yaw(candidate['x'], candidate['y'], candidate['yaw'])
+        self._midgame_nav_attempt_id += 1
+        attempt_id = self._midgame_nav_attempt_id
+        self.get_logger().info(
+            f'Midgame dropping at {candidate["zone_name"]} from {candidate["side"]} side '
+            f'({candidate["x"]:.3f}, {candidate["y"]:.3f})'
+        )
+        send_future = self._nav_client.send_goal_async(nav_goal)
+        send_future.add_done_callback(
+            lambda future: self._on_midgame_nav_goal_response(
+                future,
+                cycle_id,
+                attempt_id,
+                'drop',
+            )
+        )
+
+    def _send_midgame_dispense_goal(self, cycle_id: int):
+        if not self._dispense_client.wait_for_server(timeout_sec=2.0):
+            self.get_logger().warning('dispense action server is not available for midgame')
+            self._finish_midgame_cycle()
+            return
+
+        dispense_goal = self._dispense_action_type.Goal()
+        dispense_goal.count = max(1, self._midgame_blocks_picked_count)
+        dispense_goal.timeout_sec = self._opener_dispense_timeout_s
+        self.get_logger().info(f'Midgame sending Dispense goal: count={dispense_goal.count}')
+        send_future = self._dispense_client.send_goal_async(dispense_goal)
+        send_future.add_done_callback(
+            lambda future: self._on_midgame_dispense_goal_response(future, cycle_id)
+        )
+
+    def _on_midgame_dispense_goal_response(self, future, cycle_id: int):
+        if cycle_id != self._midgame_cycle_id:
+            return
+
+        try:
+            goal_handle = future.result()
+        except Exception as exc:
+            self.get_logger().warning(f'Midgame dispense goal request failed: {exc}')
+            self._finish_midgame_cycle()
+            return
+
+        if not goal_handle.accepted:
+            self.get_logger().warning('Midgame dispense goal was rejected')
+            self._finish_midgame_cycle()
+            return
+
+        self._midgame_active_dispense_handle = goal_handle
+        result_future = goal_handle.get_result_async()
+        result_future.add_done_callback(
+            lambda result: self._on_midgame_dispense_result(result, cycle_id)
+        )
+
+    def _on_midgame_dispense_result(self, future, cycle_id: int):
+        if cycle_id != self._midgame_cycle_id:
+            return
+
+        self._midgame_active_dispense_handle = None
+        try:
+            result = future.result().result
+        except Exception as exc:
+            self.get_logger().warning(f'Midgame dispense result failed: {exc}')
+            self._finish_midgame_cycle()
+            return
+
+        if not getattr(result, 'success', False):
+            self.get_logger().warning(f'Midgame dispense failed: {getattr(result, "message", "")}')
+            self._finish_midgame_cycle()
+            return
+
+        self.get_logger().info(f'Midgame cycle complete: {getattr(result, "message", "")}')
+        self._finish_midgame_cycle()
+
+    def _finish_midgame_cycle(self):
+        self._midgame_busy = False
+        self._midgame_active_nav_handle = None
+        self._midgame_active_pick_handle = None
+        self._midgame_active_dispense_handle = None
+        self._midgame_current_cluster = None
+        self._midgame_drop_candidates = []
+        self._midgame_drop_candidate_index = 0
+        self._midgame_drop_target = None
+
+    def _cancel_midgame_active_goal_handles(self):
+        self._midgame_cycle_id += 1
+        for goal_handle in (
+            self._midgame_active_nav_handle,
+            self._midgame_active_pick_handle,
+            self._midgame_active_dispense_handle,
+        ):
+            if goal_handle is None:
+                continue
+            try:
+                goal_handle.cancel_goal_async()
+            except Exception as exc:
+                self.get_logger().warning(f'Could not cancel midgame goal: {exc}')
+        self._finish_midgame_cycle()
+
+    def _start_end_if_needed(self):
+        if (
+            not self._enable_end
+            or not self._running
+            or self._end_started
+            or self._end_finished
+            or self._start_time is None
+        ):
+            return
+
+        elapsed = self.get_clock().now() - self._start_time
+        end_start_time = self._duration - self._end_before_end
+        if elapsed >= end_start_time:
+            self.end('final timer')
+
+    def end(self, reason: str = 'requested'):
+        if not self._enable_end:
+            self.get_logger().info(f'End skipped ({reason}) because enable_end is false')
+            return
+
+        if self._end_started:
+            return
+
+        self._end_started = True
+        self._end_finished = False
+        self._opener_finished = True
+        self._closer_finished = True
+        self._end_blocks_to_dispense = max(1, self._closer_blocks_picked_count)
+        self._cancel_midgame_active_goal_handles()
+        self._cancel_closer_plan_timeout()
+        self._cancel_closer_active_goal_handles()
+        self._publish_activity_state()
+
+        if not self._ensure_manip_action_types():
+            self._finish_end('End stopped because action types are unavailable')
+            return
+
+        self.get_logger().info(
+            f'End started ({reason}): returning to team nid for final dispense'
+        )
+        self._send_end_nid_goal()
+
+    def _send_end_nid_goal(self):
+        if not self._nav_client.wait_for_server(timeout_sec=0.2):
+            self._finish_end('End stopped because Nav2 is unavailable for team nid return')
+            return
+
+        x, y, yaw = self._team_nid_pose()
+        nav_goal = NavigateToPose.Goal()
+        nav_goal.pose = self._pose_from_xy_yaw(x, y, yaw)
+        self.get_logger().info(f'End returning to team nid at ({x:.3f}, {y:.3f})')
+        self._end_nav_attempt_id += 1
+        attempt_id = self._end_nav_attempt_id
+        send_future = self._nav_client.send_goal_async(nav_goal)
+        send_future.add_done_callback(
+            lambda future: self._on_end_nav_goal_response(future, attempt_id)
+        )
+
+    def _on_end_nav_goal_response(self, future, attempt_id: int):
+        if attempt_id != self._end_nav_attempt_id or self._end_finished:
+            return
+
+        try:
+            goal_handle = future.result()
+        except Exception as exc:
+            self._finish_end(f'End Nav2 goal request failed: {exc}')
+            return
+
+        if not goal_handle.accepted:
+            self._finish_end('End Nav2 goal was rejected')
+            return
+
+        self._end_active_nav_handle = goal_handle
+        self.get_logger().info('End Nav2 goal accepted for team nid')
+        result_future = goal_handle.get_result_async()
+        result_future.add_done_callback(
+            lambda result: self._on_end_nav_result(result, attempt_id)
+        )
+
+    def _on_end_nav_result(self, future, attempt_id: int):
+        if attempt_id != self._end_nav_attempt_id or self._end_finished:
+            return
+
+        self._end_active_nav_handle = None
+        try:
+            result = future.result().result
+        except Exception as exc:
+            self._finish_end(f'End Nav2 result failed: {exc}')
+            return
+
+        if not result or getattr(result, 'error_code', 0) != 0:
+            self._finish_end(
+                f'End Nav2 goal failed with error_code={getattr(result, "error_code", "unknown")}'
+            )
+            return
+
+        self.get_logger().info('End reached team nid; starting final dispense')
+        self._send_end_dispense_goal()
+
+    def _team_nid_pose(self):
+        if self._team_color == 'yellow':
+            return 0.300, 1.775, 0.0
+        return 2.700, 1.775, math.pi
+
+    def _send_end_dispense_goal(self):
+        if not self._dispense_client.wait_for_server(timeout_sec=2.0):
+            self._finish_end('End stopped because dispense action server is unavailable')
+            return
+
+        dispense_goal = self._dispense_action_type.Goal()
+        dispense_goal.count = max(1, self._end_blocks_to_dispense)
+        dispense_goal.timeout_sec = self._opener_dispense_timeout_s
+        self.get_logger().info(f'End sending Dispense goal: count={dispense_goal.count}')
+        send_future = self._dispense_client.send_goal_async(dispense_goal)
+        send_future.add_done_callback(self._on_end_dispense_goal_response)
+
+    def _on_end_dispense_goal_response(self, future):
+        if self._end_finished:
+            return
+
+        try:
+            goal_handle = future.result()
+        except Exception as exc:
+            self._finish_end(f'End dispense goal request failed: {exc}')
+            return
+
+        if not goal_handle.accepted:
+            self._finish_end('End dispense goal was rejected')
+            return
+
+        self._end_active_dispense_handle = goal_handle
+        result_future = goal_handle.get_result_async()
+        result_future.add_done_callback(self._on_end_dispense_result)
+
+    def _on_end_dispense_result(self, future):
+        if self._end_finished:
+            return
+
+        self._end_active_dispense_handle = None
+        try:
+            result = future.result().result
+        except Exception as exc:
+            self._finish_end(f'End dispense result failed: {exc}')
+            return
+
+        if not getattr(result, 'success', False):
+            self._finish_end(f'End dispense failed: {getattr(result, "message", "")}')
+            return
+
+        self._finish_end(f'End complete: dropped blocks in team nid ({getattr(result, "message", "")})')
+
+    def _finish_end(self, log_message: str):
+        self._end_finished = True
+        self._end_active_nav_handle = None
+        self._end_active_dispense_handle = None
+        self._publish_activity_state()
+        self.get_logger().info(log_message)
+
+    def _cancel_end_active_goal_handles(self):
+        self._end_nav_attempt_id += 1
+        for goal_handle in (
+            self._end_active_nav_handle,
+            self._end_active_dispense_handle,
+        ):
+            if goal_handle is None:
+                continue
+            try:
+                goal_handle.cancel_goal_async()
+            except Exception as exc:
+                self.get_logger().warning(f'Could not cancel end goal: {exc}')
+        self._end_active_nav_handle = None
+        self._end_active_dispense_handle = None
+
     def _start_closer_if_needed(self):
         if (
             not self._enable_closer
             or not self._running
             or self._closer_started
             or self._closer_finished
-            or self._closer_final_started
+            or self._end_started
             or self._start_time is None
         ):
             return
@@ -246,38 +887,9 @@ class MatchNode(Node):
         if elapsed >= closer_start_time:
             self.closer()
 
-    def _start_closer_final_if_needed(self):
-        if (
-            not self._enable_closer
-            or not self._running
-            or self._closer_final_started
-            or self._start_time is None
-        ):
-            return
-
-        elapsed = self.get_clock().now() - self._start_time
-        final_start_time = self._duration - self._closer_final_before_end
-        if elapsed >= final_start_time:
-            self._start_closer_final_actions()
-
-    def _start_closer_final_actions(self):
-        self._closer_final_started = True
-        self._closer_started = True
-        self._closer_finished = False
-        self._opener_finished = True
-        self._cancel_closer_plan_timeout()
-        self._cancel_closer_active_goal_handles()
-        self._publish_activity_state()
-
-        if not self._ensure_manip_action_types():
-            self._finish_closer('Closer final override stopped because action types are unavailable')
-            return
-
-        self.get_logger().info('Closer final override started: returning to nid for final drop')
-        self._send_closer_nid_goal()
-
     def closer(self):
         self._closer_started = True
+        self._cancel_midgame_active_goal_handles()
         self._publish_activity_state()
         if not self._ensure_manip_action_types():
             self._closer_finished = True
@@ -288,16 +900,14 @@ class MatchNode(Node):
         self._closer_candidate_index = 0
         self._closer_current_zone_name = None
         self._closer_zone_deadline_time = 0.0
-        self._closer_final_started = False
         self._closer_successful_pickups = 0
         self._closer_blocks_picked_count = 0
         self._closer_last_pick_count = 0
-        self._closer_nav_goal_kind = 'garde_manger'
-
         if not self._closer_goal_candidates:
             self._closer_finished = True
             self._publish_activity_state()
             self.get_logger().warning('Closer found no garde-manger containing enemy blocks')
+            self.end('closer completed with no enemy blocks')
             return
 
         best_zone = self._closer_goal_candidates[0]['zone_name']
@@ -575,7 +1185,6 @@ class MatchNode(Node):
             self._advance_closer_candidate()
             return
 
-        self._closer_nav_goal_kind = 'garde_manger'
         nav_goal = NavigateToPose.Goal()
         nav_goal.pose = self._pose_from_xy_yaw(candidate['x'], candidate['y'], candidate['yaw'])
         self._closer_nav_attempt_id += 1
@@ -602,11 +1211,8 @@ class MatchNode(Node):
             return
 
         self._closer_active_nav_handle = goal_handle
-        if goal_kind == 'nid':
-            self.get_logger().info('Closer Nav2 goal accepted for team nid')
-        else:
-            candidate = self._closer_goal_candidates[self._closer_candidate_index]
-            self.get_logger().info(f'Closer Nav2 goal accepted for {candidate["zone_name"]}')
+        candidate = self._closer_goal_candidates[self._closer_candidate_index]
+        self.get_logger().info(f'Closer Nav2 goal accepted for {candidate["zone_name"]}')
         result_future = goal_handle.get_result_async()
         result_future.add_done_callback(
             lambda result: self._on_closer_nav_result(result, attempt_id, goal_kind)
@@ -631,19 +1237,11 @@ class MatchNode(Node):
             self._handle_closer_nav_failure(goal_kind)
             return
 
-        if goal_kind == 'nid':
-            self.get_logger().info('Closer reached team nid; starting drop action')
-            self._send_closer_dispense_goal()
-            return
-
         candidate = self._closer_goal_candidates[self._closer_candidate_index]
         self.get_logger().info(f'Closer reached {candidate["zone_name"]}; starting pickup action')
         self._send_closer_pick_goal()
 
     def _handle_closer_nav_failure(self, goal_kind: str):
-        if goal_kind == 'nid':
-            self._finish_closer('Closer stopped because Nav2 could not reach the team nid')
-            return
         self._advance_closer_candidate()
 
     def _send_closer_pick_goal(self):
@@ -680,7 +1278,7 @@ class MatchNode(Node):
             self._finish_closer('Closer stopped after pick goal rejection')
             return
 
-        if self._closer_final_started:
+        if self._end_started:
             goal_handle.cancel_goal_async()
             return
 
@@ -689,7 +1287,7 @@ class MatchNode(Node):
         result_future.add_done_callback(self._on_closer_pick_result)
 
     def _on_closer_pick_result(self, future):
-        if self._closer_final_started:
+        if self._end_started:
             self._closer_active_pick_handle = None
             return
 
@@ -713,84 +1311,17 @@ class MatchNode(Node):
         self._closer_blocks_picked_count += max(0, picked_count)
         self.get_logger().info(f'Closer pickup succeeded: {getattr(result, "message", "")}')
         if self._closer_successful_pickups >= self._closer_pickups_before_nid:
-            self._send_closer_nid_goal()
+            self._finish_closer('Closer completed pickups; handing off to end')
+            self.end('closer completed')
             return
 
         self._restart_closer_selection()
-
-    def _send_closer_nid_goal(self):
-        if not self._nav_client.wait_for_server(timeout_sec=0.2):
-            self._finish_closer('Closer stopped because Nav2 is unavailable for team nid return')
-            return
-
-        self._closer_nav_goal_kind = 'nid'
-        x, y, yaw = self._closer_nid_pose()
-        nav_goal = NavigateToPose.Goal()
-        nav_goal.pose = self._pose_from_xy_yaw(x, y, yaw)
-        self.get_logger().info(f'Closer returning to team nid at ({x:.3f}, {y:.3f})')
-        self._closer_nav_attempt_id += 1
-        attempt_id = self._closer_nav_attempt_id
-        send_future = self._nav_client.send_goal_async(nav_goal)
-        send_future.add_done_callback(
-            lambda future: self._on_closer_nav_goal_response(future, attempt_id, 'nid')
-        )
-
-    def _closer_nid_pose(self):
-        if self._team_color == 'yellow':
-            return 0.300, 1.775, 0.0
-        return 2.700, 1.775, math.pi
-
-    def _send_closer_dispense_goal(self):
-        if not self._dispense_client.wait_for_server(timeout_sec=2.0):
-            self._finish_closer('Closer stopped because dispense action server is unavailable')
-            return
-
-        dispense_goal = self._dispense_action_type.Goal()
-        dispense_goal.count = max(1, self._closer_blocks_picked_count)
-        dispense_goal.timeout_sec = self._opener_dispense_timeout_s
-        self.get_logger().info(f'Closer sending Dispense goal: count={dispense_goal.count}')
-        send_future = self._dispense_client.send_goal_async(dispense_goal)
-        send_future.add_done_callback(self._on_closer_dispense_goal_response)
-
-    def _on_closer_dispense_goal_response(self, future):
-        try:
-            goal_handle = future.result()
-        except Exception as exc:
-            self.get_logger().warning(f'Closer dispense goal request failed: {exc}')
-            self._finish_closer('Closer stopped after dispense goal request failure')
-            return
-
-        if not goal_handle.accepted:
-            self.get_logger().warning('Closer dispense goal was rejected')
-            self._finish_closer('Closer stopped after dispense goal rejection')
-            return
-
-        self._closer_active_dispense_handle = goal_handle
-        result_future = goal_handle.get_result_async()
-        result_future.add_done_callback(self._on_closer_dispense_result)
-
-    def _on_closer_dispense_result(self, future):
-        self._closer_active_dispense_handle = None
-        try:
-            result = future.result().result
-        except Exception as exc:
-            self.get_logger().warning(f'Closer dispense result failed: {exc}')
-            self._finish_closer('Closer stopped after dispense result failure')
-            return
-
-        if not getattr(result, 'success', False):
-            self.get_logger().warning(f'Closer dispense failed: {getattr(result, "message", "")}')
-            self._finish_closer('Closer stopped after dispense failure')
-            return
-
-        self._finish_closer(f'Closer complete: dropped blocks in team nid ({getattr(result, "message", "")})')
 
     def _cancel_closer_active_goal_handles(self):
         for goal_handle in (
             self._closer_active_plan_handle,
             self._closer_active_nav_handle,
             self._closer_active_pick_handle,
-            self._closer_active_dispense_handle,
         ):
             if goal_handle is None:
                 continue
@@ -802,7 +1333,6 @@ class MatchNode(Node):
         self._closer_active_plan_handle = None
         self._closer_active_nav_handle = None
         self._closer_active_pick_handle = None
-        self._closer_active_dispense_handle = None
 
     def _restart_closer_selection(self):
         if not self._running:
@@ -816,6 +1346,7 @@ class MatchNode(Node):
 
         if not self._closer_goal_candidates:
             self._finish_closer('Closer complete: no garde-manger currently contains enemy blocks')
+            self.end('closer completed')
             return
 
         best_zone = self._closer_goal_candidates[0]['zone_name']
@@ -833,6 +1364,7 @@ class MatchNode(Node):
             return
 
         self._opener_started = True
+        self._cancel_midgame_active_goal_handles()
         self._publish_activity_state()
         if not self._ensure_manip_action_types():
             self._opener_finished = True

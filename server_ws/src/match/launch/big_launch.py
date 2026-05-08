@@ -55,9 +55,6 @@ def generate_launch_description():
     team_color = LaunchConfiguration('team_color')
     cluster_robot_marker_id = LaunchConfiguration('cluster_robot_marker_id')
     cluster_show_debug_window = LaunchConfiguration('cluster_show_debug_window')
-    cluster_goal_min_score = LaunchConfiguration('cluster_goal_min_score')
-    cluster_goal_offset_m = LaunchConfiguration('cluster_goal_offset_m')
-    cluster_goal_update_period_s = LaunchConfiguration('cluster_goal_update_period_s')
 
     start_x = LaunchConfiguration('start_x')
     start_y = LaunchConfiguration('start_y')
@@ -76,6 +73,9 @@ def generate_launch_description():
     force_match_running = LaunchConfiguration('force_match_running')
     enable_opener = LaunchConfiguration('enable_opener')
     enable_closer = LaunchConfiguration('enable_closer')
+    enable_midgame = LaunchConfiguration('enable_midgame')
+    enable_end = LaunchConfiguration('enable_end')
+    end_before_end_s = LaunchConfiguration('end_before_end_s')
 
     lifecycle_nodes = [
         'planner_server',
@@ -108,7 +108,7 @@ def generate_launch_description():
         DeclareLaunchArgument(
             'use_cluster_pipeline',
             default_value=_read_cluster_pipeline_default(default_camera_map),
-            description='Launch cluster analysis and cluster-to-Nav2 goal bridge.',
+            description='Launch cluster analysis.',
         ),
         DeclareLaunchArgument(
             'launch_map_visualizer',
@@ -134,21 +134,6 @@ def generate_launch_description():
             'cluster_show_debug_window',
             default_value='true',
             description='Show OpenCV cluster debug window.',
-        ),
-        DeclareLaunchArgument(
-            'cluster_goal_min_score',
-            default_value='0.0',
-            description='Minimum cluster score required before sending a Nav2 goal.',
-        ),
-        DeclareLaunchArgument(
-            'cluster_goal_offset_m',
-            default_value='0.18',
-            description='Approach offset from selected cluster center.',
-        ),
-        DeclareLaunchArgument(
-            'cluster_goal_update_period_s',
-            default_value='0.7',
-            description='Minimum time between cluster goal updates.',
         ),
         DeclareLaunchArgument('start_x', default_value='0.0'),
         DeclareLaunchArgument('start_y', default_value='0.0'),
@@ -185,6 +170,21 @@ def generate_launch_description():
             'enable_closer',
             default_value='false',
             description='Run the endgame closer sequence before match end.',
+        ),
+        DeclareLaunchArgument(
+            'enable_midgame',
+            default_value='false',
+            description='Run the midgame best-cluster pickup/drop loop between opener and closer.',
+        ),
+        DeclareLaunchArgument(
+            'enable_end',
+            default_value='false',
+            description='Run the end return-to-nid and dispense sequence.',
+        ),
+        DeclareLaunchArgument(
+            'end_before_end_s',
+            default_value='15.0',
+            description='Start the end return-to-nid and dispense sequence this many seconds before match end.',
         ),
     ]
 
@@ -277,22 +277,6 @@ def generate_launch_description():
                 'show_debug_window': cluster_show_debug_window,
             }],
         ),
-        Node(
-            package='camera_localization',
-            executable='cluster_goal_bridge_node.py',
-            name='cluster_goal_bridge_node',
-            output='screen',
-            condition=IfCondition(use_cluster_pipeline),
-            parameters=[{
-                'cluster_topic': '/cluster_info',
-                'action_name': 'navigate_to_pose',
-                'goal_frame': 'map',
-                'enabled': True,
-                'min_score': cluster_goal_min_score,
-                'approach_offset_m': cluster_goal_offset_m,
-                'min_goal_update_period_s': cluster_goal_update_period_s,
-            }],
-        ),
     ]
 
     match_and_reactive_nodes = [
@@ -308,6 +292,9 @@ def generate_launch_description():
                 'team_color': team_color,
                 'enable_opener': ParameterValue(enable_opener, value_type=bool),
                 'enable_closer': ParameterValue(enable_closer, value_type=bool),
+                'enable_midgame': ParameterValue(enable_midgame, value_type=bool),
+                'enable_end': ParameterValue(enable_end, value_type=bool),
+                'end_before_end_s': ParameterValue(end_before_end_s, value_type=float),
             }],
         ),
         Node(
