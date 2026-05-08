@@ -362,6 +362,7 @@ private:
     Serial.println("Pickup block");
     setPump(true);
     servoDown();
+    delay(ARM_MOVE_DELAY);
     servoUp();
   }
 
