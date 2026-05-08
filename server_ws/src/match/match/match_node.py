@@ -303,8 +303,10 @@ class MatchNode(Node):
         return self._opener_stages[self._opener_stage_index]
 
     def _build_opener_stages(self):
-        left_stock_goal_x = 0.250 + OPENER_STOCK_CLEARANCE_M + OPENER_ROBOT_FRONT_EXTENT_M
-        right_stock_goal_x = 2.750 - OPENER_STOCK_CLEARANCE_M - OPENER_ROBOT_FRONT_EXTENT_M
+        left_stock_goal_x = 0.175
+        right_stock_goal_x = 2.825
+        upper_stock_goal_y = 1.300 + OPENER_STOCK_CLEARANCE_M + OPENER_ROBOT_FRONT_EXTENT_M
+        lower_stock_goal_y = 0.500 + OPENER_STOCK_CLEARANCE_M + OPENER_ROBOT_FRONT_EXTENT_M
         left_wall_garde_manger_x = OPENER_ROBOT_HALF_WIDTH_M
         right_wall_garde_manger_x = OPENER_TABLE_WIDTH_M - OPENER_ROBOT_HALF_WIDTH_M
         lower_garde_manger_back_y = 0.700
@@ -316,10 +318,10 @@ class MatchNode(Node):
 
         if self._team_color == 'yellow':
             return [
-                # Robot body 10 cm outside stock_1 on the table-interior side.
-                {'kind': 'stock', 'name': 'stock_1', 'x': left_stock_goal_x, 'y': 1.200, 'yaw': math.pi},
-                # Robot body 10 cm outside stock_2 on the table-interior side.
-                {'kind': 'stock', 'name': 'stock_2', 'x': left_stock_goal_x, 'y': 0.400, 'yaw': math.pi},
+                # Front edge 10 cm above stock_1's y=1.300 edge, facing -y.
+                {'kind': 'stock', 'name': 'stock_1', 'x': left_stock_goal_x, 'y': upper_stock_goal_y, 'yaw': -math.pi / 2.0},
+                # Front edge 10 cm above stock_2's y=0.500 edge, facing -y.
+                {'kind': 'stock', 'name': 'stock_2', 'x': left_stock_goal_x, 'y': lower_stock_goal_y, 'yaw': -math.pi / 2.0},
                 # Rear edge lined up with garde_manger_3's lower y edge.
                 {'kind': 'drop', 'name': 'garde_manger_3', 'x': left_wall_garde_manger_x, 'y': lower_garde_manger_goal_y, 'yaw': -math.pi / 2.0},
                 {'kind': 'therm', 'name': 'therm'},
@@ -328,10 +330,10 @@ class MatchNode(Node):
             ]
 
         return [
-            # Robot body 10 cm outside stock_5 on the table-interior side.
-            {'kind': 'stock', 'name': 'stock_5', 'x': right_stock_goal_x, 'y': 1.200, 'yaw': 0.0},
-            # Robot body 10 cm outside stock_6 on the table-interior side.
-            {'kind': 'stock', 'name': 'stock_6', 'x': right_stock_goal_x, 'y': 0.400, 'yaw': 0.0},
+            # Front edge 10 cm above stock_5's y=1.300 edge, facing -y.
+            {'kind': 'stock', 'name': 'stock_5', 'x': right_stock_goal_x, 'y': upper_stock_goal_y, 'yaw': -math.pi / 2.0},
+            # Front edge 10 cm above stock_6's y=0.500 edge, facing -y.
+            {'kind': 'stock', 'name': 'stock_6', 'x': right_stock_goal_x, 'y': lower_stock_goal_y, 'yaw': -math.pi / 2.0},
             # Rear edge lined up with garde_manger_7's lower y edge.
             {'kind': 'drop', 'name': 'garde_manger_7', 'x': right_wall_garde_manger_x, 'y': lower_garde_manger_goal_y, 'yaw': -math.pi / 2.0},
             {'kind': 'therm', 'name': 'therm'},
