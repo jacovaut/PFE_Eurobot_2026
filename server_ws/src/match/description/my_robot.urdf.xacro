@@ -62,7 +62,7 @@
   </link>
 
   <joint name="arm_joint" type="continuous">
-    <parent link="base_cad"/>
+    <parent link="base_link"/>
     <child link="arm_link"/>
     <origin xyz="-0.3919156752862411 0.08793206200904699 -0.14265636918407304"
             rpy="-1.5707963267948974 -1.5265566588595922e-16 7.21644966006352e-16"/>
