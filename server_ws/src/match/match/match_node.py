@@ -109,6 +109,7 @@ class MatchNode(Node):
         self._closer_successful_pickups = 0
         self._closer_blocks_picked_count = 0
         self._closer_last_pick_count = 0
+        self._closer_pending_after_midgame_flush = False
         self._end_started = False
         self._end_finished = False
         self._end_nav_attempt_id = 0
@@ -128,6 +129,7 @@ class MatchNode(Node):
         self._midgame_drop_target = None
         self._midgame_last_pick_count = 0
         self._midgame_blocks_picked_count = 0
+        self._midgame_flush_for_closer = False
         self._midgame_waiting_for_data_logged = False
         self._opener_started = False
         self._opener_finished = False
@@ -136,6 +138,11 @@ class MatchNode(Node):
         self._opener_nav_wait_timer = None
         self._opener_retry_timer = None
         self._opener_retry_counts = {}
+        self._opener_active_nav_handle = None
+        self._opener_active_dock_handle = None
+        self._opener_active_pick_handle = None
+        self._opener_active_dispense_handle = None
+        self._opener_active_therm_handle = None
         self._last_best_pickup = None
         self._dock_action_type = None
         self._pick_action_type = None
@@ -230,6 +237,7 @@ class MatchNode(Node):
         self._closer_finished = True
         self._end_finished = True
         self._cancel_midgame_active_goal_handles()
+        self._cancel_opener_active_goal_handles()
         self._cancel_end_active_goal_handles()
         self._publish_state()
         self.get_logger().info(log_message)
@@ -268,6 +276,7 @@ class MatchNode(Node):
             or self._midgame_busy
             or (self._opener_started and not self._opener_finished)
             or self._closer_started
+            or self._closer_pending_after_midgame_flush
             or self._end_started
         ):
             return
@@ -310,6 +319,7 @@ class MatchNode(Node):
         self._midgame_drop_target = None
         self._midgame_last_pick_count = 0
         self._midgame_blocks_picked_count = 0
+        self._midgame_flush_for_closer = False
 
         center = best_cluster.get('center', [0.0, 0.0])
         zone_type = best_cluster.get('zone_type', 'free')
@@ -509,6 +519,26 @@ class MatchNode(Node):
         self._midgame_drop_candidates = candidates
         self._midgame_drop_candidate_index = 0
 
+    def _prepare_midgame_flush_drop_candidates(self):
+        target_zone = self._choose_closest_garde_manger_zone()
+        if target_zone is None:
+            self._midgame_drop_candidates = []
+            self._midgame_drop_target = None
+            return
+
+        self._midgame_drop_target = target_zone.get('name')
+        candidates = self._drop_zone_goal_poses(target_zone)
+        robot_xy = self._closer_robot_xy()
+        if robot_xy is not None:
+            candidates.sort(
+                key=lambda candidate: math.hypot(candidate['x'] - robot_xy[0], candidate['y'] - robot_xy[1])
+            )
+        self._midgame_drop_candidates = candidates
+        self._midgame_drop_candidate_index = 0
+        self.get_logger().info(
+            f'Midgame flush before closer selected {self._midgame_drop_target}'
+        )
+
     def _choose_midgame_drop_zone(self):
         summaries = self._last_cluster_info.get('garde_manger_summary', []) if self._last_cluster_info else []
         cluster = self._midgame_current_cluster or {}
@@ -531,6 +561,25 @@ class MatchNode(Node):
                 int(zone.get('total_count', 0)),
                 math.hypot(float(zone.get('center', [center_x, center_y])[0]) - center_x,
                            float(zone.get('center', [center_x, center_y])[1]) - center_y),
+            ),
+        )
+
+    def _choose_closest_garde_manger_zone(self):
+        summaries = self._last_cluster_info.get('garde_manger_summary', []) if self._last_cluster_info else []
+        if not summaries:
+            return None
+
+        robot_xy = self._closer_robot_xy()
+        if robot_xy is None:
+            cluster = self._midgame_current_cluster or {}
+            center = cluster.get('center', [0.0, 0.0])
+            robot_xy = (float(center[0]), float(center[1]))
+
+        return min(
+            summaries,
+            key=lambda zone: math.hypot(
+                float(zone.get('center', [robot_xy[0], robot_xy[1]])[0]) - robot_xy[0],
+                float(zone.get('center', [robot_xy[0], robot_xy[1]])[1]) - robot_xy[1],
             ),
         )
 
@@ -674,6 +723,15 @@ class MatchNode(Node):
         self._finish_midgame_cycle()
 
     def _finish_midgame_cycle(self):
+        start_pending_closer = (
+            self._closer_pending_after_midgame_flush
+            and not self._closer_started
+            and not self._end_started
+            and self._running
+            and self._enable_closer
+        )
+        was_flush = self._midgame_flush_for_closer
+
         self._midgame_busy = False
         self._midgame_active_nav_handle = None
         self._midgame_active_pick_handle = None
@@ -682,6 +740,16 @@ class MatchNode(Node):
         self._midgame_drop_candidates = []
         self._midgame_drop_candidate_index = 0
         self._midgame_drop_target = None
+        self._midgame_blocks_picked_count = 0
+        self._midgame_flush_for_closer = False
+        self._closer_pending_after_midgame_flush = False
+
+        if start_pending_closer:
+            if was_flush:
+                self.get_logger().info('Midgame flush complete; starting closer')
+            else:
+                self.get_logger().warning('Midgame flush did not complete cleanly; starting closer anyway')
+            self.closer()
 
     def _cancel_midgame_active_goal_handles(self):
         self._midgame_cycle_id += 1
@@ -697,6 +765,52 @@ class MatchNode(Node):
             except Exception as exc:
                 self.get_logger().warning(f'Could not cancel midgame goal: {exc}')
         self._finish_midgame_cycle()
+
+    def _start_midgame_flush_before_closer(self) -> bool:
+        if self._midgame_blocks_picked_count <= 0:
+            return False
+
+        if self._closer_pending_after_midgame_flush:
+            return True
+
+        self._closer_pending_after_midgame_flush = True
+        self._midgame_flush_for_closer = True
+        self._midgame_busy = True
+
+        if self._midgame_active_dispense_handle is not None:
+            self.get_logger().info(
+                'Closer is waiting for midgame dispense to finish before starting'
+            )
+            return True
+
+        self._midgame_cycle_id += 1
+        for goal_handle in (
+            self._midgame_active_nav_handle,
+            self._midgame_active_pick_handle,
+        ):
+            if goal_handle is None:
+                continue
+            try:
+                goal_handle.cancel_goal_async()
+            except Exception as exc:
+                self.get_logger().warning(f'Could not cancel midgame goal for closer flush: {exc}')
+
+        self._midgame_active_nav_handle = None
+        self._midgame_active_pick_handle = None
+        self._prepare_midgame_flush_drop_candidates()
+
+        if not self._midgame_drop_candidates:
+            self.get_logger().warning(
+                'Midgame has undispensed blocks but no garde-manger flush pose was available'
+            )
+            self._finish_midgame_cycle()
+            return True
+
+        self.get_logger().info(
+            'Closer start delayed: flushing midgame blocks to closest garde-manger first'
+        )
+        self._send_midgame_drop_nav_goal(self._midgame_cycle_id)
+        return True
 
     def _start_end_if_needed(self):
         if (
@@ -725,8 +839,11 @@ class MatchNode(Node):
         self._end_finished = False
         self._opener_finished = True
         self._closer_finished = True
+        self._closer_pending_after_midgame_flush = False
+        self._midgame_flush_for_closer = False
         self._end_blocks_to_dispense = max(1, self._closer_blocks_picked_count)
         self._cancel_midgame_active_goal_handles()
+        self._cancel_opener_active_goal_handles()
         self._cancel_closer_plan_timeout()
         self._cancel_closer_active_goal_handles()
         self._publish_activity_state()
@@ -877,7 +994,9 @@ class MatchNode(Node):
             or not self._running
             or self._closer_started
             or self._closer_finished
+            or self._closer_pending_after_midgame_flush
             or self._end_started
+            or (self._opener_started and not self._opener_finished)
             or self._start_time is None
         ):
             return
@@ -885,6 +1004,8 @@ class MatchNode(Node):
         elapsed = self.get_clock().now() - self._start_time
         closer_start_time = self._duration - self._closer_start_before_end
         if elapsed >= closer_start_time:
+            if self._start_midgame_flush_before_closer():
+                return
             self.closer()
 
     def closer(self):
@@ -1443,9 +1564,8 @@ class MatchNode(Node):
             return
 
         self.get_logger().error(
-            f'{failure_message}; opener aborting after {self._opener_step_retries} retries'
+            f'{failure_message}; opener holding active after {self._opener_step_retries} retries'
         )
-        self._opener_finished = True
         self._publish_activity_state()
 
     def _schedule_opener_retry(self, retry_callback):
@@ -1460,6 +1580,34 @@ class MatchNode(Node):
                 retry_callback()
 
         self._opener_retry_timer = self.create_timer(0.5, retry_once)
+
+    def _cancel_opener_active_goal_handles(self):
+        if self._opener_nav_wait_timer is not None:
+            self._opener_nav_wait_timer.cancel()
+            self._opener_nav_wait_timer = None
+        if self._opener_retry_timer is not None:
+            self._opener_retry_timer.cancel()
+            self._opener_retry_timer = None
+
+        for goal_handle in (
+            self._opener_active_nav_handle,
+            self._opener_active_dock_handle,
+            self._opener_active_pick_handle,
+            self._opener_active_dispense_handle,
+            self._opener_active_therm_handle,
+        ):
+            if goal_handle is None:
+                continue
+            try:
+                goal_handle.cancel_goal_async()
+            except Exception as exc:
+                self.get_logger().warning(f'Could not cancel opener goal: {exc}')
+
+        self._opener_active_nav_handle = None
+        self._opener_active_dock_handle = None
+        self._opener_active_pick_handle = None
+        self._opener_active_dispense_handle = None
+        self._opener_active_therm_handle = None
 
     def _ensure_manip_action_types(self) -> bool:
         if (
@@ -1564,7 +1712,26 @@ class MatchNode(Node):
         pose.pose.orientation.w = math.cos(yaw * 0.5)
         return pose
 
+    def _cancel_late_opener_goal_if_finished(self, future) -> bool:
+        if not self._opener_finished:
+            return False
+
+        try:
+            goal_handle = future.result()
+        except Exception:
+            return True
+
+        try:
+            if goal_handle.accepted:
+                goal_handle.cancel_goal_async()
+        except Exception as exc:
+            self.get_logger().warning(f'Could not cancel late opener goal: {exc}')
+        return True
+
     def _on_nav_goal_response(self, future):
+        if self._cancel_late_opener_goal_if_finished(future):
+            return
+
         try:
             goal_handle = future.result()
         except Exception as exc:
@@ -1584,10 +1751,16 @@ class MatchNode(Node):
             return
 
         self.get_logger().info('Opener Nav2 goal accepted')
+        self._opener_active_nav_handle = goal_handle
         result_future = goal_handle.get_result_async()
         result_future.add_done_callback(self._on_nav_result)
 
     def _on_nav_result(self, future):
+        if self._opener_finished:
+            self._opener_active_nav_handle = None
+            return
+
+        self._opener_active_nav_handle = None
         try:
             result = future.result().result
         except Exception as exc:
@@ -1632,6 +1805,9 @@ class MatchNode(Node):
         send_future.add_done_callback(self._on_dock_goal_response)
 
     def _on_dock_goal_response(self, future):
+        if self._cancel_late_opener_goal_if_finished(future):
+            return
+
         try:
             goal_handle = future.result()
         except Exception as exc:
@@ -1651,10 +1827,16 @@ class MatchNode(Node):
             return
 
         self.get_logger().info('Opener dock goal accepted')
+        self._opener_active_dock_handle = goal_handle
         result_future = goal_handle.get_result_async()
         result_future.add_done_callback(self._on_dock_result)
 
     def _on_dock_result(self, future):
+        if self._opener_finished:
+            self._opener_active_dock_handle = None
+            return
+
+        self._opener_active_dock_handle = None
         try:
             result = future.result().result
         except Exception as exc:
@@ -1701,6 +1883,9 @@ class MatchNode(Node):
         send_future.add_done_callback(self._on_pick_goal_response)
 
     def _on_pick_goal_response(self, future):
+        if self._cancel_late_opener_goal_if_finished(future):
+            return
+
         try:
             goal_handle = future.result()
         except Exception as exc:
@@ -1719,10 +1904,16 @@ class MatchNode(Node):
             )
             return
 
+        self._opener_active_pick_handle = goal_handle
         result_future = goal_handle.get_result_async()
         result_future.add_done_callback(self._on_pick_result)
 
     def _on_pick_result(self, future):
+        if self._opener_finished:
+            self._opener_active_pick_handle = None
+            return
+
+        self._opener_active_pick_handle = None
         try:
             result = future.result().result
         except Exception as exc:
@@ -1765,6 +1956,9 @@ class MatchNode(Node):
         send_future.add_done_callback(self._on_dispense_goal_response)
 
     def _on_dispense_goal_response(self, future):
+        if self._cancel_late_opener_goal_if_finished(future):
+            return
+
         try:
             goal_handle = future.result()
         except Exception as exc:
@@ -1783,10 +1977,16 @@ class MatchNode(Node):
             )
             return
 
+        self._opener_active_dispense_handle = goal_handle
         result_future = goal_handle.get_result_async()
         result_future.add_done_callback(self._on_dispense_result)
 
     def _on_dispense_result(self, future):
+        if self._opener_finished:
+            self._opener_active_dispense_handle = None
+            return
+
+        self._opener_active_dispense_handle = None
         try:
             result = future.result().result
         except Exception as exc:
@@ -1828,6 +2028,9 @@ class MatchNode(Node):
         send_future.add_done_callback(self._on_therm_goal_response)
 
     def _on_therm_goal_response(self, future):
+        if self._cancel_late_opener_goal_if_finished(future):
+            return
+
         try:
             goal_handle = future.result()
         except Exception as exc:
@@ -1846,10 +2049,16 @@ class MatchNode(Node):
             )
             return
 
+        self._opener_active_therm_handle = goal_handle
         result_future = goal_handle.get_result_async()
         result_future.add_done_callback(self._on_therm_result)
 
     def _on_therm_result(self, future):
+        if self._opener_finished:
+            self._opener_active_therm_handle = None
+            return
+
+        self._opener_active_therm_handle = None
         try:
             result = future.result().result
         except Exception as exc:
