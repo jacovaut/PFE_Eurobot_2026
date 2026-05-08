@@ -17,44 +17,105 @@ rclc_support_t support;    // support structure for rclc
 rcl_allocator_t allocator; // allocator used by rcl
 rcl_node_t node;           // ROS node handle
 
-// Two subscriptions: blocks (pick) and dispense
-rcl_subscription_t sub_blocks;
+rcl_publisher_t status_pub;
+rcl_subscription_t sub_legacy_blocks;
+rcl_subscription_t sub_pickup;
+rcl_subscription_t sub_flip;
 rcl_subscription_t sub_dispense;
 
-custom_msgs__msg__Blocks   blocks_msg;
-std_msgs__msg__UInt8       dispense_msg;
+custom_msgs__msg__Blocks legacy_blocks_msg;
+custom_msgs__msg__Blocks pickup_msg;
+custom_msgs__msg__Blocks flip_msg;
+std_msgs__msg__UInt8 dispense_msg;
+std_msgs__msg__UInt8 status_msg;
 
-// ---- FROM PCB MANIPULATION ---- //
-constexpr int M1_I1 = 4;
-constexpr int M1_I2 = 5;
-constexpr int M2_I1 = 15;
-constexpr int M2_I2 = 2;
-constexpr int MOS1 = 32; // Control the Pump
-constexpr int MOS2 = 25; // Control the Valve1
-constexpr int MOS3 = 26; // Control the Valve2
-constexpr int MOS4 = 27; // Control the Valve3
-constexpr int MOS5 = 14; // Control the Valve4
-constexpr int MOS6 = 12; // Control the Valve_out
-constexpr int MOS7 = 33; // Control Thermo?
-constexpr int STOP = 13; // Connected to Stopper?
+enum ManipStatus : uint8_t {
+  STATUS_IDLE = 0,
+  STATUS_PICKUP_STARTED = 1,
+  STATUS_PICKUP_DONE = 2,
+  STATUS_PICKUP_FAILED = 3,
+  STATUS_FLIP_STARTED = 4,
+  STATUS_FLIP_DONE = 5,
+  STATUS_FLIP_FAILED = 6,
+  STATUS_DISPENSE_STARTED = 7,
+  STATUS_DISPENSE_DONE = 8,
+  STATUS_DISPENSE_FAILED = 9,
+};
 
 BlockManager BlockList;
 HardwareManager Hardware(&BlockList);
 
+void publish_status(uint8_t code) {
+  status_msg.data = code;
+  rcl_publish(&status_pub, &status_msg, NULL);
+}
+
 // ---- Callbacks ---- //
 
-// Called when pick_action.py publishes on /manip_node/blocks
-// colors[0..3]: 0=not present, 1=pick as-is, 2=pick and flip
-// count: number of blocks present
-void blocks_callback(const void * msgin) {
+void legacy_blocks_callback(const void * msgin) {
+  const custom_msgs__msg__Blocks * msg =
+      (const custom_msgs__msg__Blocks *)msgin;
+
+  int cups[4];
+  int flip_colors[4];
+  for (int i = 0; i < 4; i++) {
+    cups[i] = msg->colors[i] != 0 ? 1 : 0;
+    flip_colors[i] = msg->colors[i] == 2 ? 2 : 0;
+  }
+
+  publish_status(STATUS_PICKUP_STARTED);
+  if (!Hardware.pickUp(cups)) {
+    publish_status(STATUS_PICKUP_FAILED);
+    return;
+  }
+
+  for (int i = 0; i < 4; ++i) {
+    if (flip_colors[i] != 0) {
+      publish_status(STATUS_FLIP_STARTED);
+      if (!Hardware.flip(flip_colors)) {
+        publish_status(STATUS_FLIP_FAILED);
+        return;
+      }
+      publish_status(STATUS_FLIP_DONE);
+      break;
+    }
+  }
+
+  publish_status(STATUS_PICKUP_DONE);
+}
+
+void pickup_callback(const void * msgin) {
   const custom_msgs__msg__Blocks * msg =
       (const custom_msgs__msg__Blocks *)msgin;
 
   int cups[4];
   for (int i = 0; i < 4; i++) {
-    cups[i] = msg->colors[i];
+    cups[i] = msg->colors[i] != 0 ? 1 : 0;
   }
-  Hardware.pickUp(cups);
+
+  publish_status(STATUS_PICKUP_STARTED);
+  if (Hardware.pickUp(cups)) {
+    publish_status(STATUS_PICKUP_DONE);
+  } else {
+    publish_status(STATUS_PICKUP_FAILED);
+  }
+}
+
+void flip_callback(const void * msgin) {
+  const custom_msgs__msg__Blocks * msg =
+      (const custom_msgs__msg__Blocks *)msgin;
+
+  int colors[4];
+  for (int i = 0; i < 4; i++) {
+    colors[i] = msg->colors[i];
+  }
+
+  publish_status(STATUS_FLIP_STARTED);
+  if (Hardware.flip(colors)) {
+    publish_status(STATUS_FLIP_DONE);
+  } else {
+    publish_status(STATUS_FLIP_FAILED);
+  }
 }
 
 // Called when dispense_action.py publishes on /manip_node/dispense
@@ -62,7 +123,12 @@ void blocks_callback(const void * msgin) {
 void dispense_callback(const void * msgin) {
   // const std_msgs__msg__UInt8 * msg = (const std_msgs__msg__UInt8 *)msgin;
   // uint8_t count = msg->data;
-  Hardware.dropOff();
+  publish_status(STATUS_DISPENSE_STARTED);
+  if (Hardware.dropOff()) {
+    publish_status(STATUS_DISPENSE_DONE);
+  } else {
+    publish_status(STATUS_DISPENSE_FAILED);
+  }
 }
 
 void setup() {
@@ -88,12 +154,35 @@ void setup() {
     &support
   );
 
-  // Subscribe to /manip_node/blocks  (pick command from ROS2)
+  rclc_publisher_init_default(
+    &status_pub,
+    &node,
+    ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, UInt8),
+    "/manip_node/status"
+  );
+
+  // Legacy combined pick+flip command path.
   rclc_subscription_init_default(
-    &sub_blocks,
+    &sub_legacy_blocks,
     &node,
     ROSIDL_GET_MSG_TYPE_SUPPORT(custom_msgs, msg, Blocks),
     "/manip_node/blocks"
+  );
+
+  // Subscribe to /manip_node/pickup  (pickup command from ROS2)
+  rclc_subscription_init_default(
+    &sub_pickup,
+    &node,
+    ROSIDL_GET_MSG_TYPE_SUPPORT(custom_msgs, msg, Blocks),
+    "/manip_node/pickup"
+  );
+
+  // Subscribe to /manip_node/flip  (flip command from ROS2)
+  rclc_subscription_init_default(
+    &sub_flip,
+    &node,
+    ROSIDL_GET_MSG_TYPE_SUPPORT(custom_msgs, msg, Blocks),
+    "/manip_node/flip"
   );
 
   // Subscribe to /manip_node/dispense  (dispense command from ROS2)
@@ -108,15 +197,31 @@ void setup() {
   rclc_executor_init(
     &executor,
     &support.context,
-    2,
+    4,
     &allocator
   );
 
   rclc_executor_add_subscription(
     &executor,
-    &sub_blocks,
-    &blocks_msg,
-    &blocks_callback,
+    &sub_legacy_blocks,
+    &legacy_blocks_msg,
+    &legacy_blocks_callback,
+    ON_NEW_DATA
+  );
+
+  rclc_executor_add_subscription(
+    &executor,
+    &sub_pickup,
+    &pickup_msg,
+    &pickup_callback,
+    ON_NEW_DATA
+  );
+
+  rclc_executor_add_subscription(
+    &executor,
+    &sub_flip,
+    &flip_msg,
+    &flip_callback,
     ON_NEW_DATA
   );
 

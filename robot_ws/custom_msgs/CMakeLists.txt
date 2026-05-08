@@ -18,7 +18,9 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/Blocks.msg"
   "action/DockToBlock.action"
   "action/Dispense.action"
+  "action/Flip.action"
   "action/Pick.action"
+  "action/Pickup.action"
   "action/Therm.action"
   DEPENDENCIES std_msgs builtin_interfaces action_msgs unique_identifier_msgs
 )
