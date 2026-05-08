@@ -15,7 +15,7 @@ extern volatile bool startRequested;
 
 char MICROROS_WIFI_SSID[] = "GRUM";
 char MICROROS_WIFI_PASSWORD[] = "GELE>GMEC";
-IPAddress agent_ip(192,168,1,131);
+IPAddress MICROROS_AGENT_IP(192, 168, 1, 131);
 const uint16_t MICROROS_AGENT_PORT = 8895;
 
 rcl_subscription_t runningSub;
