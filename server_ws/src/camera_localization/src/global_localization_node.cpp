@@ -529,7 +529,7 @@ private:
       ? cv::aruco::CORNER_REFINE_SUBPIX
       : cv::aruco::CORNER_REFINE_NONE;
 
-    dictionary_ = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_4X4_50);
+    dictionary_ = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_4X4_100);
   }
 
   void cameraCaptureLoop()
