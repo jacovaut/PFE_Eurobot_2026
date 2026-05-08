@@ -11,10 +11,8 @@ constexpr int MOTOR_LIFT2 = 4;
 
 constexpr int ENCODER_LIFT_A = 19;
 constexpr int ENCODER_LIFT_B = 21;
-constexpr int ENCODER_LIFT_X = 18;
 constexpr int ENCODER_TURN_A = 23;
 constexpr int ENCODER_TURN_B = 22;
-constexpr int ENCODER_TURN_X = 32;
 
 constexpr int PWM_CHANNEL_LIFT1 = 4;
 constexpr int PWM_CHANNEL_LIFT2 = 5;
@@ -24,17 +22,16 @@ constexpr int PWM_CHANNEL_TURN2 = 7;
 
 constexpr int HardwareManager::PUMP_PINS[4];
 
-HardwareManager::HardwareManager(BlockManager* blockList)
-    : BlockList(blockList),
-      armMotor(
+HardwareManager::HardwareManager()
+    : armMotor(
           1.0f, 0.0f, 0.0f,
           MOTOR_LIFT1, MOTOR_LIFT2,
-          ENCODER_LIFT_A, ENCODER_LIFT_B, ENCODER_LIFT_X,
+          ENCODER_LIFT_A, ENCODER_LIFT_B,
           PWM_CHANNEL_LIFT1, PWM_CHANNEL_LIFT2),
       turnMotor(
           0.8f, 0.05f, 0.01f,
           MOTOR_TURN1, MOTOR_TURN2,
-          ENCODER_TURN_A, ENCODER_TURN_B, ENCODER_TURN_X,
+          ENCODER_TURN_A, ENCODER_TURN_B,
           PWM_CHANNEL_TURN1, PWM_CHANNEL_TURN2) {}
 
 void HardwareManager::init() {
