@@ -32,6 +32,8 @@ Pump / encoders / speed:
   L - reset encoders
   + - increase speed
   - - decrease speed
+  ] - increase omega speed
+  [ - decrease omega speed
 
 Movement keys keep publishing until another movement key or Space is pressed.
 Ctrl-C to quit.
@@ -43,11 +45,14 @@ class PamiKeyboard(Node):
         super().__init__("pami_keyboard")
         self.key_pub = self.create_publisher(String, "pami_ninja/keyboard", 10)
         self.cmd_pub = self.create_publisher(Twist, "cmd_vel_smoothed", 10)
-        self.valid_keys = set("WSADQE PRUOJNL+-")
+        self.valid_keys = set("WSADQE PRUOJNL+-[]")
         self.movement_keys = set("WSADQE")
         self.active_movement_key = None
         self.linear_speed = 0.39
         self.angular_speed = 0.35
+        self.angular_speed_step = 0.05
+        self.min_angular_speed = 0.05
+        self.max_angular_speed = 1.00
         self.get_logger().info(
             "Publishing keys on /pami_ninja/keyboard and movement on /cmd_vel_smoothed"
         )
@@ -64,16 +69,16 @@ class PamiKeyboard(Node):
         msg = Twist()
 
         if key == "W":
-            msg.linear.x = self.linear_speed
-        elif key == "S":
-            msg.linear.x = -self.linear_speed
-        elif key == "A":
             msg.linear.y = self.linear_speed
-        elif key == "D":
+        elif key == "S":
             msg.linear.y = -self.linear_speed
-        elif key == "E":
-            msg.angular.z = self.angular_speed
+        elif key == "A":
+            msg.linear.x = self.linear_speed
+        elif key == "D":
+            msg.linear.x = -self.linear_speed
         elif key == "Q":
+            msg.angular.z = self.angular_speed
+        elif key == "E":
             msg.angular.z = -self.angular_speed
 
         self.cmd_pub.publish(msg)
@@ -90,8 +95,20 @@ class PamiKeyboard(Node):
             self.active_movement_key = key
         elif key == " ":
             self.active_movement_key = None
+        elif key == "]":
+            self.angular_speed = min(
+                self.angular_speed + self.angular_speed_step,
+                self.max_angular_speed,
+            )
+            print(f"\rOmega speed: {self.angular_speed:.2f} rad/s", end="", flush=True)
+        elif key == "[":
+            self.angular_speed = max(
+                self.angular_speed - self.angular_speed_step,
+                self.min_angular_speed,
+            )
+            print(f"\rOmega speed: {self.angular_speed:.2f} rad/s", end="", flush=True)
 
-        self.publish_key(key, show=True)
+        self.publish_key(key, show=(key not in "[]"))
         if key in self.movement_keys or key == " ":
             self.publish_twist(key)
 
