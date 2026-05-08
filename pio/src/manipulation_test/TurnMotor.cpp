@@ -1,22 +1,12 @@
 #include "TurnMotor.h"
 
-TurnMotor* TurnMotor::instance = nullptr;
-
-void TurnMotor::staticHandleInterrupt() {
-    if (instance) instance->onIndexPulse();
-}
-
-void TurnMotor::onIndexPulse() {
-    encoder.setCount(0);
-}
-
 TurnMotor::TurnMotor(float kp, float ki, float kd,
                      int motor_in1, int motor_in2,
-                     int encoder_a, int encoder_b, int encoder_x,
+                     int encoder_a, int encoder_b,
                      int pwm_ch_fwd, int pwm_ch_rev)
     : kp(kp), ki(ki), kd(kd),
       pin_in1(motor_in1), pin_in2(motor_in2),
-      pin_enc_a(encoder_a), pin_enc_b(encoder_b), pin_enc_x(encoder_x),
+      pin_enc_a(encoder_a), pin_enc_b(encoder_b),
       pwm_ch_fwd(pwm_ch_fwd), pwm_ch_rev(pwm_ch_rev)
 {}
 
@@ -28,11 +18,6 @@ void TurnMotor::setup() {
 
     encoder.attachHalfQuad(pin_enc_a, pin_enc_b);
     encoder.setCount(0);
-
-    // pinMode(pin_enc_x, INPUT_PULLUP);
-    // instance = this;
-    // attachInterrupt(digitalPinToInterrupt(pin_enc_x),
-    //                 staticHandleInterrupt, FALLING);
 }
 
 void TurnMotor::setTarget(long ticks) {
@@ -40,10 +25,6 @@ void TurnMotor::setTarget(long ticks) {
     integral        = 0.0f;
     prev_error      = 0.0f;
     reached_target  = false;   // re-enable PID on new target
-}
-
-void TurnMotor::returnToZero() {
-    setTarget(0);
 }
 
 void TurnMotor::applyPWM(int pwm) {
@@ -95,9 +76,5 @@ void TurnMotor::runPID() {
 }
 
 void TurnMotor::update() {
-    if (return_zero_pending && (millis() - return_zero_timer >= 1000)) {
-        return_zero_pending = false;
-        setTarget(0);
-    }
     runPID();
 }
