@@ -291,6 +291,39 @@ class ClusterAnalyzeNode(Node):
             "member_colors": [m.color for m in cluster["members"]],
         }
 
+    def _summarize_garde_manger(self, blocks: List[BlockDetection]) -> List[Dict]:
+        enemy_color = self._enemy_color()
+        summaries = []
+
+        for name, zone in self.zones_garde_manger.items():
+            zone_blocks = [
+                b for b in blocks
+                if self.point_dans_zone(b.x, b.y, zone)
+            ]
+            enemy_blocks = [b for b in zone_blocks if b.color == enemy_color]
+            ally_blocks = [b for b in zone_blocks if b.color != enemy_color]
+
+            summaries.append(
+                {
+                    "name": name,
+                    "center": [zone["centre"]["x"], zone["centre"]["y"]],
+                    "bounds": zone["bornes"],
+                    "enemy_count": len(enemy_blocks),
+                    "ally_count": len(ally_blocks),
+                    "total_count": len(zone_blocks),
+                    "enemy_member_ids": [int(b.marker_id) for b in enemy_blocks],
+                }
+            )
+
+        summaries.sort(
+            key=lambda item: (
+                item["enemy_count"],
+                item["total_count"],
+            ),
+            reverse=True,
+        )
+        return summaries
+
     def _table_to_px(self, x_m: float, y_m: float) -> Tuple[int, int]:
         usable_w = self.debug_canvas_w - 2 * self.debug_margin_px
         usable_h = self.debug_canvas_h - 2 * self.debug_margin_px
@@ -497,6 +530,7 @@ class ClusterAnalyzeNode(Node):
         ]
 
         clusters = self._build_clusters(blocks_reachables)
+        garde_manger_summary = self._summarize_garde_manger(blocks_reachables)
 
         scored_clusters = [self._score_cluster(c) for c in clusters]
         scored_clusters.sort(key=lambda c: c["score"], reverse=True)
@@ -517,6 +551,7 @@ class ClusterAnalyzeNode(Node):
                     "robot_pose_camera_xy": list(self.last_robot_pos) if self.last_robot_pos else None,
                     "best_cluster": best_cluster,
                 },
+                "garde_manger_summary": garde_manger_summary,
                 "clusters": scored_clusters,
             }
         )

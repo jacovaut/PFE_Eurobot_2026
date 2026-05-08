@@ -75,6 +75,7 @@ def generate_launch_description():
     log_level = LaunchConfiguration('log_level')
     force_match_running = LaunchConfiguration('force_match_running')
     enable_opener = LaunchConfiguration('enable_opener')
+    enable_closer = LaunchConfiguration('enable_closer')
 
     lifecycle_nodes = [
         'planner_server',
@@ -179,6 +180,11 @@ def generate_launch_description():
             'enable_opener',
             default_value='false',
             description='Run the stock opener sequence when /match/running becomes true.',
+        ),
+        DeclareLaunchArgument(
+            'enable_closer',
+            default_value='false',
+            description='Run the endgame closer sequence before match end.',
         ),
     ]
 
@@ -301,6 +307,7 @@ def generate_launch_description():
                 'force_running': ParameterValue(force_match_running, value_type=bool),
                 'team_color': team_color,
                 'enable_opener': ParameterValue(enable_opener, value_type=bool),
+                'enable_closer': ParameterValue(enable_closer, value_type=bool),
             }],
         ),
         Node(
