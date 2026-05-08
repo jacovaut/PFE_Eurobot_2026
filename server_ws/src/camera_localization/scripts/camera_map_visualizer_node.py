@@ -109,6 +109,12 @@ class CameraMapVisualizer(Node):
         self.garde_manger_taille_x_m = self._declare_double_array_parameter('garde_manger_taille_x_m')
         self.garde_manger_taille_y_m = self._declare_double_array_parameter('garde_manger_taille_y_m')
 
+        self.stocks_noms = self._declare_string_array_parameter('stocks_noms')
+        self.stocks_centre_x_m = self._declare_double_array_parameter('stocks_centre_x_m')
+        self.stocks_centre_y_m = self._declare_double_array_parameter('stocks_centre_y_m')
+        self.stocks_taille_x_m = self._declare_double_array_parameter('stocks_taille_x_m')
+        self.stocks_taille_y_m = self._declare_double_array_parameter('stocks_taille_y_m')
+
         self.zones_interdites_noms = self._declare_string_array_parameter('zones_interdites_noms')
         self.zones_interdites_centre_x_m = self._declare_double_array_parameter('zones_interdites_centre_x_m')
         self.zones_interdites_centre_y_m = self._declare_double_array_parameter('zones_interdites_centre_y_m')
@@ -280,6 +286,18 @@ class CameraMapVisualizer(Node):
             size_xs=self.garde_manger_taille_x_m,
             size_ys=self.garde_manger_taille_y_m,
             color=(0.3, 0.9, 0.3, 0.18),
+        )
+        marker_id = self._append_zone_markers(
+            marker_array,
+            now,
+            marker_id,
+            ns='stocks',
+            names=self.stocks_noms,
+            xs=self.stocks_centre_x_m,
+            ys=self.stocks_centre_y_m,
+            size_xs=self.stocks_taille_x_m,
+            size_ys=self.stocks_taille_y_m,
+            color=(0.1, 0.6, 1.0, 0.18),
         )
         marker_id = self._append_zone_markers(
             marker_array,

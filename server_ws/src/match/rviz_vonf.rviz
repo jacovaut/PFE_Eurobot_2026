@@ -264,6 +264,8 @@ Visualization Manager:
         garde_manger_labels: true
         nids: true
         nids_labels: true
+        stocks: true
+        stocks_labels: true
         zones_interdites: true
         zones_interdites_labels: true
       Topic:

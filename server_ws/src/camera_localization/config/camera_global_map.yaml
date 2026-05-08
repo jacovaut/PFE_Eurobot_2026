@@ -157,6 +157,16 @@ external_perception_node:
     garde_manger_taille_x_m: [0.200, 0.200, 0.200, 0.200, 0.200, 0.200, 0.200, 0.200, 0.200, 0.200]
     garde_manger_taille_y_m: [0.200, 0.200, 0.200, 0.200, 0.200, 0.200, 0.200, 0.200, 0.200, 0.200]
 
+    # Stocks, dimensions variables selon les emplacements
+    stocks_noms: [
+      "stock_1", "stock_2", "stock_3", "stock_4",
+      "stock_5", "stock_6", "stock_7", "stock_8"
+    ]
+    stocks_centre_x_m: [0.175, 0.175, 1.100, 1.150, 2.825, 2.825, 1.900, 1.850]
+    stocks_centre_y_m: [1.200, 0.400, 0.175, 0.800, 1.200, 0.400, 0.175, 0.800]
+    stocks_taille_x_m: [0.150, 0.150, 0.200, 0.200, 0.150, 0.150, 0.200, 0.200]
+    stocks_taille_y_m: [0.200, 0.200, 0.150, 0.150, 0.200, 0.200, 0.150, 0.150]
+
     # Zones interdites pour la navigation, dimensions: 1800 x 450 mm
     zones_interdites_noms: ["grenier"]
     zones_interdites_centre_x_m: [1.500]
@@ -201,6 +211,15 @@ camera_map_visualizer_node:
     garde_manger_centre_y_m: [1.450, 1.450, 0.800, 0.800, 0.800, 0.800, 0.800, 0.100, 0.100, 0.100]
     garde_manger_taille_x_m: [0.200, 0.200, 0.200, 0.200, 0.200, 0.200, 0.200, 0.200, 0.200, 0.200]
     garde_manger_taille_y_m: [0.200, 0.200, 0.200, 0.200, 0.200, 0.200, 0.200, 0.200, 0.200, 0.200]
+
+    stocks_noms: [
+      "stock_1", "stock_2", "stock_3", "stock_4",
+      "stock_5", "stock_6", "stock_7", "stock_8"
+    ]
+    stocks_centre_x_m: [0.175, 0.175, 1.100, 1.150, 2.825, 2.825, 1.900, 1.850]
+    stocks_centre_y_m: [1.200, 0.400, 0.175, 0.800, 1.200, 0.400, 0.175, 0.800]
+    stocks_taille_x_m: [0.150, 0.150, 0.200, 0.200, 0.150, 0.150, 0.200, 0.200]
+    stocks_taille_y_m: [0.200, 0.200, 0.150, 0.150, 0.200, 0.200, 0.150, 0.150]
 
     zones_interdites_noms: ["grenier"]
     zones_interdites_centre_x_m: [1.500]
