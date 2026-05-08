@@ -4,7 +4,7 @@ Docking Action Server for block pickup alignment.
 
 Exposes a ROS2 action: custom_msgs/action/DockToBlock
 - Subscribes to /pickup_pose (published by ros_node.py)
-- Drives the robot via /cmd_vel_smoothed using a P controller
+- Drives the robot via /cmd_vel_match_input using a P controller
 - Reports feedback (dx, dy, yaw_deg, error_m, state) at 50 Hz
 - Succeeds when aligned within tolerance for a stable duration
 - Fails on timeout or preempt
@@ -106,7 +106,7 @@ class DockActionServer(Node):
         # ----- ROS interfaces -----
         cb_group = ReentrantCallbackGroup()
 
-        self.cmd_pub = self.create_publisher(Twist, "/cmd_vel_smoothed", 10)
+        self.cmd_pub = self.create_publisher(Twist, "/cmd_vel_match_input", 10)
         self.status_pub = self.create_publisher(String, "/pickup_status", 10)
 
         self.create_subscription(

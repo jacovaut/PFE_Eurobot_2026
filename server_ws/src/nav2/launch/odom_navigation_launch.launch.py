@@ -223,7 +223,7 @@ def generate_launch_description():
                 respawn_delay=2.0,
                 parameters=[configured_params],
                 arguments=['--ros-args', '--log-level', log_level],
-                remappings=remappings,
+                remappings=remappings + [('cmd_vel_smoothed', '/cmd_vel_match_input')],
             ),
             Node(
                 package='nav2_lifecycle_manager',
@@ -290,7 +290,7 @@ def generate_launch_description():
                         plugin='nav2_velocity_smoother::VelocitySmoother',
                         name='velocity_smoother',
                         parameters=[configured_params],
-                        remappings=remappings,
+                        remappings=remappings + [('cmd_vel_smoothed', '/cmd_vel_match_input')],
                     ),
                     ComposableNode(
                         package='nav2_lifecycle_manager',
@@ -303,6 +303,27 @@ def generate_launch_description():
                 ],
             ),
         ],
+    )
+
+    match_node = Node(
+        package='match',
+        executable='match_node',
+        name='match_node',
+        output='screen',
+        parameters=[{'autostart': False, 'duration_s': 98.0, 'force_running': True}],
+    )
+
+    cmd_vel_match_gate = Node(
+        package='match',
+        executable='cmd_vel_match_gate',
+        name='cmd_vel_match_gate',
+        output='screen',
+        parameters=[{
+            'input_topic': '/cmd_vel_match_input',
+            'output_topic': '/cmd_vel_smoothed',
+            'match_running_topic': '/match/running',
+            'zero_publish_hz': 20.0,
+        }],
     )
 
     # Create the launch description and populate
@@ -322,6 +343,8 @@ def generate_launch_description():
     ld.add_action(declare_log_level_cmd)
     ld.add_action(declare_map_file_cmd)
     # Add the actions to launch all of the navigation nodes
+    ld.add_action(match_node)
+    ld.add_action(cmd_vel_match_gate)
     ld.add_action(load_nodes)
     ld.add_action(load_composable_nodes)
 

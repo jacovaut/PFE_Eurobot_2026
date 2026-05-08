@@ -99,8 +99,9 @@ bt_navigator:
     global_frame: odom
     robot_base_frame: base_link
     odom_topic: "/odometry/local"
-    default_nav_to_pose_bt_xml: "$(find-pkg-share nav2_bt_navigator)/behavior_trees/navigate_to_pose_w_replanning_and_recovery.xml"
-    default_nav_through_poses_bt_xml: "$(find-pkg-share nav2_bt_navigator)/behavior_trees/navigate_through_poses_w_replanning_and_recovery.xml"
+    default_nav_to_pose_bt_xml: "$(find-pkg-share nav2)/config/navigate_to_pose_no_recovery.xml"
+    default_nav_through_poses_bt_xml: "$(find-pkg-share nav2)/config/navigate_through_poses_w_replanning_no_recovery.xml"
+    plugin_lib_names: ["match_nav2_wait_for_match_bt_node"]
     navigators: ["navigate_to_pose", "navigate_through_poses"]
     navigate_to_pose:
       plugin: "nav2_bt_navigator::NavigateToPoseNavigator"
@@ -162,7 +163,25 @@ global_costmap:
       height: 200
       footprint: "[[-0.257, -0.154], [-0.257, 0.154], [0.257, 0.154], [0.257, -0.154]]"
       footprint_padding: 0.02
-      plugins: ["inflation_layer"]
+      plugins: ["lidar_obstacle_layer", "inflation_layer"]
+      lidar_obstacle_layer:
+        plugin: "nav2_costmap_2d::ObstacleLayer"
+        enabled: true
+        footprint_clearing_enabled: true
+        combination_method: 1
+        observation_sources: lidar_cloud
+        lidar_cloud:
+          topic: "/scan_cloud_filtered"  # boundary-filtered by scan_boundary_filter_node
+          data_type: "PointCloud2"
+          clearing: true
+          marking: true
+          min_obstacle_height: -0.10
+          max_obstacle_height: 0.30
+          obstacle_max_range: 2.0
+          obstacle_min_range: 0.0
+          raytrace_max_range: 2.5
+          raytrace_min_range: 0.0
+          observation_persistence: 0.0
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         inflation_radius: 0.5
@@ -183,7 +202,25 @@ local_costmap:
       height: 80
       footprint: "[[-0.257, -0.154], [-0.257, 0.154], [0.257, 0.154], [0.257, -0.154]]"
       footprint_padding: 0.02
-      plugins: ["inflation_layer"]
+      plugins: ["lidar_obstacle_layer", "inflation_layer"]
+      lidar_obstacle_layer:
+        plugin: "nav2_costmap_2d::ObstacleLayer"
+        enabled: true
+        footprint_clearing_enabled: true
+        combination_method: 1
+        observation_sources: lidar_cloud
+        lidar_cloud:
+          topic: "/scan_cloud_filtered"  # boundary-filtered by scan_boundary_filter_node
+          data_type: "PointCloud2"
+          clearing: true
+          marking: true
+          min_obstacle_height: -0.10
+          max_obstacle_height: 0.30
+          obstacle_max_range: 2.0
+          obstacle_min_range: 0.0
+          raytrace_max_range: 2.5
+          raytrace_min_range: 0.0
+          observation_persistence: 0.0
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         inflation_radius: 0.4

@@ -68,6 +68,8 @@ Visualization Manager:
         garde_manger_labels: true
         nids: true
         nids_labels: true
+        stocks: true
+        stocks_labels: true
       Topic:
         Depth: 5
         Durability Policy: Volatile
