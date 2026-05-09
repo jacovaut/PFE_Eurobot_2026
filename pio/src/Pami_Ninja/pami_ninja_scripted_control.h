@@ -148,6 +148,14 @@ public:
     delayWithStopCheck(durationMs);
   }
 
+  void setServoAngle(int angle, uint32_t waitAfterMs = 0) {
+    if (shouldAbortScript()) return;
+    armSweepEnabled = false;
+    currentServoAngle = constrain(angle, 0, 180);
+    writeServos(currentServoAngle);
+    delayWithStopCheck(waitAfterMs);
+  }
+
   void toggleArmSweep() {
     const int minAngle = min(ARM_DOWN_ANGLE, ARM_UP_ANGLE);
     const int maxAngle = max(ARM_DOWN_ANGLE, ARM_UP_ANGLE);

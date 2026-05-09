@@ -55,7 +55,7 @@ void printHelp() {
   Serial.println("ROS topic:");
   Serial.println("  match/running - std_msgs/Bool true runs script");
   Serial.println("  match/running false stops and resets the script");
-  Serial.println("  team_color - std_msgs/String yellow=run 1, blue=run 2");
+  Serial.println("  /team_color - std_msgs/String yellow=run 1, blue=run 2");
 #else
   Serial.println("Mode: serial keyboard trigger");
   Serial.println("Commands:");

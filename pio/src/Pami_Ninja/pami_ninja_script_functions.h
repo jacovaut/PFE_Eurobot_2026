@@ -23,38 +23,82 @@ inline void runYellowAutonomousRun() {
 }
 
 inline void runBlueAutonomousRun() {
-  // First Set of Blocs
-  pami.right(2650);      
-  pami.forward(700);  
-  pami.stopFor(500);     
+ 
+  // Set Bloc 1 
+  pami.right(2300);
+  pami.stopFor(500);
+  pami.backward(200);
+  pami.stopFor(500);
+  pami.forward(650);
+  pami.stopFor(500);
+  pami.backward(750);
+  pami.stopFor(500);
+  /* Set Bloc 2
+  pami.left(1300);
+  pami.stopFor(500);
+  pami.backward(200);
+  pami.stopFor(500);
+  pami.forward(600);
+  pami.stopFor(500);
   pami.backward(900);
   pami.stopFor(500);
-  
-  // Second Set of Blocs
-  pami.left(1500);       
+
+  // Get to first Black Block
+  pami.left(2000);
+  pami.stopFor(500);
+  pami.backward(200);
+  pami.stopFor(500);
+  pami.forward(400);
+  pami.stopFor(500);
+  pami.pickup(1500);
+  pami.backward(500);
+  pami.stopFor(500);
+
+  // Drop first Black Bloc in first slot
+  pami.right(2500); 
+  pami.stopFor(500);
+  pami.backward(200);
+  pami.stopFor(500);
+  pami.forward(100);
+  pami.stopFor(500);
+  pami.release(1500);
+  pami.backward(200);
+  pami.stopFor(500);
+
+
+  /*Big Set of Blocs #1
+  pami.left(1000);       
+  pami.forward0(700);
+  pami.stopFor(500);      
+  pami.backward(900);    
+  pami.stopFor(500); 
+  // Big Set of Blocs #2
+
+  pami.right(500);       
   pami.forward(700);
   pami.stopFor(500);      
   pami.backward(900);    
   pami.stopFor(500); 
   
-  // Big Set of Blocs Round 1
-  pami.left(1500);
+  // Set of Bloc 1
+  pami.right(1300);
   pami.forward(700);
   pami.stopFor(500);    
   pami.backward(900); 
   pami.stopFor(500);
 
-  // Big Set of Blocs Round 2
-  pami.left(300);
+  // Set of Bloc 2
+  pami.right(1300);
   pami.forward(700);
   pami.stopFor(500);
   pami.backward(900);
   pami.stopFor(500);
 
   // Get to Toggle Area
-  pami.right(1700);
+  pami.left(500);
   pami.forward(600);
   pami.toggleArmSweep();
+  */
 
 }
 
