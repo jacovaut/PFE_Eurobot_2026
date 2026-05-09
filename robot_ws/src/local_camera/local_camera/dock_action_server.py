@@ -399,7 +399,7 @@ class DockActionServer(Node):
 
             cmd = Twist()
             cmd.linear.x  = vx
-            cmd.linear.y  = -vy
+            cmd.linear.y  = vy
             cmd.angular.z = w
             self.cmd_pub.publish(cmd)
             self.last_cmd = cmd

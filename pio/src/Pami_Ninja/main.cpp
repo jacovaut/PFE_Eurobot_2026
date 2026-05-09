@@ -12,23 +12,34 @@ PamiNinjaScriptedControl pami;
 
 bool hasRun = false;
 volatile bool startRequested = false;
+volatile bool stopRequested = false;
+volatile uint8_t selectedAutonomousRun = 1;
 
 #if PAMI_SEQUENCE_TRIGGER_MODE == PAMI_SEQUENCE_TRIGGER_MICROROS
 #include "pami_ninja_microros_setup.h"
 #endif
 
-void runAutonomousScript() {
-  // Edit these timed commands to program the robot.
-  pami.forward(1000);
-  pami.backward(1000);
-  
-  pami.stopFor(250);
-  pami.left(500);
-  pami.stopFor(250);
-  pami.rotateCw(400);
-  pami.stopFor(250);
-  
+bool shouldStopAutonomousRun() {
+#if PAMI_SEQUENCE_TRIGGER_MODE == PAMI_SEQUENCE_TRIGGER_MICROROS
+  RCSOFTCHECK(rclc_executor_spin_some(&executor, 0));
+#endif
+
+  while (Serial.available()) {
+    const char key = toupper(Serial.read());
+    if (key == 'X') {
+      stopRequested = true;
+    }
+  }
+
+  if (stopRequested) {
+    pami.stop();
+    return true;
+  }
+
+  return false;
 }
+
+#include "pami_ninja_script_functions.h"
 
 void printHelp() {
   Serial.println();
@@ -41,13 +52,17 @@ void printHelp() {
   Serial.println("Mode: micro-ROS trigger");
   Serial.println("ROS topic:");
   Serial.println("  match/running - std_msgs/Bool true runs script");
+  Serial.println("  match/running false stops and resets the script");
+  Serial.println("  team_color - std_msgs/String yellow=run 1, blue=run 2");
 #else
   Serial.println("Mode: serial keyboard trigger");
   Serial.println("Commands:");
+  Serial.println("  1 - select yellow run");
+  Serial.println("  2 - select blue run");
   Serial.println("  G - run script");
   Serial.println("  R - reset script so it can run again");
   Serial.println("  I - toggle continuous arm sweep");
-  Serial.println("  X - stop motors");
+  Serial.println("  X - stop current run");
 #endif
   Serial.println();
 }
@@ -57,8 +72,10 @@ void setup() {
   delay(1000);
 
   pami.begin();
-  pami.setLinearSpeed(120);
-  pami.setOmegaSpeed(110);
+  pami.setLinearSpeed(70);
+  pami.setOmegaSpeed(60);
+  selectedAutonomousRun = 1;
+  stopRequested = false;
 
   printHelp();
 #if PAMI_ENABLE_ULTRASONIC_OBSTACLE_AVOIDANCE
@@ -78,27 +95,47 @@ void loop() {
 
   if (startRequested && !hasRun) {
     startRequested = false;
+    stopRequested = false;
     hasRun = true;
     runAutonomousScript();
-    Serial.println("Script complete. Send false then true to run again.");
+    if (stopRequested) {
+      Serial.println("Script stopped. Send false then true to run again.");
+    } else {
+      Serial.println("Script complete. Send false then true to run again.");
+    }
   }
 #else
   if (Serial.available()) {
     char key = toupper(Serial.read());
     if (key == 'G') {
       if (!hasRun) {
+        stopRequested = false;
         hasRun = true;
         runAutonomousScript();
-        Serial.println("Script complete. Press R then G to run again.");
+        if (stopRequested) {
+          Serial.println("Script stopped. Press R then G to run again.");
+        } else {
+          Serial.println("Script complete. Press R then G to run again.");
+        }
       } else {
         Serial.println("Script already ran. Press R then G to run again.");
       }
     } else if (key == 'R') {
       hasRun = false;
+      stopRequested = false;
       Serial.println("Script reset.");
+    } else if (key == '1') {
+      selectedAutonomousRun = 1;
+      hasRun = false;
+      Serial.println("Selected yellow run.");
+    } else if (key == '2') {
+      selectedAutonomousRun = 2;
+      hasRun = false;
+      Serial.println("Selected blue run.");
     } else if (key == 'I') {
       pami.toggleArmSweep();
     } else if (key == 'X') {
+      stopRequested = true;
       pami.stop();
       Serial.println("Stopped.");
     }
