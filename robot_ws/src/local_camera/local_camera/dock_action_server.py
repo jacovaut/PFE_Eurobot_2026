@@ -72,8 +72,8 @@ class DockActionServer(Node):
         self.declare_parameter("control_rate",        50.0)
         self.declare_parameter("blind_commit_dist",   0.040)  # m: if last error < this when going blind, succeed
         self.declare_parameter("blind_hold_time",     1.0)    # s: how long to hold position waiting for pose to return
-        self.declare_parameter("orbit_radius",         0.65)   # m: distance from robot center to cup/block
-        self.declare_parameter("orbit_speed",         0.12)   # m/s tangential orbit speed
+        self.declare_parameter("orbit_radius",         2.0)   # m: distance from robot center to cup/block
+        self.declare_parameter("orbit_speed",         0.3)   # m/s tangential orbit speed
         self.declare_parameter("orbit_k_r",           3.0)    # radial correction gain
         self.kx    = self.get_parameter("k_x").value
         self.ky    = self.get_parameter("k_y").value
@@ -349,7 +349,7 @@ class DockActionServer(Node):
                     orbit_omega = self.orbit_speed / self.orbit_radius
                     vx = 0.0
                     vy = orbit_dir * self.orbit_speed
-                    w  = clamp(orbit_dir * orbit_omega, -self.max_w, self.max_w)
+                    w  = clamp(-orbit_dir * orbit_omega, -self.max_w, self.max_w)
 
             # ==================
             # PHASE: APPROACH2
