@@ -25,25 +25,33 @@ inline void runYellowAutonomousRun() {
 inline void runBlueAutonomousRun() {
  
   // Set Bloc 1 
-  pami.right(2300);
+  pami.forward(50);
+  pami.stopFor(500);
+  pami.right(2350);
   pami.stopFor(500);
   pami.backward(200);
   pami.stopFor(500);
   pami.forward(650);
   pami.stopFor(500);
-  pami.backward(750);
-  pami.stopFor(500);
-  /* Set Bloc 2
-  pami.left(1300);
+  pami.backward(650);
   pami.stopFor(500);
   pami.backward(200);
   pami.stopFor(500);
-  pami.forward(600);
+  // Set Bloc 2
+  pami.forward(50);
   pami.stopFor(500);
-  pami.backward(900);
+  pami.left(1000);
+  pami.stopFor(500);
+  pami.backward(200);
+  pami.stopFor(500);
+  pami.forward(650);
+  pami.stopFor(500);
+  pami.backward(650);
+  pami.stopFor(500);
+  pami.backward(200);
   pami.stopFor(500);
 
-  // Get to first Black Block
+  /* Get to first Black Block
   pami.left(2000);
   pami.stopFor(500);
   pami.backward(200);
