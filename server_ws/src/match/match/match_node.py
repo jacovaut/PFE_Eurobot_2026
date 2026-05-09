@@ -36,6 +36,7 @@ class MatchNode(Node):
         self._running_pub = self.create_publisher(Bool, 'match/running', state_qos)
         self._opener_active_pub = self.create_publisher(Bool, 'match/opener_active', state_qos)
         self._closer_active_pub = self.create_publisher(Bool, 'match/closer_active', state_qos)
+        self._team_color_pub = self.create_publisher(String, 'team_color', state_qos)
 
         self.declare_parameter('autostart', False)
         self.declare_parameter('duration_s', MATCH_DURATION)
@@ -179,12 +180,14 @@ class MatchNode(Node):
             self._start_time = self.get_clock().now()
             self._running = True
             self._publish_state()
+            self._publish_team_color()
             self.get_logger().info('Match running forced true for testing.')
             self._start_opener_if_needed()
         elif bool(self.get_parameter('autostart').value):
             self._begin_match()
         else:
             self._publish_state()
+            self._publish_team_color()
             self.get_logger().info('Match node ready. Publish True to match/start to begin.')
 
     def _on_start(self, msg: Bool):
@@ -256,6 +259,11 @@ class MatchNode(Node):
         closer_msg = Bool()
         closer_msg.data = self._closer_started and not self._closer_finished
         self._closer_active_pub.publish(closer_msg)
+
+    def _publish_team_color(self):
+        msg = String()
+        msg.data = self._team_color
+        self._team_color_pub.publish(msg)
 
     def _on_best_pickup(self, msg: String):
         try:
