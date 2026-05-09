@@ -345,7 +345,7 @@ class DockActionServer(Node):
                     stable_start = None
                     vx = clamp(self.kx * dx, -self.max_vx, self.max_vx)
                     vy = clamp(self.ky * dy, -self.max_vy, self.max_vy)
-                    w = clamp(self.kt * ang_err, -self.max_w, self.max_w)
+                    w = clamp(-self.kt * ang_err, -self.max_w, self.max_w)
 
             # ==================
             # PHASE: APPROACH2
@@ -393,13 +393,13 @@ class DockActionServer(Node):
             # Acceleration limiting
             # Note: cmd.linear.y = -vy, so last_cmd.linear.y = -vy_prev.
             # Un-negate when reading back so the limiter tracks pre-negation values.
-            vx = self._limit_accel(vx, self.last_cmd.linear.x,  self.max_ax)
-            vy = self._limit_accel(vy, self.last_cmd.linear.y,  self.max_ay)
-            w  = self._limit_accel(w,  self.last_cmd.angular.z, self.max_aw)
+            vx = self._limit_accel(vx,  self.last_cmd.linear.x,   self.max_ax)
+            vy = self._limit_accel(vy, -self.last_cmd.linear.y,   self.max_ay)
+            w  = self._limit_accel(w,   self.last_cmd.angular.z,  self.max_aw)
 
             cmd = Twist()
             cmd.linear.x  = vx
-            cmd.linear.y  = vy
+            cmd.linear.y  = -vy
             cmd.angular.z = w
             self.cmd_pub.publish(cmd)
             self.last_cmd = cmd
