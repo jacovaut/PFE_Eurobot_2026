@@ -86,12 +86,12 @@ public:
 
   void rotateCcw(uint32_t durationMs) {
     if (shouldAbortScript()) return;
-    runTimedMotion(0.0f, 0.0f, omegaPwm / 255.0f, durationMs);
+    runTimedMotion(0.0f, 0.0f, normalizedOmegaSpeed(), durationMs);
   }
 
   void rotateCw(uint32_t durationMs) {
     if (shouldAbortScript()) return;
-    runTimedMotion(0.0f, 0.0f, -omegaPwm / 255.0f, durationMs);
+    runTimedMotion(0.0f, 0.0f, -normalizedOmegaSpeed(), durationMs);
   }
 
   void wait(uint32_t durationMs) {
@@ -146,6 +146,14 @@ public:
     if (shouldAbortScript()) return;
     servoDown();
     delayWithStopCheck(durationMs);
+  }
+
+  void setServoAngle(int angle, uint32_t waitAfterMs = 0) {
+    if (shouldAbortScript()) return;
+    armSweepEnabled = false;
+    currentServoAngle = constrain(angle, 0, 180);
+    writeServos(currentServoAngle);
+    delayWithStopCheck(waitAfterMs);
   }
 
   void toggleArmSweep() {
@@ -267,6 +275,15 @@ private:
   int armSweepDirection = 1;
   int currentServoAngle = ARM_UP_ANGLE;
   uint32_t lastArmSweepStepTime = 0;
+
+  float normalizedOmegaSpeed() const {
+    const float rotationRadius = WHEELBASE_LENGTH / 2.0f + WHEELBASE_WIDTH / 2.0f;
+    if (rotationRadius <= 0.0f) {
+      return 0.0f;
+    }
+
+    return (omegaPwm / 255.0f) / rotationRadius;
+  }
 
   bool shouldAbortScript() {
     if (shouldStopAutonomousRun()) {

@@ -130,7 +130,7 @@ void setupMicroRosTrigger() {
     &teamColorSub,
     &node,
     ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, String),
-    "team_color"
+    "/team_color"
   ));
 
   teamColorMsg.data.data = teamColorBuffer;
@@ -154,7 +154,7 @@ void setupMicroRosTrigger() {
   ));
 
   Serial.println("Listening to match/running (std_msgs/Bool).");
-  Serial.println("Listening to team_color (std_msgs/String): yellow=run 1, blue=run 2.");
+  Serial.println("Listening to /team_color (std_msgs/String): yellow=run 1, blue=run 2.");
   Serial.println("true starts the script. false resets the trigger.");
 }
 
