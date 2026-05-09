@@ -28,6 +28,8 @@ bool shouldStopAutonomousRun() {
     const char key = toupper(Serial.read());
     if (key == 'X') {
       stopRequested = true;
+    } else if (key == 'K') {
+      pami.setArmSweep(false);
     }
   }
 
@@ -61,7 +63,8 @@ void printHelp() {
   Serial.println("  2 - select blue run");
   Serial.println("  G - run script");
   Serial.println("  R - reset script so it can run again");
-  Serial.println("  I - toggle continuous arm sweep");
+  Serial.println("  I - toggle servo sweep");
+  Serial.println("  K - turn servo sweep off");
   Serial.println("  X - stop current run");
 #endif
   Serial.println();
@@ -98,6 +101,7 @@ void loop() {
     stopRequested = false;
     hasRun = true;
     runAutonomousScript();
+    pami.setArmSweep(false);
     if (stopRequested) {
       Serial.println("Script stopped. Send false then true to run again.");
     } else {
@@ -112,6 +116,7 @@ void loop() {
         stopRequested = false;
         hasRun = true;
         runAutonomousScript();
+        pami.setArmSweep(false);
         if (stopRequested) {
           Serial.println("Script stopped. Press R then G to run again.");
         } else {
@@ -134,6 +139,8 @@ void loop() {
       Serial.println("Selected blue run.");
     } else if (key == 'I') {
       pami.toggleArmSweep();
+    } else if (key == 'K') {
+      pami.setArmSweep(false);
     } else if (key == 'X') {
       stopRequested = true;
       pami.stop();
