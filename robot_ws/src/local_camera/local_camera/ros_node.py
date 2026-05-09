@@ -18,6 +18,39 @@ from .modules.tf_utils import TfPublisher
 from .team_color import normalize_team_color, read_default_team_color
 
 
+def transform_camera_yaw_to_base(yaw_cam_deg, base_from_camera_rot):
+    """Convert detected image-plane yaw into planar base_link yaw.
+
+    The detector sends only a scalar yaw computed from the marker rotation in
+    camera-image coordinates.  Unlike the old full-quaternion path, that loses
+    the marker's 3D orientation before TF can transform it.  Recover the missing
+    camera z component by requiring the transformed heading to lie on the
+    base_link XY plane, then read the base yaw from that planar vector.
+    """
+    yaw_cam = math.radians(yaw_cam_deg)
+
+    # Position correction below mirrors camera X before applying TF. Apply the
+    # same raw-camera -> corrected-camera mapping to the yaw direction.
+    raw_to_corrected = np.diag([-1.0, 1.0, 1.0])
+    R = base_from_camera_rot @ raw_to_corrected
+
+    ux = math.cos(yaw_cam)
+    uy = math.sin(yaw_cam)
+
+    # Solve base_z = R[2] · [ux, uy, uz] = 0 for uz.
+    if abs(R[2, 2]) > 1e-9:
+        uz = -(R[2, 0] * ux + R[2, 1] * uy) / R[2, 2]
+    else:
+        uz = 0.0
+
+    heading_base = R @ np.array([ux, uy, uz])
+    norm_xy = math.hypot(heading_base[0], heading_base[1])
+    if norm_xy < 1e-9:
+        return 0.0
+
+    return math.degrees(math.atan2(heading_base[1], heading_base[0]))
+
+
 class MergedLocalPickupNode(Node):
     def __init__(self):
         super().__init__("merged_local_pickup_node")
@@ -191,14 +224,11 @@ class MergedLocalPickupNode(Node):
                 raw_id = int(b.get("id", -1))
                 color = self.id_to_color.get(raw_id, "unknown")
                 yaw_cam = float(b.get("yaw_deg", 0.0))
-                # Camera is physically rotated 180° — negate both x_cam and y_cam.
+                # Camera stream is mirrored horizontally relative to the TF
+                # optical frame, so mirror x_cam before applying base<-camera.
                 p = np.array([-float(b["x_cam"]), float(b["y_cam"]), float(b["z_cam"]), 1.0])
                 pb = T @ p
-                # Transform marker yaw from camera frame to base_link frame
-                yaw_rad_cam = math.radians(yaw_cam)
-                heading_cam = np.array([-math.cos(yaw_rad_cam), math.sin(yaw_rad_cam), 0.0])
-                heading_base = T[0:3, 0:3] @ heading_cam
-                yaw_base_deg = math.degrees(math.atan2(heading_base[1], heading_base[0]))
+                yaw_base_deg = transform_camera_yaw_to_base(yaw_cam, T[0:3, 0:3])
                 detections.append(Block(
                     name="d",
                     x=pb[0],
