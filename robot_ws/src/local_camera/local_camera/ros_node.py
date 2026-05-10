@@ -18,6 +18,39 @@ from .modules.tf_utils import TfPublisher
 from .team_color import normalize_team_color, read_default_team_color
 
 
+def transform_camera_yaw_to_base(yaw_cam_deg, base_from_camera_rot):
+    """Convert detected image-plane yaw into planar base_link yaw.
+
+    The detector sends only a scalar yaw computed from the marker rotation in
+    camera-image coordinates.  Unlike the old full-quaternion path, that loses
+    the marker's 3D orientation before TF can transform it.  Recover the missing
+    camera z component by requiring the transformed heading to lie on the
+    base_link XY plane, then read the base yaw from that planar vector.
+    """
+    yaw_cam = math.radians(yaw_cam_deg)
+
+    # Position correction below mirrors camera X before applying TF. Apply the
+    # same raw-camera -> corrected-camera mapping to the yaw direction.
+    raw_to_corrected = np.diag([-1.0, 1.0, 1.0])
+    R = base_from_camera_rot @ raw_to_corrected
+
+    ux = math.cos(yaw_cam)
+    uy = math.sin(yaw_cam)
+
+    # Solve base_z = R[2] · [ux, uy, uz] = 0 for uz.
+    if abs(R[2, 2]) > 1e-9:
+        uz = -(R[2, 0] * ux + R[2, 1] * uy) / R[2, 2]
+    else:
+        uz = 0.0
+
+    heading_base = R @ np.array([ux, uy, uz])
+    norm_xy = math.hypot(heading_base[0], heading_base[1])
+    if norm_xy < 1e-9:
+        return 0.0
+
+    return math.degrees(math.atan2(heading_base[1], heading_base[0]))
+
+
 class MergedLocalPickupNode(Node):
     def __init__(self):
         super().__init__("merged_local_pickup_node")
@@ -49,6 +82,7 @@ class MergedLocalPickupNode(Node):
         self.manip_info_pub = self.create_publisher(String, "/manip_info", 10)
         self.pickup_status_sub = self.create_subscription(String, "/pickup_status", self.pickup_status_callback, 10)
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.bind(("0.0.0.0", self.udp_port))
         self.sock.setblocking(False)
         self.get_logger().info(f"[SOLVER READY] team_color={self.team_color}")
@@ -71,6 +105,20 @@ class MergedLocalPickupNode(Node):
     def get_signature(self, best):
         return "|".join(sorted(f"{a['cup']}->{a['block']}" for a in best.assignments))
 
+    def _dock_pose_assignments(self, assignments):
+        """Return the subset of assignments used for dock pose computation.
+
+        Case b: if there are multiple blocks and cup_0 is among them, the
+        camera cannot see cup_0's block while docked, so we navigate using
+        only the other cups.  Cup_0 remains in the full assignment list so
+        the manipulator still picks it up.
+        """
+        if len(assignments) > 1:
+            non_cup0 = [a for a in assignments if a["cup"] != "cup_0"]
+            if non_cup0:
+                return non_cup0
+        return assignments
+
     def update_lock(self, best):
         if self.solution_locked:
             frozen_blocks = {}
@@ -82,13 +130,18 @@ class MergedLocalPickupNode(Node):
                     frozen_blocks[block_name] = self.block_tracker.tracked_blocks[block_name]
                 elif block_name in self.locked_targets:
                     frozen_blocks[block_name] = self.locked_targets[block_name]
-            updated = recompute_locked_pose(self.current_cups, frozen_blocks, self.locked_best.assignments)
+            # Case b: use only non-cup_0 pairs for pose when cup_0 is blind
+            pose_assignments = self._dock_pose_assignments(self.locked_best.assignments)
+            updated = recompute_locked_pose(self.current_cups, frozen_blocks, pose_assignments)
             if updated:
                 self.locked_best.dx = updated.dx
                 self.locked_best.dy = updated.dy
                 self.locked_best.yaw = updated.yaw
                 self.locked_best.avg_error = updated.avg_error
-                self.locked_best.assignments = updated.assignments
+                # Only overwrite assignments when we used the full set so that
+                # cup_0 is never dropped from locked_best.assignments (manip needs it)
+                if pose_assignments is self.locked_best.assignments:
+                    self.locked_best.assignments = updated.assignments
             return self.locked_best
         if best is None:
             self.candidate_signature = None
@@ -112,6 +165,23 @@ class MergedLocalPickupNode(Node):
                     self.locked_targets[block_name] = self.block_tracker.tracked_blocks[block_name]
                 if a["cup"] == "cup_0":
                     self.primary_block_name = block_name
+            # Case b: for multi-block with cup_0, navigate by non-cup_0 blocks.
+            # Use one of those as the live-refresh primary, and recompute the
+            # initial dock pose from only the non-cup_0 pairs.
+            if len(best.assignments) > 1 and self.primary_block_name is not None:
+                non_cup0 = [a for a in best.assignments if a["cup"] != "cup_0"]
+                if non_cup0:
+                    self.primary_block_name = non_cup0[0]["block"]
+                    dock_pose = recompute_locked_pose(
+                        self.current_cups, self.locked_targets, non_cup0
+                    )
+                    if dock_pose:
+                        self.locked_best.dx = dock_pose.dx
+                        self.locked_best.dy = dock_pose.dy
+                        self.locked_best.yaw = dock_pose.yaw
+                        self.get_logger().info(
+                            f"[LOCKED] cup_0 blind: dock pose from {[a['cup'] for a in non_cup0]}"
+                        )
             # Fallback: if cup_0 not in assignment, use first block
             if self.primary_block_name is None and best.assignments:
                 self.primary_block_name = best.assignments[0]["block"]
@@ -154,13 +224,11 @@ class MergedLocalPickupNode(Node):
                 raw_id = int(b.get("id", -1))
                 color = self.id_to_color.get(raw_id, "unknown")
                 yaw_cam = float(b.get("yaw_deg", 0.0))
-                p = np.array([float(b["x_cam"]), float(b["y_cam"]), float(b["z_cam"]), 1.0])
+                # Camera stream is mirrored horizontally relative to the TF
+                # optical frame, so mirror x_cam before applying base<-camera.
+                p = np.array([-float(b["x_cam"]), float(b["y_cam"]), float(b["z_cam"]), 1.0])
                 pb = T @ p
-                # Transform marker yaw from camera frame to base_link frame
-                yaw_rad_cam = math.radians(yaw_cam)
-                heading_cam = np.array([math.cos(yaw_rad_cam), math.sin(yaw_rad_cam), 0.0])
-                heading_base = T[0:3, 0:3] @ heading_cam
-                yaw_base_deg = math.degrees(math.atan2(heading_base[1], heading_base[0]))
+                yaw_base_deg = transform_camera_yaw_to_base(yaw_cam, T[0:3, 0:3])
                 detections.append(Block(
                     name="d",
                     x=pb[0],

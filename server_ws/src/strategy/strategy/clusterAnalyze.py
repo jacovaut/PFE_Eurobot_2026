@@ -107,6 +107,16 @@ class ClusterAnalyzeNode(Node):
             "garde_manger_9": self._make_rect_zone("garde_manger_9", 1.500, 0.100, 0.200, 0.200),
             "garde_manger_10": self._make_rect_zone("garde_manger_10", 2.300, 0.100, 0.200, 0.200),
         }
+        self.zones_stocks = {
+            "stock_1": self._make_rect_zone("stock_1", 0.175, 1.200, 0.150, 0.200),
+            "stock_2": self._make_rect_zone("stock_2", 0.175, 0.400, 0.150, 0.200),
+            "stock_3": self._make_rect_zone("stock_3", 1.100, 0.175, 0.200, 0.150),
+            "stock_4": self._make_rect_zone("stock_4", 1.150, 0.800, 0.200, 0.150),
+            "stock_5": self._make_rect_zone("stock_5", 2.825, 1.200, 0.150, 0.200),
+            "stock_6": self._make_rect_zone("stock_6", 2.825, 0.400, 0.150, 0.200),
+            "stock_7": self._make_rect_zone("stock_7", 1.900, 0.175, 0.200, 0.150),
+            "stock_8": self._make_rect_zone("stock_8", 1.850, 0.800, 0.200, 0.150),
+        }
 
         # Zones interdites (ex: grenier inaccessible au robot)
         self.zones_interdites_noms = list(
@@ -248,6 +258,7 @@ class ClusterAnalyzeNode(Node):
 
     def _score_cluster(self, cluster: Dict) -> Dict:
         enemy_color = self._enemy_color()
+        zone_type, zone_name = self._classify_cluster_zone(cluster)
 
         size = max(cluster["size"], 1)
         enemy_count = sum(1 for m in cluster["members"] if m.color == enemy_color)
@@ -287,9 +298,73 @@ class ClusterAnalyzeNode(Node):
             "align_score": float(align_score),
             "size_score": float(size_score),
             "score": float(total_score),
+            "zone_type": zone_type,
+            "zone_name": zone_name,
             "member_ids": [int(m.marker_id) for m in cluster["members"]],
             "member_colors": [m.color for m in cluster["members"]],
         }
+
+    def _classify_cluster_zone(self, cluster: Dict) -> Tuple[str, Optional[str]]:
+        center_x, center_y = cluster["center"]
+        for name, zone in self.zones_garde_manger.items():
+            if self.point_dans_zone(center_x, center_y, zone):
+                return "garde_manger", name
+
+        for name, zone in self.zones_stocks.items():
+            if self.point_dans_zone(center_x, center_y, zone):
+                return "stock", name
+
+        garde_manger_hits: Dict[str, int] = {}
+        stock_hits: Dict[str, int] = {}
+        for member in cluster["members"]:
+            for name, zone in self.zones_garde_manger.items():
+                if self.point_dans_zone(member.x, member.y, zone):
+                    garde_manger_hits[name] = garde_manger_hits.get(name, 0) + 1
+            for name, zone in self.zones_stocks.items():
+                if self.point_dans_zone(member.x, member.y, zone):
+                    stock_hits[name] = stock_hits.get(name, 0) + 1
+
+        if garde_manger_hits:
+            name = max(garde_manger_hits, key=garde_manger_hits.get)
+            return "garde_manger", name
+        if stock_hits:
+            name = max(stock_hits, key=stock_hits.get)
+            return "stock", name
+
+        return "free", None
+
+    def _summarize_garde_manger(self, blocks: List[BlockDetection]) -> List[Dict]:
+        enemy_color = self._enemy_color()
+        summaries = []
+
+        for name, zone in self.zones_garde_manger.items():
+            zone_blocks = [
+                b for b in blocks
+                if self.point_dans_zone(b.x, b.y, zone)
+            ]
+            enemy_blocks = [b for b in zone_blocks if b.color == enemy_color]
+            ally_blocks = [b for b in zone_blocks if b.color != enemy_color]
+
+            summaries.append(
+                {
+                    "name": name,
+                    "center": [zone["centre"]["x"], zone["centre"]["y"]],
+                    "bounds": zone["bornes"],
+                    "enemy_count": len(enemy_blocks),
+                    "ally_count": len(ally_blocks),
+                    "total_count": len(zone_blocks),
+                    "enemy_member_ids": [int(b.marker_id) for b in enemy_blocks],
+                }
+            )
+
+        summaries.sort(
+            key=lambda item: (
+                item["enemy_count"],
+                item["total_count"],
+            ),
+            reverse=True,
+        )
+        return summaries
 
     def _table_to_px(self, x_m: float, y_m: float) -> Tuple[int, int]:
         usable_w = self.debug_canvas_w - 2 * self.debug_margin_px
@@ -367,6 +442,26 @@ class ClusterAnalyzeNode(Node):
                 cv2.FONT_HERSHEY_SIMPLEX,
                 0.35,
                 (100, 100, 100),
+                1,
+                cv2.LINE_AA,
+            )
+
+        for zone in self.zones_stocks.values():
+            b = zone["bornes"]
+            x_min, y_min = self._table_to_px(b["x_min"], b["y_min"])
+            x_max, y_max = self._table_to_px(b["x_max"], b["y_max"])
+            p1 = (min(x_min, x_max), min(y_min, y_max))
+            p2 = (max(x_min, x_max), max(y_min, y_max))
+
+            cv2.rectangle(canvas, p1, p2, (80, 150, 80), 1)
+            stock_name = zone["nom"].replace("stock_", "S")
+            cv2.putText(
+                canvas,
+                stock_name,
+                (p1[0] + 2, p1[1] + 12),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.35,
+                (60, 130, 60),
                 1,
                 cv2.LINE_AA,
             )
@@ -497,6 +592,7 @@ class ClusterAnalyzeNode(Node):
         ]
 
         clusters = self._build_clusters(blocks_reachables)
+        garde_manger_summary = self._summarize_garde_manger(blocks_reachables)
 
         scored_clusters = [self._score_cluster(c) for c in clusters]
         scored_clusters.sort(key=lambda c: c["score"], reverse=True)
@@ -517,6 +613,7 @@ class ClusterAnalyzeNode(Node):
                     "robot_pose_camera_xy": list(self.last_robot_pos) if self.last_robot_pos else None,
                     "best_cluster": best_cluster,
                 },
+                "garde_manger_summary": garde_manger_summary,
                 "clusters": scored_clusters,
             }
         )

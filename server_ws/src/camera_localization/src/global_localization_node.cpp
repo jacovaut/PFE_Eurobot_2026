@@ -206,10 +206,6 @@ public:
       declare_parameter<double>("entity_tracking_yaw_alpha", 0.5);
     entity_tracking_max_missed_frames_ =
       declare_parameter<int>("entity_tracking_max_missed_frames", 5);
-    enemy_entity_tracking_max_missed_frames_ =
-      declare_parameter<int>("enemy_entity_tracking_max_missed_frames", 5);
-    enemy_entity_tracking_match_gate_m_ =
-      declare_parameter<double>("enemy_entity_tracking_match_gate_m", 0.5);
 
     // ----------------------------
     // Publisher
@@ -1903,8 +1899,6 @@ if (ids.empty()) {
   double entity_tracking_ema_alpha_{0.5};
   double entity_tracking_yaw_alpha_{0.5};
   int entity_tracking_max_missed_frames_{5};
-  int enemy_entity_tracking_max_missed_frames_{5};
-  double enemy_entity_tracking_match_gate_m_{0.5};
   
   // Diagnostics: frame counting and timing
   std::atomic<uint64_t> frame_counter_{0};

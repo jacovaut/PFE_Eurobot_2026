@@ -45,9 +45,6 @@ def generate_launch_description():
     team_color = LaunchConfiguration('team_color')
     cluster_robot_marker_id = LaunchConfiguration('cluster_robot_marker_id')
     cluster_show_debug_window = LaunchConfiguration('cluster_show_debug_window')
-    cluster_goal_min_score = LaunchConfiguration('cluster_goal_min_score')
-    cluster_goal_offset_m = LaunchConfiguration('cluster_goal_offset_m')
-    cluster_goal_update_period_s = LaunchConfiguration('cluster_goal_update_period_s')
 
     return LaunchDescription([
         DeclareLaunchArgument(
@@ -95,21 +92,6 @@ def generate_launch_description():
             default_value='true',
             description='Show OpenCV debug window for cluster analysis'
         ),
-        DeclareLaunchArgument(
-            'cluster_goal_min_score',
-            default_value='0.0',
-            description='Minimum best-cluster score required to send goal'
-        ),
-        DeclareLaunchArgument(
-            'cluster_goal_offset_m',
-            default_value='0.18',
-            description='Offset before cluster center to avoid driving into block cluster'
-        ),
-        DeclareLaunchArgument(
-            'cluster_goal_update_period_s',
-            default_value='0.7',
-            description='Minimum interval between goal updates to Nav2'
-        ),
 
         Node(
             package='camera_localization',
@@ -146,23 +128,6 @@ def generate_launch_description():
                 'team_color': team_color,
                 'robot_marker_id': cluster_robot_marker_id,
                 'show_debug_window': cluster_show_debug_window,
-            }],
-        ),
-
-        Node(
-            package='camera_localization',
-            executable='cluster_goal_bridge_node.py',
-            name='cluster_goal_bridge_node',
-            output='screen',
-            condition=IfCondition(use_cluster_pipeline),
-            parameters=[{
-                'cluster_topic': '/cluster_info',
-                'action_name': 'navigate_to_pose',
-                'goal_frame': 'map',
-                'enabled': True,
-                'min_score': cluster_goal_min_score,
-                'approach_offset_m': cluster_goal_offset_m,
-                'min_goal_update_period_s': cluster_goal_update_period_s,
             }],
         ),
 
