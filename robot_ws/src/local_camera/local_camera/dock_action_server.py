@@ -80,8 +80,8 @@ class DockActionServer(Node):
         self.declare_parameter("blind_commit_dist",   0.040)  # m: if last error < this when going blind, succeed
         self.declare_parameter("blind_hold_time",     1.0)    # s: how long to hold position waiting for pose to return
         self.declare_parameter("angular_align_timeout", 8.0)
-        self.declare_parameter("orbit_radius", 1.5)
-        self.declare_parameter("orbit_speed",  0.01)
+        self.declare_parameter("orbit_radius", 0.5)
+        self.declare_parameter("orbit_speed",  0.1)
         self.kx    = self.get_parameter("k_x").value
         self.ky    = self.get_parameter("k_y").value
         self.kt    = self.get_parameter("k_theta").value
@@ -336,31 +336,21 @@ class DockActionServer(Node):
                         stable_start = time.time()
                     if time.time() - stable_start >= self.stable_time_required:
                         self._stop()
-                        self._publish_status("aligned")
-                        goal_handle.succeed()
-                        result = DockToBlock.Result()
-                        result.success = True
-                        result.message = "Orbit alignment complete"
-                        result.final_error_m = error
-                        self.get_logger().info("[DOCK] Orbit alignment complete!")
-                        phase = "angular_align"
-                        # return result
+                        phase = "approach2"
+                        phase_start = time.time()
+                        stable_start = None
+                        self.get_logger().info("[DOCK] Orbit alignment complete, starting approach2")
                 else:
                     stable_start = None
                     # Orbit around block: tangential slide + heading correction + radial hold.
                     # orbit_dir > 0 → one direction, < 0 → the other.
                     orbit_dir = 1.0 if ang_err > 0 else -1.0
-                    r = error  # already computed as math.hypot(dx, dy)
+                    r = self.orbit_radius  # already computed as math.hypot(dx, dy)
 
-                    if r > 0.01:
-                        vx = 0.0
-                        vy = orbit_dir * self.orbit_speed
-                        w  = orbit_dir * self.orbit_speed / r
-                    # else:
-                    #     # Block directly underneath — spin in place as fallback.
-                    #     vx = 0.0
-                    #     vy = 0.0
-                    #     w  = clamp(self.kt * ang_err, -self.max_w, self.max_w)
+                    vx = 0.0
+                    vy = orbit_dir * self.orbit_speed
+                    w  = orbit_dir * self.orbit_speed / r
+
 
             # ==================
             # PHASE: APPROACH2
@@ -402,8 +392,8 @@ class DockActionServer(Node):
                 else:
                     stable_start = None
                     vx = clamp(self.kx * dx, -self.max_vx, self.max_vx)
-                    vy = clamp(self.ky * dy, -self.max_vy, self.max_vy)
-                    w  = 0.0
+                    vy = clamp(-self.ky * dy, -self.max_vy, self.max_vy)
+                    w  = clamp(-self.kt * dtheta, -self.max_w, self.max_w)
 
             # Acceleration limiting
             # Note: cmd.linear.y = -vy, so last_cmd.linear.y = -vy_prev.
