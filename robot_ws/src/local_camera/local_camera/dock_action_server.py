@@ -80,6 +80,8 @@ class DockActionServer(Node):
         self.declare_parameter("blind_commit_dist",   0.040)  # m: if last error < this when going blind, succeed
         self.declare_parameter("blind_hold_time",     1.0)    # s: how long to hold position waiting for pose to return
         self.declare_parameter("angular_align_timeout", 8.0)
+        self.declare_parameter("orbit_radius", 1.0)
+        self.declare_parameter("orbit_speed",  0.01)
         self.kx    = self.get_parameter("k_x").value
         self.ky    = self.get_parameter("k_y").value
         self.kt    = self.get_parameter("k_theta").value
@@ -95,6 +97,8 @@ class DockActionServer(Node):
         self.blind_commit_dist     = self.get_parameter("blind_commit_dist").value
         self.blind_hold_time       = self.get_parameter("blind_hold_time").value
         self.angular_align_timeout = self.get_parameter("angular_align_timeout").value
+        self.orbit_radius = self.get_parameter("orbit_radius").value
+        self.orbit_speed  = self.get_parameter("orbit_speed").value
         self.dt = 1.0 / self.get_parameter("control_rate").value
 
         # ----- State -----
@@ -290,18 +294,14 @@ class DockActionServer(Node):
                         self._stop()
                         phase_start = time.time()
                         stable_start = None
-                        if abs(dtheta) < self.tol_theta:
-                            phase = "approach2"
-                            self.get_logger().info("[DOCK] Long-side angle already good, starting final approach")
-                        else:
-                            phase = "angular_align"
-                            self.get_logger().info(
-                                f"[DOCK] Position reached, starting closed-loop angular alignment "
-                                f"(dtheta={math.degrees(dtheta):.1f}°)")
+                        phase = "angular_align"
+                        self.get_logger().info(
+                            f"[DOCK] Position reached, starting orbit alignment "
+                            f"(dtheta={math.degrees(dtheta):.1f}°)")
                 else:
                     stable_start = None
                     vx = clamp(self.kx * dx, -self.max_vx, self.max_vx)
-                    vy = clamp(self.ky * dy, -self.max_vy, self.max_vy)
+                    vy = clamp(-self.ky * dy, -self.max_vy, self.max_vy)
                 w = 0.0
 
             # ==================
@@ -328,24 +328,43 @@ class DockActionServer(Node):
                     return result
 
                 ang_err = dtheta
-                in_pos = abs(dx) < self.tol_xy and abs(dy) < self.tol_xy
                 in_ang = abs(ang_err) < self.tol_theta
 
-                if in_pos and in_ang:
+                if in_ang:
                     vx = vy = w = 0.0
                     if stable_start is None:
                         stable_start = time.time()
                     if time.time() - stable_start >= self.stable_time_required:
                         self._stop()
-                        phase = "approach2"
-                        phase_start = time.time()
-                        stable_start = None
-                        self.get_logger().info("[DOCK] Angular alignment complete, starting final approach")
+                        self._publish_status("aligned")
+                        goal_handle.succeed()
+                        result = DockToBlock.Result()
+                        result.success = True
+                        result.message = "Orbit alignment complete"
+                        result.final_error_m = error
+                        self.get_logger().info("[DOCK] Orbit alignment complete!")
+                        return result
                 else:
                     stable_start = None
-                    vx = clamp(self.kx * dx, -self.max_vx, self.max_vx)
-                    vy = clamp(self.ky * dy, -self.max_vy, self.max_vy)
-                    w = clamp(-self.kt * ang_err, -self.max_w, self.max_w)
+                    # Orbit around block: tangential slide + heading correction + radial hold.
+                    # orbit_dir > 0 → one direction, < 0 → the other.
+                    orbit_dir = 1.0 if ang_err > 0 else -1.0
+                    r = error  # already computed as math.hypot(dx, dy)
+
+                    if r > 0.01:
+                        # Radial correction: drive to/from block to hold orbit_radius.
+                        v_rad = clamp(self.kx * (r - self.orbit_radius), -self.max_vx, self.max_vx)
+                        # Decompose radial correction along unit vector toward block.
+                        vx = 0#v_rad * (dx / r)
+                        # vy convention: positive vy → cmd.linear.y negative (see publish step).
+                        vy = -v_rad * (dy / r) + orbit_dir * self.orbit_speed
+                        # Rotate to keep robot facing block center.
+                        w  = orbit_dir * self.orbit_speed / r
+                    else:
+                        # Block directly underneath — spin in place as fallback.
+                        vx = 0.0
+                        vy = 0.0
+                        w  = clamp(self.kt * ang_err, -self.max_w, self.max_w)
 
             # ==================
             # PHASE: APPROACH2
