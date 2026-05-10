@@ -31,7 +31,7 @@ class TicksListener : public rclcpp::Node
     const double OFFSET = -0.07308; // avg side offset from two 10-turn rotations
     const double RIGHT_DEADWHEEL_SIGN = -1.0;
     const double LEFT_DEADWHEEL_SIGN = -1.0;
-    const double SIDE_DEADWHEEL_SIGN = -1.0;
+    const double SIDE_DEADWHEEL_SIGN = 1.0;
 
     int64_t prevTicks[3] = {0, 0, 0};
     bool initialized_{false};
