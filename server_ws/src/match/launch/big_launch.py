@@ -71,6 +71,7 @@ def generate_launch_description():
     use_respawn = LaunchConfiguration('use_respawn')
     log_level = LaunchConfiguration('log_level')
     force_match_running = LaunchConfiguration('force_match_running')
+    start_delay_s = LaunchConfiguration('start_delay_s')
     enable_opener = LaunchConfiguration('enable_opener')
     enable_closer = LaunchConfiguration('enable_closer')
     enable_midgame = LaunchConfiguration('enable_midgame')
@@ -160,6 +161,11 @@ def generate_launch_description():
             'force_match_running',
             default_value='true',
             description='Force /match/running true for testing outside a match.',
+        ),
+        DeclareLaunchArgument(
+            'start_delay_s',
+            default_value='0.0',
+            description='Seconds to wait after launch before starting the match (requires force_match_running=true).',
         ),
         DeclareLaunchArgument(
             'enable_opener',
@@ -289,6 +295,7 @@ def generate_launch_description():
                 'autostart': False,
                 'duration_s': 98.0,
                 'force_running': ParameterValue(force_match_running, value_type=bool),
+                'start_delay_s': ParameterValue(start_delay_s, value_type=float),
                 'team_color': team_color,
                 'enable_opener': ParameterValue(enable_opener, value_type=bool),
                 'enable_closer': ParameterValue(enable_closer, value_type=bool),

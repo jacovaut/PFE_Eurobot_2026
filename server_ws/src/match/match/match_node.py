@@ -41,6 +41,7 @@ class MatchNode(Node):
         self.declare_parameter('autostart', False)
         self.declare_parameter('duration_s', MATCH_DURATION)
         self.declare_parameter('force_running', False)
+        self.declare_parameter('start_delay_s', 0.0)
         self.declare_parameter('team_color', 'blue')
         self.declare_parameter('enable_opener', False)
         self.declare_parameter('enable_closer', False)
@@ -95,6 +96,8 @@ class MatchNode(Node):
         self._closer_pickups_before_nid = int(self.get_parameter('closer_pickups_before_nid').value)
         self._start_time = None
         self._running = False
+        self._start_delay_done = True
+        self._start_delay_timer = None
         self._closer_started = False
         self._closer_finished = False
         self._closer_goal_candidates = []
@@ -177,12 +180,23 @@ class MatchNode(Node):
         )
 
         if self._force_running:
-            self._start_time = self.get_clock().now()
-            self._running = True
-            self._publish_state()
-            self._publish_team_color()
-            self.get_logger().info('Match running forced true for testing.')
-            self._start_opener_if_needed()
+            _delay = float(self.get_parameter('start_delay_s').value)
+            if _delay > 0.0:
+                self._start_delay_done = False
+                self._start_delay_timer = self.create_timer(_delay, self._on_start_delay_done)
+                self._publish_state()
+                self._publish_team_color()
+                self.get_logger().info(
+                    f'force_running=true with start_delay_s={_delay:.1f}; '
+                    'match will begin after delay.'
+                )
+            else:
+                self._start_time = self.get_clock().now()
+                self._running = True
+                self._publish_state()
+                self._publish_team_color()
+                self.get_logger().info('Match running forced true for testing.')
+                self._start_opener_if_needed()
         elif bool(self.get_parameter('autostart').value):
             self._begin_match()
         else:
@@ -200,8 +214,19 @@ class MatchNode(Node):
         elif self._running:
             self._end_match('Match stopped.')
 
+    def _on_start_delay_done(self):
+        self._start_delay_timer.cancel()
+        self._start_delay_timer = None
+        self._start_delay_done = True
+        self.get_logger().info('start_delay_s elapsed; beginning match now.')
+        self._begin_match()
+        self._publish_team_color()
+
     def _on_tick(self):
         if self._force_running:
+            if not self._start_delay_done:
+                self._publish_state()
+                return
             if not self._running:
                 self._running = True
             self._publish_state()
