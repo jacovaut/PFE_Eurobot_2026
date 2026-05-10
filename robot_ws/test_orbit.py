@@ -59,7 +59,7 @@ def main():
             # that local-frame velocity around the circle in world frame.
             cmd = Twist()
             cmd.linear.x  = 0.0
-            cmd.linear.y  = -v   # slides in local -y; convention: driver uses cmd.linear.y directly
+            cmd.linear.y  = v   # slides in local -y; convention: driver uses cmd.linear.y directly
             cmd.angular.z = -omega
             pub.publish(cmd)
 

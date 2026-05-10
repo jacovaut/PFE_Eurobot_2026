@@ -9,21 +9,29 @@
 #include <rclc/executor.h>
 #include <rmw_microros/rmw_microros.h>
 #include <std_msgs/msg/bool.h>
+#include <std_msgs/msg/string.h>
+#include <ctype.h>
+#include <string.h>
 
 extern bool hasRun;
 extern volatile bool startRequested;
+extern volatile bool stopRequested;
+extern volatile uint8_t selectedAutonomousRun;
 
 char MICROROS_WIFI_SSID[] = "GRUM";
 char MICROROS_WIFI_PASSWORD[] = "GELE>GMEC";
-IPAddress agent_ip(192,168,1,131);
+IPAddress MICROROS_AGENT_IP(192, 168, 1, 131);
 const uint16_t MICROROS_AGENT_PORT = 8895;
 
 rcl_subscription_t runningSub;
+rcl_subscription_t teamColorSub;
 std_msgs__msg__Bool runningMsg;
+std_msgs__msg__String teamColorMsg;
 rclc_executor_t executor;
 rclc_support_t support;
 rcl_allocator_t allocator;
 rcl_node_t node;
+char teamColorBuffer[16];
 
 void errorLoop() {
   pinMode(2, OUTPUT);
@@ -52,9 +60,39 @@ void runningCallback(const void* msgin) {
 
   if (msg->data) {
     startRequested = true;
+    stopRequested = false;
   } else {
+    stopRequested = true;
     startRequested = false;
     hasRun = false;
+  }
+}
+
+void teamColorCallback(const void* msgin) {
+  const std_msgs__msg__String* msg =
+    static_cast<const std_msgs__msg__String*>(msgin);
+
+  char color[sizeof(teamColorBuffer)];
+  const size_t length = min(msg->data.size, sizeof(color) - 1);
+  memcpy(color, msg->data.data, length);
+  color[length] = '\0';
+
+  for (size_t i = 0; i < length; i++) {
+    color[i] = static_cast<char>(tolower(color[i]));
+  }
+
+  if (strcmp(color, "yellow") == 0 || strcmp(color, "jaune") == 0 ||
+      strcmp(color, "1") == 0 || strcmp(color, "run1") == 0) {
+    selectedAutonomousRun = 1;
+    hasRun = false;
+    Serial.println("team_color selected yellow run");
+  } else if (strcmp(color, "blue") == 0 || strcmp(color, "bleu") == 0 ||
+             strcmp(color, "2") == 0 || strcmp(color, "run2") == 0) {
+    selectedAutonomousRun = 2;
+    hasRun = false;
+    Serial.println("team_color selected blue run");
+  } else {
+    Serial.printf("Ignoring unknown team_color: %s\n", color);
   }
 }
 
@@ -88,7 +126,18 @@ void setupMicroRosTrigger() {
     ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Bool),
     "match/running"
   ));
-  RCCHECK(rclc_executor_init(&executor, &support.context, 1, &allocator));
+  RCCHECK(rclc_subscription_init_default(
+    &teamColorSub,
+    &node,
+    ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, String),
+    "/team_color"
+  ));
+
+  teamColorMsg.data.data = teamColorBuffer;
+  teamColorMsg.data.size = 0;
+  teamColorMsg.data.capacity = sizeof(teamColorBuffer);
+
+  RCCHECK(rclc_executor_init(&executor, &support.context, 2, &allocator));
   RCCHECK(rclc_executor_add_subscription(
     &executor,
     &runningSub,
@@ -96,8 +145,16 @@ void setupMicroRosTrigger() {
     &runningCallback,
     ON_NEW_DATA
   ));
+  RCCHECK(rclc_executor_add_subscription(
+    &executor,
+    &teamColorSub,
+    &teamColorMsg,
+    &teamColorCallback,
+    ON_NEW_DATA
+  ));
 
   Serial.println("Listening to match/running (std_msgs/Bool).");
+  Serial.println("Listening to /team_color (std_msgs/String): yellow=run 1, blue=run 2.");
   Serial.println("true starts the script. false resets the trigger.");
 }
 

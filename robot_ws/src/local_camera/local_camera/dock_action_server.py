@@ -4,7 +4,7 @@ Docking Action Server for block pickup alignment.
 
 Exposes a ROS2 action: custom_msgs/action/DockToBlock
 - Subscribes to /pickup_pose (published by ros_node.py)
-- Drives the robot via /cmd_vel_match_input using a P controller
+- Drives the robot via /cmd_vel_smoothed using a P controller
 - Reports feedback (dx, dy, yaw_deg, error_m, state) at 50 Hz
 - Succeeds when aligned within tolerance for a stable duration
 - Fails on timeout or preempt
@@ -15,6 +15,8 @@ States:
   2 = LOCKED     : solution locked, driving toward target
   3 = CONVERGING : within 2x tolerance, slowing down
   4 = ALIGNED    : within tolerance, waiting for stable period
+  5 = WAITING    : reserved
+  6 = ORBITING   : angular alignment phase
 """
 
 import rclpy
@@ -39,6 +41,11 @@ def clamp(v, vmin, vmax):
     return max(vmin, min(vmax, v))
 
 
+def rectangular_angle_error(theta):
+    """Return angular error for a block where theta and theta + pi are equivalent."""
+    return 0.5 * math.atan2(math.sin(2.0 * theta), math.cos(2.0 * theta))
+
+
 # =========================
 # DOCKING ACTION SERVER
 # =========================
@@ -51,15 +58,15 @@ class DockActionServer(Node):
     STATE_CONVERGING = 3
     STATE_ALIGNED    = 4
     STATE_WAITING    = 5
-    STATE_ORBITING   = 6
+    STATE_ORBITING   = 6  # Kept for feedback compatibility; now means angular align.
 
     def __init__(self):
         super().__init__("dock_action_server")
 
         # ----- Parameters -----
-        self.declare_parameter("k_x",          0.5)
-        self.declare_parameter("k_y",          0.5)
-        self.declare_parameter("k_theta",      0.5)
+        self.declare_parameter("k_x",          0.4)
+        self.declare_parameter("k_y",          0.4)
+        self.declare_parameter("k_theta",      0.4)
         self.declare_parameter("max_vx",       0.4)
         self.declare_parameter("max_vy",       0.7)
         self.declare_parameter("max_w",        0.8)
@@ -68,13 +75,14 @@ class DockActionServer(Node):
         self.declare_parameter("max_aw",       6.0)
         self.declare_parameter("tol_xy",              0.025)
         self.declare_parameter("tol_theta",           math.radians(5.0))
+        self.declare_parameter("orbit_tol_theta",     math.radians(2.0))
         self.declare_parameter("stable_time",         0.3)
         self.declare_parameter("control_rate",        50.0)
         self.declare_parameter("blind_commit_dist",   0.040)  # m: if last error < this when going blind, succeed
         self.declare_parameter("blind_hold_time",     1.0)    # s: how long to hold position waiting for pose to return
-        self.declare_parameter("orbit_radius",         0.65)   # m: distance from robot center to cup/block
-        self.declare_parameter("orbit_speed",         0.12)   # m/s tangential orbit speed
-        self.declare_parameter("orbit_k_r",           3.0)    # radial correction gain
+        self.declare_parameter("angular_align_timeout", 8.0)
+        self.declare_parameter("orbit_radius", 0.5)
+        self.declare_parameter("orbit_speed",  0.1)
         self.kx    = self.get_parameter("k_x").value
         self.ky    = self.get_parameter("k_y").value
         self.kt    = self.get_parameter("k_theta").value
@@ -86,12 +94,13 @@ class DockActionServer(Node):
         self.max_aw = self.get_parameter("max_aw").value
         self.tol_xy    = self.get_parameter("tol_xy").value
         self.tol_theta = self.get_parameter("tol_theta").value
+        self.orbit_tol_theta = self.get_parameter("orbit_tol_theta").value
         self.stable_time_required  = self.get_parameter("stable_time").value
         self.blind_commit_dist     = self.get_parameter("blind_commit_dist").value
         self.blind_hold_time       = self.get_parameter("blind_hold_time").value
-        self.orbit_radius          = self.get_parameter("orbit_radius").value
-        self.orbit_speed           = self.get_parameter("orbit_speed").value
-        self.orbit_k_r             = self.get_parameter("orbit_k_r").value
+        self.angular_align_timeout = self.get_parameter("angular_align_timeout").value
+        self.orbit_radius = self.get_parameter("orbit_radius").value
+        self.orbit_speed  = self.get_parameter("orbit_speed").value
         self.dt = 1.0 / self.get_parameter("control_rate").value
 
         # ----- State -----
@@ -101,12 +110,13 @@ class DockActionServer(Node):
         self.last_cmd = Twist()
         self.pose_max_age = 0.5       # seconds before pose considered stale
         self.last_good_error: float = float("inf")  # error when pose was last valid
+        self.last_good_yaw_deg: float = 0.0           # yaw when pose was last valid
         self.last_good_state: int = self.STATE_SEARCHING
 
         # ----- ROS interfaces -----
         cb_group = ReentrantCallbackGroup()
 
-        self.cmd_pub = self.create_publisher(Twist, "/cmd_vel_match_input", 10)
+        self.cmd_pub = self.create_publisher(Twist, "/cmd_vel_smoothed", 10)
         self.status_pub = self.create_publisher(String, "/pickup_status", 10)
 
         self.create_subscription(
@@ -166,21 +176,25 @@ class DockActionServer(Node):
         start_time  = time.time()
         feedback = DockToBlock.Feedback()
         self.last_good_error = float("inf")
+        self.last_good_yaw_deg = 0.0
         self.last_good_state = self.STATE_SEARCHING
 
         self.get_logger().info(
             f"[DOCK] Executing (timeout={timeout_sec:.1f}s)"
         )
 
-        # Reset pickup solver lock so it starts fresh
+        # Reset pickup solver lock so it starts fresh.
+        # Also clear the cached pose so we never act on a stale pose from a
+        # previous run — the controller will stay in SEARCHING until the solver
+        # publishes a fresh solution after processing the unlock.
         self._publish_status("unlock")
+        self.current_pose = None
+        self.pose_stamp   = 0.0
 
-        phase        = "approach"           # approach | orbit | approach2
+        phase        = "approach"           # approach | angular_align | approach2
+        phase_start  = time.time()
         stable_start: float | None = None   # position/angle stable timer
         blind_start:  float | None = None   # blind-hold timer
-        r_target      = 20               # radial distance to maintain during orbit
-        orbit_dir     = 1.0                 # +1 = CCW, -1 = CW (locked at orbit start)
-
         while rclpy.ok():
 
             # ----- Timeout -----
@@ -213,7 +227,7 @@ class DockActionServer(Node):
 
             if pose_stale:
                 # ---- Blind phase: blocks left camera FOV ----
-                if phase == "approach" and self.last_good_error < self.blind_commit_dist:
+                if phase in ("approach", "approach2") and self.last_good_error < self.blind_commit_dist:
                     # We were close enough — commit success immediately
                     self._stop()
                     self._publish_status("aligned")
@@ -239,13 +253,13 @@ class DockActionServer(Node):
                     result.success = False
                     result.message = f"Lost blocks (last error={self.last_good_error*1000:.1f}mm)"
                     result.final_error_m = self.last_good_error
-                    self.get_logger().warn("[DOCK] Lost blocks during approach")
+                    self.get_logger().warn(f"[DOCK] Lost blocks during {phase}")
                     return result
 
                 self._stop()
                 feedback.dx      = 0.0
                 feedback.dy      = 0.0
-                feedback.yaw_deg = 0.0
+                feedback.yaw_deg = self.last_good_yaw_deg
                 feedback.error_m = self.last_good_error
                 feedback.state   = self.STATE_SEARCHING
                 goal_handle.publish_feedback(feedback)
@@ -256,9 +270,10 @@ class DockActionServer(Node):
 
             dx     = pose.x
             dy     = pose.y
-            dtheta = math.atan2(math.sin(pose.theta), math.cos(pose.theta))
+            dtheta = rectangular_angle_error(pose.theta)
             error  = math.hypot(dx, dy)
-            self.last_good_error = error
+            self.last_good_error   = error
+            self.last_good_yaw_deg = math.degrees(dtheta)
 
             # ==================
             # PHASE: APPROACH
@@ -275,89 +290,94 @@ class DockActionServer(Node):
 
                 if in_pos:
                     vx = vy = 0.0
-                    w = clamp(-self.kt * dtheta, -self.max_w, self.max_w)
                     if stable_start is None:
                         stable_start = time.time()
                     if time.time() - stable_start >= self.stable_time_required:
                         self._stop()
-                        phase = "orbit"
+                        phase_start = time.time()
                         stable_start = None
+                        phase = "angular_align"
                         self.get_logger().info(
-                            f"[DOCK] Position reached, starting angular alignment "
+                            f"[DOCK] Position reached, starting orbit alignment "
                             f"(dtheta={math.degrees(dtheta):.1f}°)")
                 else:
                     stable_start = None
                     vx = clamp(self.kx * dx, -self.max_vx, self.max_vx)
-                    vy = clamp(self.ky * dy, -self.max_vy, self.max_vy)
-                    w = 0.0  # no rotation during translation — orbit phase handles yaw
+                    vy = clamp(-self.ky * dy, -self.max_vy, self.max_vy)
+                w = 0.0
 
             # ==================
-            # PHASE: ORBIT
+            # PHASE: ANGULAR ALIGN
             # ==================
-            elif phase == "orbit":
+            elif phase == "angular_align":
                 state = self.STATE_ORBITING
                 self.last_good_state = state
 
-                # Angular error to target orientation (wraps to [-π, π])
+                if (
+                    self.angular_align_timeout > 0.0
+                    and time.time() - phase_start > self.angular_align_timeout
+                ):
+                    self._stop()
+                    goal_handle.abort()
+                    result = DockToBlock.Result()
+                    result.success = False
+                    result.message = (
+                        f"Angular alignment timeout "
+                        f"(err={math.degrees(dtheta):.1f}deg, xy={error*1000:.1f}mm)"
+                    )
+                    result.final_error_m = error
+                    self.get_logger().warn(f"[DOCK] {result.message}")
+                    return result
+
                 ang_err = dtheta
-                in_ang       = abs(ang_err) < self.tol_theta
-                in_ang_loose = abs(ang_err) < self.tol_theta * 2.0
+                in_ang = abs(ang_err) < self.orbit_tol_theta
 
-                # Lock orbit direction on first entry (r_target == 0.0 is the sentinel)
-                if r_target == 0.0:
-                    orbit_dir = math.copysign(1.0, ang_err) if abs(ang_err) > 1e-6 else 1.0
-                    r_target  = self.orbit_radius
-                    self.get_logger().info(
-                        f"[DOCK] Orbit locked: dir={'+CCW' if orbit_dir > 0 else '-CW'} "
-                        f"r={r_target:.3f}m ang={math.degrees(ang_err):.1f}°")
-
-                if stable_start is not None:
-                    # Already in confirmation window — hold still
-                    if not in_ang_loose:
-                        # Genuinely drifted back out — restart orbit
-                        stable_start = None
-                        self.get_logger().info(
-                            f"[DOCK] Orbit: drifted back (err={math.degrees(ang_err):.1f}°), resuming orbit")
-                    elif time.time() - stable_start >= self.stable_time_required:
+                if in_ang:
+                    vx = vy = w = 0.0
+                    if stable_start is None:
+                        stable_start = time.time()
+                    if time.time() - stable_start >= self.stable_time_required:
                         self._stop()
                         phase = "approach2"
+                        phase_start = time.time()
                         stable_start = None
-                        self.get_logger().info("[DOCK] Orbit aligned, starting second XY alignment")
-                    vx = vy = w = 0.0
-                elif in_ang:
-                    # Just entered tolerance — start confirmation timer
-                    stable_start = time.time()
-                    self.get_logger().info(
-                        f"[DOCK] Orbit: angle reached (err={math.degrees(ang_err):.1f}°), "
-                        f"waiting {self.stable_time_required:.1f}s to confirm")
-                    vx = vy = w = 0.0
+                        self.get_logger().info("[DOCK] Orbit alignment complete, starting approach2")
                 else:
-                    # Circular orbit: to keep the block fixed in the robot frame while
-                    # rotating at rate w, the robot must slide laterally at vy = -R * w.
-                    # With w = orbit_dir * (v/R):  vy = -R * orbit_dir * (v/R) = -orbit_dir * v
-                    # This makes cmd.linear.y = -vy = orbit_dir * v, same sign as w — matching
-                    # the test_orbit.py physics (both cmd.linear.y and cmd.angular.z same sign).
-                    # orbit_dir > 0 → CCW orbit (w > 0, cmd.linear.y > 0)
-                    # orbit_dir < 0 → CW  orbit (w < 0, cmd.linear.y < 0)
-                    orbit_omega = self.orbit_speed / self.orbit_radius
+                    stable_start = None
+                    # Orbit around block: tangential slide + heading correction + radial hold.
+                    # orbit_dir > 0 → one direction, < 0 → the other.
+                    orbit_dir = 1.0 if ang_err > 0 else -1.0
+                    r = self.orbit_radius  # already computed as math.hypot(dx, dy)
+
                     vx = 0.0
-                    vy = -orbit_dir * self.orbit_speed
-                    w  = clamp(-orbit_dir * orbit_omega, -self.max_w, self.max_w)
+                    vy = orbit_dir * self.orbit_speed
+                    w  = orbit_dir * self.orbit_speed / r
+
 
             # ==================
             # PHASE: APPROACH2
             # ==================
             elif phase == "approach2":
                 in_pos = abs(dx) < self.tol_xy and abs(dy) < self.tol_xy
-                if in_pos:
+                in_ang = abs(dtheta) < self.orbit_tol_theta
+                if in_pos and in_ang:
                     state = self.STATE_ALIGNED
-                elif error < self.tol_xy * 2.5:
+                elif error < self.tol_xy * 5:
                     state = self.STATE_CONVERGING
                 else:
                     state = self.STATE_LOCKED
                 self.last_good_state = state
 
-                if in_pos:
+                if in_pos and not in_ang:
+                    self._stop()
+                    phase = "angular_align"
+                    phase_start = time.time()
+                    stable_start = None
+                    vx = vy = w = 0.0
+                    self.get_logger().info(
+                        f"[DOCK] Final approach angle drifted, returning to angular alignment "
+                        f"(dtheta={math.degrees(dtheta):.1f}°)")
+                elif in_pos:
                     vx = vy = w = 0.0
                     if stable_start is None:
                         stable_start = time.time()
@@ -374,8 +394,8 @@ class DockActionServer(Node):
                 else:
                     stable_start = None
                     vx = clamp(self.kx * dx, -self.max_vx, self.max_vx)
-                    vy = clamp(self.ky * dy, -self.max_vy, self.max_vy)
-                    w  = 0.0
+                    vy = clamp(-self.ky * dy, -self.max_vy, self.max_vy)
+                    w  = clamp(self.kt * dtheta, -self.max_w, self.max_w)
 
             # Acceleration limiting
             # Note: cmd.linear.y = -vy, so last_cmd.linear.y = -vy_prev.

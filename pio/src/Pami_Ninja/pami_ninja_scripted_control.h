@@ -6,6 +6,8 @@
 #include <ESP32Servo.h>
 #include "pins_pami_ninja.h"
 
+bool shouldStopAutonomousRun();
+
 class PamiNinjaScriptedControl {
 public:
   void begin() {
@@ -63,27 +65,33 @@ public:
   }
 
   void forward(uint32_t durationMs) {
+    if (shouldAbortScript()) return;
     runTimedMotion(0.0f, linearPwm / 255.0f, 0.0f, durationMs);
   }
 
   void backward(uint32_t durationMs) {
+    if (shouldAbortScript()) return;
     runTimedMotion(0.0f, -linearPwm / 255.0f, 0.0f, durationMs);
   }
 
   void left(uint32_t durationMs) {
+    if (shouldAbortScript()) return;
     runTimedMotion(linearPwm / 255.0f, 0.0f, 0.0f, durationMs);
   }
 
   void right(uint32_t durationMs) {
+    if (shouldAbortScript()) return;
     runTimedMotion(-linearPwm / 255.0f, 0.0f, 0.0f, durationMs);
   }
 
   void rotateCcw(uint32_t durationMs) {
-    runTimedMotion(0.0f, 0.0f, omegaPwm / 255.0f, durationMs);
+    if (shouldAbortScript()) return;
+    runTimedMotion(0.0f, 0.0f, normalizedOmegaSpeed(), durationMs);
   }
 
   void rotateCw(uint32_t durationMs) {
-    runTimedMotion(0.0f, 0.0f, -omegaPwm / 255.0f, durationMs);
+    if (shouldAbortScript()) return;
+    runTimedMotion(0.0f, 0.0f, -normalizedOmegaSpeed(), durationMs);
   }
 
   void wait(uint32_t durationMs) {
@@ -95,41 +103,57 @@ public:
   }
 
   void pickup() {
+    if (shouldAbortScript()) return;
     pickupBlock();
   }
 
   void pickup(uint32_t waitAfterMs) {
+    if (shouldAbortScript()) return;
     pickupBlock();
-    delay(waitAfterMs);
+    delayWithStopCheck(waitAfterMs);
   }
 
   void release() {
+    if (shouldAbortScript()) return;
     releaseBlock();
   }
 
   void release(uint32_t waitAfterMs) {
+    if (shouldAbortScript()) return;
     releaseBlock();
-    delay(waitAfterMs);
+    delayWithStopCheck(waitAfterMs);
   }
 
   void pumpOn(uint32_t durationMs = 0) {
+    if (shouldAbortScript()) return;
     setPump(true);
-    delay(durationMs);
+    delayWithStopCheck(durationMs);
   }
 
   void pumpOff(uint32_t durationMs = 0) {
+    if (shouldAbortScript()) return;
     setPump(false);
-    delay(durationMs);
+    delayWithStopCheck(durationMs);
   }
 
   void armsUp(uint32_t durationMs = 0) {
+    if (shouldAbortScript()) return;
     servoUp();
-    delay(durationMs);
+    delayWithStopCheck(durationMs);
   }
 
   void armsDown(uint32_t durationMs = 0) {
+    if (shouldAbortScript()) return;
     servoDown();
-    delay(durationMs);
+    delayWithStopCheck(durationMs);
+  }
+
+  void setServoAngle(int angle, uint32_t waitAfterMs = 0) {
+    if (shouldAbortScript()) return;
+    armSweepEnabled = false;
+    currentServoAngle = constrain(angle, 0, 180);
+    writeServos(currentServoAngle);
+    delayWithStopCheck(waitAfterMs);
   }
 
   void toggleArmSweep() {
@@ -244,17 +268,53 @@ private:
   Servo servo2;
 
   int motorSpeeds[4] = {0, 0, 0, 0};
-  int linearPwm = 120;
-  int omegaPwm = 110;
+  int linearPwm = 128;
+  int omegaPwm = 128;
   bool pumpState = false;
   bool armSweepEnabled = false;
   int armSweepDirection = 1;
   int currentServoAngle = ARM_UP_ANGLE;
   uint32_t lastArmSweepStepTime = 0;
 
+  float normalizedOmegaSpeed() const {
+    const float rotationRadius = WHEELBASE_LENGTH / 2.0f + WHEELBASE_WIDTH / 2.0f;
+    if (rotationRadius <= 0.0f) {
+      return 0.0f;
+    }
+
+    return (omegaPwm / 255.0f) / rotationRadius;
+  }
+
+  bool shouldAbortScript() {
+    if (shouldStopAutonomousRun()) {
+      stop();
+      return true;
+    }
+
+    return false;
+  }
+
+  bool delayWithStopCheck(uint32_t durationMs) {
+    const uint32_t start = millis();
+    while (millis() - start < durationMs) {
+      if (shouldAbortScript()) {
+        return true;
+      }
+
+      updateArmSweep();
+      delay(20);
+    }
+
+    return false;
+  }
+
   void runTimedMotion(float vx, float vy, float omega, uint32_t durationMs) {
     const uint32_t start = millis();
     do {
+      if (shouldAbortScript()) {
+        return;
+      }
+
 #if PAMI_ENABLE_ULTRASONIC_OBSTACLE_AVOIDANCE
       if (vy < 0.0f && isRearObstacleDetected()) {
         stop();
@@ -336,21 +396,20 @@ private:
   void setPump(bool state) {
     pumpState = state;
     digitalWrite(PUMP_PIN, state ? HIGH : LOW);
-    Serial.printf("Pump: %s\n", pumpState ? "ON" : "OFF");
   }
 
   void servoUp() {
     armSweepEnabled = false;
     currentServoAngle = ARM_UP_ANGLE;
     writeServos(currentServoAngle);
-    delay(ARM_MOVE_DELAY);
+    delayWithStopCheck(ARM_MOVE_DELAY);
   }
 
   void servoDown() {
     armSweepEnabled = false;
     currentServoAngle = ARM_DOWN_ANGLE;
     writeServos(currentServoAngle);
-    delay(ARM_MOVE_DELAY);
+    delayWithStopCheck(ARM_MOVE_DELAY);
   }
 
   void writeServos(int angle) {
@@ -359,18 +418,19 @@ private:
   }
 
   void pickupBlock() {
-    Serial.println("Pickup block");
     setPump(true);
     servoDown();
+    if (shouldAbortScript()) return;
+    delayWithStopCheck(ARM_MOVE_DELAY);
+    if (shouldAbortScript()) return;
     servoUp();
   }
 
   void releaseBlock() {
-    Serial.println("Release block");
     armSweepEnabled = false;
     currentServoAngle = ARM_RELEASE_DOWN_ANGLE;
     writeServos(currentServoAngle);
-    delay(ARM_MOVE_DELAY);
+    if (delayWithStopCheck(ARM_MOVE_DELAY)) return;
     setPump(false);
     servoUp();
   }

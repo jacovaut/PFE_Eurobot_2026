@@ -71,26 +71,27 @@ controller_server:
       required_movement_radius: 0.01
       movement_time_allowance: 3.0
 
+    # See URL for documentation: https://docs.nav2.org/configuration/packages/nav2_controller-plugins/simple_goal_checker.html
     goal_checker:
       plugin: "nav2_controller::SimpleGoalChecker"
-      stateful: true
       xy_goal_tolerance: 0.10
-      yaw_goal_tolerance: 3.14
+      yaw_goal_tolerance: 3.14 # TODO: Should be 0.15
+      path_length_tolerance: 1.0
+      stateful: false
+      symmetric_yaw_tolerance: false
 
     # Holonomic mecanum controller. Use DWB directly so the robot can strafe
     # instead of rotating to face the path before moving.
-    FollowPath:
+    FollowPath: # add xy_goal?
       plugin: "dwb_core::DWBLocalPlanner"
-
       debug_trajectory_details: false
-
       # Holonomic mecanum: allow y velocity
       min_vel_x: -0.5
       max_vel_x:  0.5
       min_vel_y: -0.5
       max_vel_y:  0.5
       max_vel_theta: 0.35
-      min_speed_xy: 0.0
+      min_speed_xy: 0.0 # Zak used -max_speed_xy
       max_speed_xy: 0.5
       min_speed_theta: 0.0
 
@@ -108,7 +109,7 @@ controller_server:
       linear_granularity: 0.05
       angular_granularity: 0.03
 
-      transform_tolerance: 0.5
+      transform_tolerance: 0.5 # May need tuning
       trans_stopped_velocity: 0.05
 
       critics: ["ObstacleFootprint", "BaseObstacle", "PathDist", "GoalDist", "Oscillation", "Twirling", "RotateToGoal"]

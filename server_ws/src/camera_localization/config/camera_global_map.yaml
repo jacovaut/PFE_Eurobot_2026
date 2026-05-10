@@ -36,7 +36,7 @@ global_localization_node:
     # Match setup
     # blue/bleu: our robot IDs 1-5, enemy IDs 6-10.
     # yellow/jaune: our robot IDs 6-10, enemy IDs 1-5.
-    team_color: "blue"
+    # NOTE: team_color is passed from big_launch.py, not configured here
 
     # Marker setup
     table_marker_length_m: 0.10
@@ -105,8 +105,8 @@ global_localization_node:
     # base_link -> robot ArUco transform, measured on the robot.
     # X is forward from base_link, Y is left, Z is up, yaw is radians.
     # Example: if the marker center is 12 cm forward and 4 cm left of base_link, use x=0.12, y=0.04.
-    base_link_to_aruco_x: 0.0
-    base_link_to_aruco_y: 0.0
+    base_link_to_aruco_x: -0.154078
+    base_link_to_aruco_y: -0.003064
     base_link_to_aruco_z: 0.0
     base_link_to_aruco_yaw: 0.0
 

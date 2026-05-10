@@ -1,0 +1,13 @@
+# Goal
+uint8[4] colors          # 0=not present, 1=pick as-is, 2=pick and flip
+uint8 count              # number of blocks to pick
+float64 timeout_sec      # reserved timeout, 0 = no timeout
+---
+# Result
+bool success
+string message
+uint8 count
+---
+# Feedback
+uint8 count
+string state

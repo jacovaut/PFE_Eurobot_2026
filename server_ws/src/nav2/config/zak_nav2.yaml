@@ -1,0 +1,463 @@
+# turtle bot exemple:
+# https://github.com/ROBOTIS-GIT/turtlebot3/blob/main/turtlebot3_navigation2/param/humble/burger_cam.yaml
+# https://www.youtube.com/watch?v=QP-cxh8qUJQ
+
+# Default Bringup params:
+# https://github.com/ros-navigation/navigation2/blob/main/nav2_bringup/params/nav2_params.yaml
+
+# Config:
+# https://docs.nav2.org/configuration/index.html
+
+# Plugins:
+# https://docs.nav2.org/plugins/index.html
+
+# TDOD: tunning of controller server and the costmap
+
+# https://docs.nav2.org/configuration/packages/configuring-map-server.html
+    ros__parameters:
+        use_sim_time: False                     # whether to use simulation time or not.
+        # Path to map yaml file:
+        yaml_filename: "/home/zakpel/Projects/PFE_Eurobot_2025/Eurobot_ROS_ws/src/eurobot_main_pkg/maps/table_map.yaml"
+        topic_name: "map"                       # Topic to publish loaded map to.
+        frame_id: "map"                         # Frame to publish loaded map in.
+        service_introspection_mode: "disabled"  # The introspection mode for services. Options are “disabled”, “metadata”, “contents”.
+
+# -- For Costmap 2D --
+# https://docs.nav2.org/configuration/packages/configuring-costmaps.html
+# CostMap Wiki: https://wiki.ros.org/costmap_2d
+# Plugin Parameters
+# - Static Layer Parameters
+# - Inflation Layer Parameters
+# - Obstacle Layer Parameters
+# - Voxel Layer Parameters
+# - Range Sensor Parameters
+# - Denoise Layer Parameters
+# - Plugin Container Layer Parameters
+# Costmap Filters Parameters
+# - Keepout Filter Parameters
+# - Speed Filter Parameters
+# - Binary Filter Parameters
+
+global_costmap:
+  global_costmap:
+    ros__parameters:
+      use_sim_time: False                               # wheteher to use simulation time or not.
+      resolution: 0.05                                  # Resolution of 1 pixel of the costmap, in meters.
+      # height: 3                                       # Height of costmap (m).
+      # width: 4                                        # Width of costmap (m).
+      # map_vis_z: 0.0                                  # The height of map, allows to avoid rviz visualization flickering at -0.008
+      # origin_x: -0.5                                  # X origin of the costmap relative to width (m).
+      # origin_y: -0.5                                  # Y origin of the costmap relative to height (m).
+      update_frequency: 1.0                             # Costmap update frequency.
+      publish_frequency: 1.0                            # Frequency to publish costmap to topic.
+      global_frame: map                                 # Reference frame.
+      robot_base_frame: base_link # Robot base frame.
+      # # footprint: [[0.22, 0.22], [0.22, -0.22], [-0.22, -0.22], [-0.22, 0.22]]
+      robot_radius: 0.2                               # Robot radius to use, if footprint coordinates not provided. If this parameter is set, isPathValid will do circular collision checking.
+      # footprint_padding: 0.03                         # Amount to pad footprint (m).
+      # initial_transform_timeout: 60.0                 # Time to wait for the transform from robot base frame to global frame to become available. If exceeded, the configuration stage is aborted.
+      always_send_full_costmap: True                    # Whether to send full costmap every update, rather than updates.
+      track_unknown_space: true                         # If false, treats unknown space as free space, else as unknown space.
+      # # observation_sources:                          # List of sources of sensors as a string, to be used if not specified in plugin specific configurations. Ex. “static_layer stvl_layer”
+      # rolling_window: false                           # Whether costmap should roll with robot base frame.
+      # transform_tolerance: 0.3                        # TF transform delay tolerance.
+      # trinary_costmap: true                           # If occupancy grid map should be interpreted as only 3 values (free, occupied, unknown) or with its stored values.
+      # lethal_cost_threshold: 100                      # Minimum cost of an occupancy grid map to be considered a lethal obstacle.
+      # unknown_cost_value: 255                         # Cost of unknown space if tracking it.
+      # use_maximum: false                              # whether when combining costmaps to use the maximum cost or override.
+      service_introspection_mode: "disabled"            # The introspection mode for services. Options are “disabled”, “metadata”, “contents”.
+
+      plugins: ["static_layer", "obstacle_layer", "inflation_layer"]
+      obstacle_layer:
+        plugin: "nav2_costmap_2d::ObstacleLayer"
+        enabled: True
+        observation_sources: scan
+        scan:
+          # A relative topic will be appended to the parent of the global_costmap namespace.
+          # For example:
+          #   * User chosen namespace is `tb4`.
+          #   * User chosen topic is `scan`.
+          #   * Topic will be remapped to `/tb4/scan` without `global_costmap`.
+          #   * Use global topic `/scan` if you do not wish the node namespace to apply
+          topic: scan
+          max_obstacle_height: 2.0
+          clearing: True
+          marking: True
+          data_type: "LaserScan"
+          raytrace_max_range: 3.0
+          raytrace_min_range: 0.0
+          obstacle_max_range: 2.5
+          obstacle_min_range: 0.0
+      static_layer:
+        plugin: "nav2_costmap_2d::StaticLayer"
+        map_subscribe_transient_local: True
+      inflation_layer:
+        plugin: "nav2_costmap_2d::InflationLayer"
+        cost_scaling_factor: 4.0
+        inflation_radius: 0.375
+
+local_costmap:
+  local_costmap:
+    ros__parameters:
+      # use_sim_time: False
+      update_frequency: 5.0
+      publish_frequency: 2.0
+      global_frame: odom
+      robot_base_frame: base_link
+      rolling_window: true
+      width: 3
+      height: 3
+      resolution: 0.05
+      robot_radius: 0.2
+      plugins: ["voxel_layer", "inflation_layer"]
+      inflation_layer:
+        plugin: "nav2_costmap_2d::InflationLayer"
+        cost_scaling_factor: 6.0
+        inflation_radius: 0.375
+      voxel_layer:
+        plugin: "nav2_costmap_2d::VoxelLayer"
+        enabled: True
+        publish_voxel_map: True
+        origin_z: 0.0
+        z_resolution: 0.05
+        z_voxels: 16
+        max_obstacle_height: 2.0
+        mark_threshold: 0
+        observation_sources: scan
+        scan:
+          # A relative topic will be appended to the parent of the local_costmap namespace.
+          # For example:
+          #   * User chosen namespace is `tb4`.
+          #   * User chosen topic is `scan`.
+          #   * Topic will be remapped to `/tb4/scan` without `local_costmap`.
+          #   * Use global topic `/scan` if you do not wish the node namespace to apply
+          topic: scan
+          max_obstacle_height: 2.0
+          clearing: True
+          marking: True
+          data_type: "LaserScan"
+          raytrace_max_range: 3.0
+          raytrace_min_range: 0.0
+          obstacle_max_range: 2.5
+          obstacle_min_range: 0.0
+      static_layer:
+        plugin: "nav2_costmap_2d::StaticLayer"
+        map_subscribe_transient_local: True
+      always_send_full_costmap: True
+      service_introspection_mode: "disabled"
+
+# https://docs.nav2.org/configuration/packages/configuring-planner-server.html
+planner_server:
+  ros__parameters:
+    use_sim_time: false                     # wheteher to use simulation time or not.
+    expected_planner_frequency: 20.0        # Expected planner frequency. If the current frequency is less than the expected frequency, display the warning message.
+    action_server_result_timeout: 5.0      # The timeout value (in seconds) for action servers to discard a goal handle if a result has not been produced.
+    bond_heartbeat_period: 0.1              # The lifecycle node bond mechanism publishing period (on the /bond topic). Disabled if inferior or equal to 0.0.
+    costmap_update_timeout: 1.0             # The timeout value (seconds) for the costmap to be fully updated before a planning request.
+    service_introspection_mode: "disabled"  # The introspection mode for services. Options are “disabled”, “metadata”, “contents”.
+    planner_plugins: ["GridBased"]          # List of Mapped plugin names for parameters and processing requests.
+    GridBased:
+      plugin: "nav2_navfn_planner/NavfnPlanner"
+      tolerance: 0.01                       # Tolerance in meters between requested goal pose and end of path.
+      use_astar: false                       # Whether to use A*. If false, uses Dijkstra’s expansion.
+      allow_unknown: true                   # Whether to allow planning in unknown space.
+      use_final_approach_orientation: false # If true, the last pose of the path generated by the planner will have its orientation set to the approach orientation, i.e. the orientation of the vector connecting the last two points of the path
+
+# https://docs.nav2.org/configuration/packages/configuring-smoother-server.html#
+smoother_server:
+  ros__parameters:
+    use_sim_time: false                     # wheteher to use simulation time or not.
+    action_server_result_timeout: 5.0       # The timeout value (in seconds) for action servers to discard a goal handle if a result has not been produced.
+    robot_base_frame: base_link             # Robot base frame.
+    transform_tolerance: 0.1                # TF transform delay tolerance.
+    bond_heartbeat_period: 0.1              # The lifecycle node bond mechanism publishing period (on the /bond topic). Disabled if inferior or equal to 0.0.
+    smoother_plugins: ["simple_smoother", "curvature_smoother"]
+    simple_smoother:
+      plugin: "nav2_smoother::SimpleSmoother"
+      tolerance: 1.0e-10
+      max_its: 1000
+      do_refinement: True
+    # https://docs.nav2.org/configuration/packages/configuring-savitzky-golay-smoother.html
+    curvature_smoother:
+      plugin: "nav2_smoother::SavitzkyGolaySmoother"
+      do_refinement: True               # Whether to smooth the smoothed results refinement_num times to get an improved result.
+      refinement_num: 2                 # Number of times to recursively smooth a segment
+      enforce_path_inversion: false     # Whether to consider input path discontinuities as path inversions from feasible planning to be respected or smooth other them.
+
+# https://docs.nav2.org/configuration/packages/configuring-controller-server.html
+controller_server:
+  ros__parameters:
+    use_sim_time: False
+    controller_frequency: 20.0
+    min_x_velocity_threshold: 0.001
+    min_y_velocity_threshold: 0.001
+    min_theta_velocity_threshold: 0.01
+    failure_tolerance: 0.3
+    progress_checker_plugin: "progress_checker"
+    goal_checker_plugins: ["general_goal_checker"] # "precise_goal_checker"
+    controller_plugins: ["FollowPath"]
+
+    # Progress checker parameters
+    progress_checker:
+      plugin: "nav2_controller::SimpleProgressChecker"
+      required_movement_radius: 0.1
+      movement_time_allowance: 10.0
+    # Goal checker parameters
+    #precise_goal_checker:
+    #  plugin: "nav2_controller::SimpleGoalChecker"
+    #  xy_goal_tolerance: 0.25
+    #  yaw_goal_tolerance: 0.25
+    #  stateful: True
+    general_goal_checker:
+      plugin: "nav2_controller::SimpleGoalChecker"
+      xy_goal_tolerance: 0.1
+      yaw_goal_tolerance: 0.15
+      stateful: False
+    # DWB parameters
+    FollowPath:
+      plugin: "dwb_core::DWBLocalPlanner"
+      debug_trajectory_details: True
+      min_vel_x: -0.25
+      min_vel_y: -0.25
+      max_vel_x: 0.25
+      max_vel_y: 0.25
+      max_vel_theta: 1.0
+      min_speed_xy: -0.25 # 0.0
+      max_speed_xy: 0.25
+      min_speed_theta: 0.03
+      # Add high threshold velocity for turtlebot 3 issue.
+      # https://github.com/ROBOTIS-GIT/turtlebot3_simulations/issues/75
+      acc_lim_x: 0.25
+      acc_lim_y: 0.25
+      acc_lim_theta: 1.0
+      decel_lim_x: -0.15
+      decel_lim_y: -0.15
+      decel_lim_theta: -2.0
+      vx_samples: 20
+      vy_samples: 20
+      vtheta_samples: 2
+      sim_time: 1.7
+      linear_granularity: 0.05
+      angular_granularity: 0.025
+      transform_tolerance: 0.2
+      xy_goal_tolerance: 0.1
+      trans_stopped_velocity: 0.25
+      short_circuit_trajectory_evaluation: True
+      stateful: true
+      critics: ["RotateToGoal", "Oscillation", "BaseObstacle", "GoalAlign", "PathAlign", "PathDist", "GoalDist", "Twirling"]
+      Twirling.scale: 4.0
+      BaseObstacle.scale: 0.02
+      PathAlign.scale: 32.0
+      PathAlign.forward_point_distance: 0.1
+      GoalAlign.scale: 24.0
+      GoalAlign.forward_point_distance: 0.1
+      PathDist.scale: 32.0
+      GoalDist.scale: 24.0
+      RotateToGoal.scale: 32.0
+      RotateToGoal.slowing_factor: 5.0
+      RotateToGoal.lookahead_time: -1.0
+# controller_server:
+#   ros__parameters:
+#     use_sim_time: False
+#     controller_frequency: 20.0
+#     min_x_velocity_threshold: 0.001
+#     min_y_velocity_threshold: 0.001
+#     min_theta_velocity_threshold: 0.01
+#     failure_tolerance: 0.3
+#     progress_checker_plugin: "progress_checker"
+#     goal_checker_plugins: ["general_goal_checker"] # "precise_goal_checker"
+#     controller_plugins: ["FollowPath"]
+
+#     # Progress checker parameters
+#     progress_checker:
+#       plugin: "nav2_controller::SimpleProgressChecker"
+#       required_movement_radius: 0.075
+#       movement_time_allowance: 10.0
+#     # Goal checker parameters
+#     #precise_goal_checker:
+#     #  plugin: "nav2_controller::SimpleGoalChecker"
+#     #  xy_goal_tolerance: 0.25
+#     #  yaw_goal_tolerance: 0.25
+#     #  stateful: True
+#     general_goal_checker:
+#       plugin: "nav2_controller::SimpleGoalChecker"
+#       xy_goal_tolerance: 0.075
+#       yaw_goal_tolerance: 0.15
+#       stateful: False
+#     # DWB parameters
+#     FollowPath:
+#       plugin: "dwb_core::DWBLocalPlanner"
+#       debug_trajectory_details: True
+#       min_vel_x: -0.225
+#       min_vel_y: -0.225
+#       max_vel_x: 0.225
+#       max_vel_y: 0.225
+#       max_vel_theta: 1.0
+#       min_speed_xy: -0.225
+#       max_speed_xy: 0.225
+#       min_speed_theta: 0.03
+#       # Add high threshold velocity for turtlebot 3 issue.
+#       # https://github.com/ROBOTIS-GIT/turtlebot3_simulations/issues/75
+#       acc_lim_x: 0.30
+#       acc_lim_y: 0.30
+#       acc_lim_theta: 1.0
+#       decel_lim_x: -0.6
+#       decel_lim_y: -0.6
+#       decel_lim_theta: -2.0
+#       vx_samples: 20
+#       vy_samples: 20
+#       vtheta_samples: 3
+#       sim_time: 1.7
+#       linear_granularity: 0.05
+#       angular_granularity: 0.025
+#       transform_tolerance: 0.075
+#       xy_goal_tolerance: 0.075
+#       trans_stopped_velocity: 0.1
+#       short_circuit_trajectory_evaluation: False
+#       stateful: False
+#       critics: ["RotateToGoal", "Oscillation", "BaseObstacle", "GoalAlign", "PathAlign", "PathDist", "GoalDist", "Twirling"]
+#       Twirling.scale: 4.0
+#       BaseObstacle.scale: 0.02
+#       PathAlign.scale: 60.0 # 32.0
+#       PathAlign.forward_point_distance: 0.05
+#       GoalAlign.scale: 24.0
+#       GoalAlign.forward_point_distance: 0.05
+#       PathDist.scale: 60.0 # 32.0
+#       GoalDist.scale: 40.0 # 24.0
+#       RotateToGoal.scale: 32.0
+#       RotateToGoal.slowing_factor: 5.0
+#       RotateToGoal.lookahead_time: -1.0
+
+
+# https://docs.nav2.org/configuration/packages/configuring-waypoint-follower.html
+waypoint_follower:
+  ros__parameters:
+    use_sim_time: false                                   # whether to use simulation time or not.
+    loop_rate: 20                                         # Rate to check for results from current navigation task.
+    # global_frame_id: map                                # The global frame id for the robot.
+    stop_on_failure: false                                # Whether to fail action task if a single waypoint fails. If false, will continue to next waypoint.
+    # action_server_result_timeout: 900.0                 # The timeout value (in seconds) for action servers to discard a goal handle if a result has not been produced.
+    # bond_heartbeat_period: 0.1                          # The lifecycle node bond mechanism publishing period (on the /bond topic).
+    service_introspection_mode: "disabled"                # The introspection mode for services. Options are “disabled”, “metadata”, “contents”.
+    waypoint_task_executor_plugin: "wait_at_waypoint"
+    wait_at_waypoint:
+      plugin: "nav2_waypoint_follower::WaitAtWaypoint"
+      enabled: False                                       # Whether waypoint_task_executor plugin is enabled.
+      waypoint_pause_duration: 0                          # Amount of time in milliseconds, for robot to sleep/wait after each waypoint is reached. If zero, robot will directly continue to next waypoint.
+
+# https://docs.nav2.org/configuration/packages/configuring-velocity-smoother.html
+# TODO: add "CLOSED_LOOP" option to use odometry feedback.
+velocity_smoother:
+  ros__parameters:
+    use_sim_time: false                     # whether to use simulation time or not.
+    use_realtime_priority: false            # This will set the controller’s execution thread to a higher priority than the rest of the system (90) to meet scheduling deadlines to have less missed loop rates.
+    smoothing_frequency: 20.0               # Frequency (Hz) to use the last received velocity command to smooth by velocity, acceleration, and deadband constraints. 
+    velocity_timeout: 1.0                   # Timeout (s) after which the velocity smoother will send a zero-ed out Twist command and stop publishing.
+    max_velocity: [0.5, 0.5, 1.00]        # Maximum velocities (m/s) in [x, y, theta] axes.
+    min_velocity: [-0.5, -0.5, -1.00]     # Minimum velocities (m/s) in [x, y, theta] axes.
+    deadband_velocity: [0.01, 0.01, 0.03]   # Minimum velocities (m/s) to send to the robot hardware controllers, to prevent small commands from damaging hardware controllers if that speed cannot be achieved due to stall torque.
+    scale_velocities: False                 # Whether or not to adjust other components of velocity proportionally to a component’s required changes due to acceleration limits. 
+    max_accel: [0.5, 0.5, 1.00]           # Maximum acceleration to apply to each axis [x, y, theta].
+    max_decel: [-1.0, -1.0, -2.00]        # Maximum deceleration to apply to each axis [x, y, theta].  
+    feedback: "OPEN_LOOP"                   # TODO: add "CLOSED_LOOP" option to use odometry feedback.
+    odom_topic: "odom"                      # Topic to find robot odometry, if in CLOSED_LOOP operational mode.
+    odom_duration: 0.2                      # Time (s) to buffer odometry commands to estimate the robot speed, if in CLOSED_LOOP operational mode.
+    enable_stamped_cmd_vel: true            # Whether to use geometry_msgs::msg::Twist or geometry_msgs::msg::TwistStamped velocity data. True uses TwistStamped, false uses Twist. 
+    bond_heartbeat_period: 0.1              # The lifecycle node bond mechanism publishing period (on the /bond topic). Disabled if inferior or equal to 0.0.
+
+bt_navigator:
+  ros__parameters:
+    use_sim_time: False
+    global_frame: map
+    robot_base_frame: base_link
+    odom_topic: /odom
+    bt_loop_duration: 10
+    default_server_timeout: 20
+    wait_for_service_timeout: 1000
+    # 'default_nav_through_poses_bt_xml' and 'default_nav_to_pose_bt_xml' are use defaults:
+    # nav2_bt_navigator/navigate_to_pose_w_replanning_and_recovery.xml
+    # nav2_bt_navigator/navigate_through_poses_w_replanning_and_recovery.xml
+    # They can be set here or via a RewrittenYaml remap from a parent launch file to Nav2.
+    plugin_lib_names:
+      - nav2_compute_path_to_pose_action_bt_node
+      - nav2_compute_path_through_poses_action_bt_node
+      - nav2_smooth_path_action_bt_node
+      - nav2_follow_path_action_bt_node
+      - nav2_spin_action_bt_node
+      - nav2_wait_action_bt_node
+      - nav2_assisted_teleop_action_bt_node
+      - nav2_back_up_action_bt_node
+      - nav2_drive_on_heading_bt_node
+      - nav2_clear_costmap_service_bt_node
+      - nav2_is_stuck_condition_bt_node
+      - nav2_goal_reached_condition_bt_node
+      - nav2_goal_updated_condition_bt_node
+      - nav2_globally_updated_goal_condition_bt_node
+      - nav2_is_path_valid_condition_bt_node
+      - nav2_initial_pose_received_condition_bt_node
+      - nav2_reinitialize_global_localization_service_bt_node
+      - nav2_rate_controller_bt_node
+      - nav2_distance_controller_bt_node
+      - nav2_speed_controller_bt_node
+      - nav2_truncate_path_action_bt_node
+      - nav2_truncate_path_local_action_bt_node
+      - nav2_goal_updater_node_bt_node
+      - nav2_recovery_node_bt_node
+      - nav2_pipeline_sequence_bt_node
+      - nav2_round_robin_node_bt_node
+      - nav2_transform_available_condition_bt_node
+      - nav2_time_expired_condition_bt_node
+      - nav2_path_expiring_timer_condition
+      - nav2_distance_traveled_condition_bt_node
+      - nav2_single_trigger_bt_node
+      - nav2_goal_updated_controller_bt_node
+      - nav2_is_battery_low_condition_bt_node
+      - nav2_navigate_through_poses_action_bt_node
+      - nav2_navigate_to_pose_action_bt_node
+      - nav2_remove_passed_goals_action_bt_node
+      - nav2_planner_selector_bt_node
+      - nav2_controller_selector_bt_node
+      - nav2_goal_checker_selector_bt_node
+      - nav2_controller_cancel_bt_node
+      - nav2_path_longer_on_approach_bt_node
+      - nav2_wait_cancel_bt_node
+      - nav2_spin_cancel_bt_node
+      - nav2_back_up_cancel_bt_node
+      - nav2_assisted_teleop_cancel_bt_node
+      - nav2_drive_on_heading_cancel_bt_node
+      - nav2_is_battery_charging_condition_bt_node
+
+bt_navigator_navigate_through_poses_rclcpp_node:
+  ros__parameters:
+    use_sim_time: False
+
+bt_navigator_navigate_to_pose_rclcpp_node:
+  ros__parameters:
+    use_sim_time: False
+
+behavior_server:
+  ros__parameters:
+    costmap_topic: local_costmap/costmap_raw
+    footprint_topic: local_costmap/published_footprint
+    cycle_frequency: 10.0
+    behavior_plugins: ["spin", "backup", "drive_on_heading", "assisted_teleop", "wait"]
+    spin:
+      plugin: "nav2_behaviors/Spin"
+    backup:
+      plugin: "nav2_behaviors/BackUp"
+    drive_on_heading:
+      plugin: "nav2_behaviors/DriveOnHeading"
+    wait:
+      plugin: "nav2_behaviors/Wait"
+    assisted_teleop:
+      plugin: "nav2_behaviors/AssistedTeleop"
+    global_frame: odom
+    robot_base_frame: base_link
+    transform_tolerance: 0.1
+    use_sim_time: false
+    simulate_ahead_time: 2.0
+    max_rotational_vel: 1.0
+    min_rotational_vel: 0.4
+    rotational_acc_lim: 3.2
+
+

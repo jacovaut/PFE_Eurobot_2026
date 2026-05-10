@@ -130,7 +130,7 @@ void cmdvel_callback(const void* msgin)
   // Sequence-lock update
   cmdvel.seq++;
   cmdvel.vx = msg->linear.x;
-  cmdvel.vy = -msg->linear.y;  // Invert strafe direction
+  cmdvel.vy = msg->linear.y;  // Invert strafe direction
   cmdvel.w  = msg->angular.z;
   cmdvel.seq++;
 }
