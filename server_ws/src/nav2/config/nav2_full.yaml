@@ -47,7 +47,7 @@ planner_server:
       plugin: "nav2_theta_star_planner::ThetaStarPlanner"
       how_many_corners: 8
       w_euclidean: 1.0
-      w_traversal_cost: 8.0 # MAY NEED TUNING was 3.0 before
+      w_traversal_cost: 3.0
       w_heuristic_param: 1.0
 
 controller_server:
@@ -280,7 +280,12 @@ local_costmap:
       transform_tolerance: 0.5
       footprint: "[[-0.200, -0.150], [-0.200, 0.150], [0.200, 0.150], [0.200, -0.150]]"
       footprint_padding: 0.02
-      plugins: ["static_obstacle_layer", "dynamic_obstacle_layer", "lidar_obstacle_layer", "inflation_layer", "enemy_obstacle_layer"]
+      plugins: ["static_layer", "static_obstacle_layer", "dynamic_obstacle_layer", "lidar_obstacle_layer", "inflation_layer", "enemy_obstacle_layer"]
+      static_layer:
+        plugin: "nav2_costmap_2d::StaticLayer"
+        enabled: true
+        map_subscribe_transient_local: true
+        subscribe_to_updates: false
       static_obstacle_layer:
         plugin: "nav2_costmap_2d::VoxelLayer"
         enabled: false

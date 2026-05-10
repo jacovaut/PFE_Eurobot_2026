@@ -4,7 +4,13 @@
       "Bash(apt-get source *)",
       "Read(//home/jacob/**)",
       "Read(//tmp/**)",
-      "Bash(dpkg -l)"
+      "Bash(dpkg -l)",
+      "Bash(git -C /home/jacob/PFE_Eurobot_2026 log --oneline -10 -- server_ws/src/nav2/config/nav2_full.yaml)",
+      "Bash(git -C /home/jacob/PFE_Eurobot_2026 show 90acf71 --stat)",
+      "Bash(git -C /home/jacob/PFE_Eurobot_2026 diff 90acf71^..90acf71 -- server_ws/src/nav2/config/nav2_full.yaml)",
+      "Bash(git -C /home/jacob/PFE_Eurobot_2026 log --oneline -5 -- server_ws/src/nav2/config/)",
+      "Bash(git -C /home/jacob/PFE_Eurobot_2026 show 0a393a9 --stat)",
+      "Bash(git -C /home/jacob/PFE_Eurobot_2026 diff 0a393a9^..0a393a9 -- server_ws/src/nav2/config/nav2_full.yaml)"
     ]
   }
 }
