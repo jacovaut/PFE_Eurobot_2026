@@ -80,7 +80,7 @@ class DockActionServer(Node):
         self.declare_parameter("blind_commit_dist",   0.040)  # m: if last error < this when going blind, succeed
         self.declare_parameter("blind_hold_time",     1.0)    # s: how long to hold position waiting for pose to return
         self.declare_parameter("angular_align_timeout", 8.0)
-        self.declare_parameter("orbit_radius", 1.0)
+        self.declare_parameter("orbit_radius", 1.5)
         self.declare_parameter("orbit_speed",  0.01)
         self.kx    = self.get_parameter("k_x").value
         self.ky    = self.get_parameter("k_y").value
@@ -343,7 +343,8 @@ class DockActionServer(Node):
                         result.message = "Orbit alignment complete"
                         result.final_error_m = error
                         self.get_logger().info("[DOCK] Orbit alignment complete!")
-                        return result
+                        phase = "angular_align"
+                        # return result
                 else:
                     stable_start = None
                     # Orbit around block: tangential slide + heading correction + radial hold.
@@ -352,19 +353,14 @@ class DockActionServer(Node):
                     r = error  # already computed as math.hypot(dx, dy)
 
                     if r > 0.01:
-                        # Radial correction: drive to/from block to hold orbit_radius.
-                        v_rad = clamp(self.kx * (r - self.orbit_radius), -self.max_vx, self.max_vx)
-                        # Decompose radial correction along unit vector toward block.
-                        vx = 0#v_rad * (dx / r)
-                        # vy convention: positive vy → cmd.linear.y negative (see publish step).
-                        vy = -v_rad * (dy / r) + orbit_dir * self.orbit_speed
-                        # Rotate to keep robot facing block center.
-                        w  = orbit_dir * self.orbit_speed / r
-                    else:
-                        # Block directly underneath — spin in place as fallback.
                         vx = 0.0
-                        vy = 0.0
-                        w  = clamp(self.kt * ang_err, -self.max_w, self.max_w)
+                        vy = orbit_dir * self.orbit_speed
+                        w  = orbit_dir * self.orbit_speed / r
+                    # else:
+                    #     # Block directly underneath — spin in place as fallback.
+                    #     vx = 0.0
+                    #     vy = 0.0
+                    #     w  = clamp(self.kt * ang_err, -self.max_w, self.max_w)
 
             # ==================
             # PHASE: APPROACH2
