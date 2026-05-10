@@ -56,8 +56,8 @@ controller_server:
     controller_frequency: 20.0
     min_x_velocity_threshold: 0.001
     min_y_velocity_threshold: 0.001
-    min_theta_velocity_threshold: 0.01
-    failure_tolerance: 0.3
+    min_theta_velocity_threshold: 0.001
+    failure_tolerance: 0.2
 
     # Tell Nav2 which odom to use (use EKF output)
     odom_topic: "/odometry/local"
@@ -68,15 +68,17 @@ controller_server:
 
     progress_checker:
       plugin: "nav2_controller::SimpleProgressChecker"
-      required_movement_radius: 0.1
-      movement_time_allowance: 10.0
+      required_movement_radius: 0.01
+      movement_time_allowance: 3.0
 
     # See URL for documentation: https://docs.nav2.org/configuration/packages/nav2_controller-plugins/simple_goal_checker.html
     goal_checker:
       plugin: "nav2_controller::SimpleGoalChecker"
       xy_goal_tolerance: 0.10
-      yaw_goal_tolerance: 0.15
+      yaw_goal_tolerance: 3.14 # TODO: Should be 0.15
+      path_length_tolerance: 1.0
       stateful: false
+      symmetric_yaw_tolerance: false
 
     # Holonomic mecanum controller. Use DWB directly so the robot can strafe
     # instead of rotating to face the path before moving.
@@ -89,7 +91,7 @@ controller_server:
       min_vel_y: -0.5
       max_vel_y:  0.5
       max_vel_theta: 0.35
-      min_speed_xy: -0.5 # Zak used -max_speed_xy
+      min_speed_xy: 0.0 # Zak used -max_speed_xy
       max_speed_xy: 0.5
       min_speed_theta: 0.0
 
@@ -108,10 +110,7 @@ controller_server:
       angular_granularity: 0.03
 
       transform_tolerance: 0.5 # May need tuning
-      xy_goal_tolerance: 0.10
-      trans_stopped_velocity: 0.25
-      short_circuit_trajectory_evaluation: false
-      stateful: true
+      trans_stopped_velocity: 0.05
 
       critics: ["ObstacleFootprint", "BaseObstacle", "PathDist", "GoalDist", "Oscillation", "Twirling", "RotateToGoal"]
       ObstacleFootprint.scale: 32.0
@@ -122,8 +121,8 @@ controller_server:
       GoalDist.scale: 8.0
       Oscillation.scale: 1.0
       Twirling.scale: 0.0
-      RotateToGoal.scale: 16.0
-      RotateToGoal.slowing_factor: 8.0
+      RotateToGoal.scale: 24.0
+      RotateToGoal.slowing_factor: 1.0
       RotateToGoal.lookahead_time: -1.0
 
 bt_navigator:
@@ -174,7 +173,6 @@ velocity_smoother:
     feedback: "OPEN_LOOP"
     max_velocity: [0.5, 0.5, 0.35]
     min_velocity: [-0.5, -0.5, -0.35]
-    deadband_velocity: [0.01, 0.01, 0.03]
     max_accel: [1.0, 1.0, 0.6]
     max_decel: [-1.0, -1.0, -0.6]
     odom_topic: "/odometry/local"
