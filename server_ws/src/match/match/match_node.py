@@ -1675,11 +1675,18 @@ class MatchNode(Node):
         left_wall_garde_manger_x = OPENER_ROBOT_HALF_WIDTH_M
         right_wall_garde_manger_x = OPENER_TABLE_WIDTH_M - OPENER_ROBOT_HALF_WIDTH_M
         lower_garde_manger_back_y = 0.700
-        garde_manger_8_wall_edge_x = 0.600
-        garde_manger_10_wall_edge_x = 2.400
+        stock_3_left_edge_x = 1.000
+        stock_7_right_edge_x = 2.000
+        bottom_stock_goal_y = 0.175
+        garde_manger_8_inner_edge_x = 0.800
+        garde_manger_10_inner_edge_x = 2.200
+        garde_manger_4_goal_x = 0.800
+        garde_manger_6_goal_x = 2.200
         lower_garde_manger_goal_y = lower_garde_manger_back_y - OPENER_ROBOT_REAR_EXTENT_M
-        garde_manger_8_goal_x = garde_manger_8_wall_edge_x - OPENER_ROBOT_REAR_EXTENT_M
-        garde_manger_10_goal_x = garde_manger_10_wall_edge_x + OPENER_ROBOT_REAR_EXTENT_M
+        stock_3_goal_x = stock_3_left_edge_x - OPENER_STOCK_CLEARANCE_M - OPENER_ROBOT_FRONT_EXTENT_M
+        stock_7_goal_x = stock_7_right_edge_x + OPENER_STOCK_CLEARANCE_M + OPENER_ROBOT_FRONT_EXTENT_M
+        garde_manger_8_inner_goal_x = garde_manger_8_inner_edge_x + OPENER_ROBOT_REAR_EXTENT_M
+        garde_manger_10_inner_goal_x = garde_manger_10_inner_edge_x - OPENER_ROBOT_REAR_EXTENT_M
 
         if self._team_color == 'yellow':
             return [
@@ -1690,8 +1697,12 @@ class MatchNode(Node):
                 # Rear edge lined up with garde_manger_3's lower y edge.
                 {'kind': 'drop', 'name': 'garde_manger_3', 'x': left_wall_garde_manger_x, 'y': lower_garde_manger_goal_y, 'yaw': -math.pi / 2.0},
                 {'kind': 'therm', 'name': 'therm'},
-                # Back side lined up with garde_manger_8's x=0.600 edge, facing -x.
-                {'kind': 'drop', 'name': 'garde_manger_8', 'x': garde_manger_8_goal_x, 'y': 0.100, 'yaw': math.pi},
+                # Front edge 10 cm left of stock_3's x=1.000 edge, facing +x.
+                {'kind': 'stock', 'name': 'stock_3', 'x': stock_3_goal_x, 'y': bottom_stock_goal_y, 'yaw': 0.0},
+                # Drive forward; rear edge lined up with garde_manger_8's x=0.800 inner edge.
+                {'kind': 'drop', 'name': 'garde_manger_8', 'x': garde_manger_8_inner_goal_x, 'y': 0.100, 'yaw': 0.0},
+                # Rear edge lined up with garde_manger_4's lower y edge, facing -y.
+                {'kind': 'drop', 'name': 'garde_manger_4', 'x': garde_manger_4_goal_x, 'y': lower_garde_manger_goal_y, 'yaw': -math.pi / 2.0},
             ]
 
         return [
@@ -1702,8 +1713,12 @@ class MatchNode(Node):
             # Rear edge lined up with garde_manger_7's lower y edge.
             {'kind': 'drop', 'name': 'garde_manger_7', 'x': right_wall_garde_manger_x, 'y': lower_garde_manger_goal_y, 'yaw': -math.pi / 2.0},
             {'kind': 'therm', 'name': 'therm'},
-            # Back side lined up with garde_manger_10's x=2.400 edge, facing +x.
-            {'kind': 'drop', 'name': 'garde_manger_10', 'x': garde_manger_10_goal_x, 'y': 0.100, 'yaw': 0.0},
+            # Front edge 10 cm right of stock_7's x=2.000 edge, facing -x.
+            {'kind': 'stock', 'name': 'stock_7', 'x': stock_7_goal_x, 'y': bottom_stock_goal_y, 'yaw': math.pi},
+            # Drive forward; rear edge lined up with garde_manger_10's x=2.200 inner edge.
+            {'kind': 'drop', 'name': 'garde_manger_10', 'x': garde_manger_10_inner_goal_x, 'y': 0.100, 'yaw': math.pi},
+            # Rear edge lined up with garde_manger_6's lower y edge, facing -y.
+            {'kind': 'drop', 'name': 'garde_manger_6', 'x': garde_manger_6_goal_x, 'y': lower_garde_manger_goal_y, 'yaw': -math.pi / 2.0},
         ]
 
     def _opener_goal_pose(self, stage) -> PoseStamped:

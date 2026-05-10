@@ -23,12 +23,12 @@ class TicksListener : public rclcpp::Node
 
     //Constantes, à ajouter les bonnes valeurs
     const double ENCODER_TICKS_PER_REVOLUTION [3] = {4096, 4096, 4096};
-    const double DEADWHEEL_DIAMETER  = 0.0384; //0.0373, 0.0366
-    const double SDEADWHEEL_DIAMETER  = 0.0384;
+    const double DEADWHEEL_DIAMETER  = 0.03792; // calibrated from 0.57 m forward run: avg(|t0|, |t1|)=19598
+    const double SDEADWHEEL_DIAMETER  = 0.03761; // calibrated from 0.615 m strafe run: t2=-21087
     const double DEADWHEEL_CIRCUMFERENCE = (M_PI) * DEADWHEEL_DIAMETER;
     const double SDEADWHEEL_CIRCUMFERENCE = (M_PI) * SDEADWHEEL_DIAMETER;
-    const double DEADWHEEL_DISTANCE = 0.1496; //distance entre les deux deadwheel principaux, anciennement 0.1446
-    const double OFFSET = -0.063; //distance entre le side deadwheel et le centre de rotation du robot
+    const double DEADWHEEL_DISTANCE = 0.14057; // avg of two 10-turn rotations after moving deadwheels
+    const double OFFSET = -0.07308; // avg side offset from two 10-turn rotations
     const double RIGHT_DEADWHEEL_SIGN = -1.0;
     const double LEFT_DEADWHEEL_SIGN = -1.0;
     const double SIDE_DEADWHEEL_SIGN = -1.0;
