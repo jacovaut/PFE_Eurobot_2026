@@ -286,18 +286,18 @@ void setup() {
     motor4.Enabledriver(true);
 
     // Test motor position
-    for (int i = 0; i < 4; i++) {        
-        motors[i]->setSpeedRPM(60); // set speed in RPM
-        motors[i]->runForward();
+    // for (int i = 0; i < 4; i++) {        
+    //     motors[i]->setSpeedRPM(60); // set speed in RPM
+    //     motors[i]->runForward();
 
-        delay(1000);
+    //     delay(1000);
 
-        motors[i]->runBackward();
+    //     motors[i]->runBackward();
 
-        delay(1000);
+    //     delay(1000);
 
-        motors[i]->stop();
-    }
+    //     motors[i]->stop();
+    // }
     
     xTaskCreatePinnedToCore(
         core1,
