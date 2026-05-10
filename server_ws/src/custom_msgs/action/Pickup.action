@@ -1,0 +1,13 @@
+# Goal
+uint8[4] slots           # 0=skip, 1=pick block in this cup slot
+uint8 count              # number of slots requested
+float64 timeout_sec      # reserved timeout, 0 = no timeout
+---
+# Result
+bool success
+string message
+uint8 count
+---
+# Feedback
+uint8 count
+string state
