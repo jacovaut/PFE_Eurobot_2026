@@ -360,7 +360,7 @@ class DockActionServer(Node):
                 in_ang = abs(dtheta) < self.tol_theta
                 if in_pos and in_ang:
                     state = self.STATE_ALIGNED
-                elif error < self.tol_xy * 2.5:
+                elif error < self.tol_xy * 5:
                     state = self.STATE_CONVERGING
                 else:
                     state = self.STATE_LOCKED
@@ -393,7 +393,7 @@ class DockActionServer(Node):
                     stable_start = None
                     vx = clamp(self.kx * dx, -self.max_vx, self.max_vx)
                     vy = clamp(-self.ky * dy, -self.max_vy, self.max_vy)
-                    w  = clamp(-self.kt * dtheta, -self.max_w, self.max_w)
+                    w  = clamp(self.kt * dtheta, -self.max_w, self.max_w)
 
             # Acceleration limiting
             # Note: cmd.linear.y = -vy, so last_cmd.linear.y = -vy_prev.
