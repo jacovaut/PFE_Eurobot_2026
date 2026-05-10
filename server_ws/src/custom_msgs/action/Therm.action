@@ -1,0 +1,13 @@
+# Goal
+int8 LEFT=-1
+int8 RIGHT=1
+int8 direction           # LEFT or RIGHT
+float64 timeout_sec      # max seconds for the full move, 0 = no timeout
+---
+# Result
+bool success
+string message
+---
+# Feedback
+string state
+float64 progress
