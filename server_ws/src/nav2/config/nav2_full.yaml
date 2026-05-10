@@ -75,7 +75,7 @@ controller_server:
     goal_checker:
       plugin: "nav2_controller::SimpleGoalChecker"
       xy_goal_tolerance: 0.10
-      yaw_goal_tolerance: 0.35
+      yaw_goal_tolerance: 0.15
       stateful: false
 
     # Holonomic mecanum controller. Use DWB directly so the robot can strafe
@@ -88,29 +88,29 @@ controller_server:
       max_vel_x:  0.5
       min_vel_y: -0.5
       max_vel_y:  0.5
-      max_vel_theta: 1.0
+      max_vel_theta: 0.35
       min_speed_xy: -0.5 # Zak used -max_speed_xy
       max_speed_xy: 0.5
-      min_speed_theta: 0.03
+      min_speed_theta: 0.0
 
       acc_lim_x: 1.0
       acc_lim_y: 1.0
-      acc_lim_theta: 1.0
+      acc_lim_theta: 0.6
       decel_lim_x: -1.0
       decel_lim_y: -1.0
-      decel_lim_theta: -2.0
+      decel_lim_theta: -1.5
 
       vx_samples: 8
       vy_samples: 8
-      vtheta_samples: 3
-      sim_time: 1.7
+      vtheta_samples: 20
+      sim_time: 0.9
       linear_granularity: 0.05
       angular_granularity: 0.03
 
       transform_tolerance: 0.5 # May need tuning
       xy_goal_tolerance: 0.10
       trans_stopped_velocity: 0.25
-      short_circuit_trajectory_evaluation: true
+      short_circuit_trajectory_evaluation: false
       stateful: true
 
       critics: ["ObstacleFootprint", "BaseObstacle", "PathDist", "GoalDist", "Oscillation", "Twirling", "RotateToGoal"]
@@ -122,8 +122,8 @@ controller_server:
       GoalDist.scale: 8.0
       Oscillation.scale: 1.0
       Twirling.scale: 0.0
-      RotateToGoal.scale: 32.0
-      RotateToGoal.slowing_factor: 5.0
+      RotateToGoal.scale: 16.0
+      RotateToGoal.slowing_factor: 8.0
       RotateToGoal.lookahead_time: -1.0
 
 bt_navigator:
@@ -172,11 +172,11 @@ velocity_smoother:
     smoothing_frequency: 20.0
     scale_velocities: false
     feedback: "OPEN_LOOP"
-    max_velocity: [0.5, 0.5, 1.0]
-    min_velocity: [-0.5, -0.5, -1.0]
+    max_velocity: [0.5, 0.5, 0.35]
+    min_velocity: [-0.5, -0.5, -0.35]
     deadband_velocity: [0.01, 0.01, 0.03]
-    max_accel: [1.0, 1.0, 1.0]
-    max_decel: [-1.0, -1.0, -2.0]
+    max_accel: [1.0, 1.0, 0.6]
+    max_decel: [-1.0, -1.0, -0.6]
     odom_topic: "/odometry/local"
     velocity_timeout: 0.5
 
