@@ -77,8 +77,8 @@ controller_server:
       xy_goal_tolerance: 0.10
       yaw_goal_tolerance: 0.35 # TODO: Should be 0.15
       path_length_tolerance: 1.0
-      stateful: false
-      symmetric_yaw_tolerance: false
+      stateful: true
+      symmetric_yaw_tolerance: true
 
     # Holonomic mecanum controller. Use DWB directly so the robot can strafe
     # instead of rotating to face the path before moving.
@@ -122,7 +122,7 @@ controller_server:
       Oscillation.scale: 1.0
       Twirling.scale: 0.0
       RotateToGoal.scale: 24.0
-      RotateToGoal.slowing_factor: 1.0
+      RotateToGoal.slowing_factor: 6.0
       RotateToGoal.lookahead_time: -1.0
 
 bt_navigator:
