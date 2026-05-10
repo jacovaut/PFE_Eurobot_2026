@@ -303,25 +303,25 @@
   <joint name="arm_to_cup_0" type="fixed">
     <parent link="arm_link"/>
     <child link="cup_0"/>
-    <origin xyz="0.075 0.0255 0.0365" rpy="1.5707963267948966 0 0"/>
+    <origin xyz="0.075 0.0255 0.0027067937990953" rpy="1.5707963267948966 0 0"/>
   </joint>
 
   <joint name="arm_to_cup_1" type="fixed">
     <parent link="arm_link"/>
     <child link="cup_1"/>
-    <origin xyz="0.025 0.0255 0.0365" rpy="1.5707963267948966 0 0"/>
+    <origin xyz="0.025 0.0255 0.0027067937990953" rpy="1.5707963267948966 0 0"/>
   </joint>
 
   <joint name="arm_to_cup_2" type="fixed">
     <parent link="arm_link"/>
     <child link="cup_2"/>
-    <origin xyz="-0.025 0.0255 0.0365" rpy="1.5707963267948966 0 0"/>
+    <origin xyz="-0.025 0.0255 0.0027067937990953" rpy="1.5707963267948966 0 0"/>
   </joint>
 
   <joint name="arm_to_cup_3" type="fixed">
     <parent link="arm_link"/>
     <child link="cup_3"/>
-    <origin xyz="-0.075 0.0255 0.0365" rpy="1.5707963267948966 0 0"/>
+    <origin xyz="-0.075 0.0255 0.0027067937990953" rpy="1.5707963267948966 0 0"/>
   </joint>
 
 </robot>
