@@ -75,6 +75,7 @@ class DockActionServer(Node):
         self.declare_parameter("max_aw",       6.0)
         self.declare_parameter("tol_xy",              0.025)
         self.declare_parameter("tol_theta",           math.radians(5.0))
+        self.declare_parameter("orbit_tol_theta",     math.radians(2.0))
         self.declare_parameter("stable_time",         0.3)
         self.declare_parameter("control_rate",        50.0)
         self.declare_parameter("blind_commit_dist",   0.040)  # m: if last error < this when going blind, succeed
@@ -93,6 +94,7 @@ class DockActionServer(Node):
         self.max_aw = self.get_parameter("max_aw").value
         self.tol_xy    = self.get_parameter("tol_xy").value
         self.tol_theta = self.get_parameter("tol_theta").value
+        self.orbit_tol_theta = self.get_parameter("orbit_tol_theta").value
         self.stable_time_required  = self.get_parameter("stable_time").value
         self.blind_commit_dist     = self.get_parameter("blind_commit_dist").value
         self.blind_hold_time       = self.get_parameter("blind_hold_time").value
@@ -328,7 +330,7 @@ class DockActionServer(Node):
                     return result
 
                 ang_err = dtheta
-                in_ang = abs(ang_err) < self.tol_theta
+                in_ang = abs(ang_err) < self.orbit_tol_theta
 
                 if in_ang:
                     vx = vy = w = 0.0
@@ -357,7 +359,7 @@ class DockActionServer(Node):
             # ==================
             elif phase == "approach2":
                 in_pos = abs(dx) < self.tol_xy and abs(dy) < self.tol_xy
-                in_ang = abs(dtheta) < self.tol_theta
+                in_ang = abs(dtheta) < self.orbit_tol_theta
                 if in_pos and in_ang:
                     state = self.STATE_ALIGNED
                 elif error < self.tol_xy * 5:
