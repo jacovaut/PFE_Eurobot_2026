@@ -57,7 +57,7 @@ controller_server:
     min_x_velocity_threshold: 0.001
     min_y_velocity_threshold: 0.001
     min_theta_velocity_threshold: 0.001
-    failure_tolerance: 0.2
+    failure_tolerance: 0.4
 
     # Tell Nav2 which odom to use (use EKF output)
     odom_topic: "/odometry/local"
@@ -76,7 +76,7 @@ controller_server:
       plugin: "nav2_controller::SimpleGoalChecker"
       xy_goal_tolerance: 0.10
       yaw_goal_tolerance: 0.35
-      stateful: true
+      stateful: false
       symmetric_yaw_tolerance: true
 
     # Holonomic mecanum controller. Use DWB directly so the robot can strafe
@@ -108,8 +108,8 @@ controller_server:
       linear_granularity: 0.05
       angular_granularity: 0.03
 
-      transform_tolerance: 0.5 # May need tuning
-      trans_stopped_velocity: 0.05
+      transform_tolerance: 0.5 
+      trans_stopped_velocity: 0.25
 
       critics: ["ObstacleFootprint", "BaseObstacle", "PathDist", "GoalDist", "Oscillation", "Twirling", "RotateToGoal"]
       ObstacleFootprint.scale: 8.0
@@ -117,10 +117,10 @@ controller_server:
       PathAlign.scale: 0.0
       GoalAlign.scale: 0.0
       PathDist.scale: 8.0
-      GoalDist.scale: 24.0
+      GoalDist.scale: 8.0
       Oscillation.scale: 1.0
       Twirling.scale: 2.0
-      RotateToGoal.scale: 24.0
+      RotateToGoal.scale: 8.0
       RotateToGoal.slowing_factor: 6.0
       RotateToGoal.lookahead_time: -1.0
 
@@ -189,7 +189,7 @@ global_costmap:
       resolution: 0.01
       rolling_window: false
       transform_tolerance: 0.5
-      footprint: "[[-0.200, -0.150], [-0.200, 0.150], [0.200, 0.150], [0.200, -0.150]]"
+      footprint: "[[-0.125, -0.125], [-0.125, 0.125], [0.125, 0.125], [0.125, -0.125]]"
       footprint_padding: 0.02
       plugins: ["static_layer", "static_obstacle_layer", "dynamic_obstacle_layer", "enemy_obstacle_layer", "lidar_obstacle_layer", "inflation_layer"]
       static_layer:
@@ -277,7 +277,7 @@ local_costmap:
       width: 3
       height: 3
       transform_tolerance: 0.5
-      footprint: "[[-0.200, -0.150], [-0.200, 0.150], [0.200, 0.150], [0.200, -0.150]]"
+      footprint: "[[-0.125, -0.125], [-0.125, 0.125], [0.125, 0.125], [0.125, -0.125]]"
       footprint_padding: 0.02
       plugins: ["static_layer", "static_obstacle_layer", "dynamic_obstacle_layer", "lidar_obstacle_layer", "inflation_layer", "enemy_obstacle_layer"]
       static_layer:
