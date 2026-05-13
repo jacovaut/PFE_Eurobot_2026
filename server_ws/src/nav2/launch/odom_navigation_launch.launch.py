@@ -323,6 +323,10 @@ def generate_launch_description():
             'output_topic': '/cmd_vel_smoothed',
             'match_running_topic': '/match/running',
             'zero_publish_hz': 20.0,
+            'lidar_stop_enabled': True,
+            'scan_topic': '/scan',
+            'lidar_stop_distance_m': 0.40,
+            'lidar_clear_distance_m': 0.45,
         }],
     )
 
