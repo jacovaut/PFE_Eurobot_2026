@@ -57,7 +57,7 @@ controller_server:
     min_x_velocity_threshold: 0.001
     min_y_velocity_threshold: 0.001
     min_theta_velocity_threshold: 0.001
-    failure_tolerance: 0.4
+    failure_tolerance: 2.0
 
     # Tell Nav2 which odom to use (use EKF output)
     odom_topic: "/odometry/local"
