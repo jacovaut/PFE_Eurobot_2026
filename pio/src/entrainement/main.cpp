@@ -194,21 +194,23 @@ void setSpeed(float new_vx, float new_vy, float new_w);
 void core1 (void* pvParameters);
 void core2 (void* pvParameters);
 
+HardwareSerial uros(0);
 
 void setup() {
     
     allocator = rcl_get_default_allocator();
     
-    Serial.begin(115200);
-    // set_microros_serial_transports(Serial);
-    IPAddress agent_ip(192,168,8,131);
 
-    set_microros_wifi_transports(
-        "GRUM",
-        "GELE>GMEC",
-        agent_ip,
-        8888
-    );
+    uros.begin(115200, SERIAL_8N1, RX, TX);
+    set_microros_serial_transports(uros);
+    // IPAddress agent_ip(192,168,8,131);
+
+    // set_microros_wifi_transports(
+    //     "GRUM",
+    //     "GELE>GMEC",
+    //     agent_ip,
+    //     8888
+    // );
     
     // Wait for agent
     while (rmw_uros_ping_agent(1000, 1) != RMW_RET_OK) {

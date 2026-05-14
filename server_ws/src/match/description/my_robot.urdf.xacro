@@ -247,6 +247,15 @@
     <origin xyz="0 0 0" rpy="-1.57079632679 0 -1.57079632679"/>
   </joint>
 
+  <!-- ===================== LIDAR ===================== -->
+  <link name="laser_frame"/>
+
+  <joint name="base_to_laser" type="fixed">
+    <parent link="base_link"/>
+    <child link="laser_frame"/>
+    <origin xyz="-0.154078 -0.003064 0.0" rpy="0 0 0.0"/>
+  </joint>
+
   <!-- ===================== SUCTION CUPS ===================== -->
   <link name="cup_0">
     <visual>

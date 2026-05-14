@@ -14,7 +14,7 @@ def generate_launch_description():
         get_package_share_directory('manip_action_node'), 'launch', 'manip_actions.launch.py')
     enable_lidar_arg = DeclareLaunchArgument(
         'enable_lidar',
-        default_value='false',
+        default_value='true',
         description='Enable YDLidar nodes.'
     )
     team_color_arg = DeclareLaunchArgument(
