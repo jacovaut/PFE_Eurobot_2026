@@ -188,8 +188,8 @@ void setup() {
     
     allocator = rcl_get_default_allocator();
     
+    Serial.begin(115200);  // handled by set_microros_serial_transports
     set_microros_serial_transports(Serial);
-    // Serial.begin(115200);  // handled by set_microros_serial_transports
     // IPAddress agent_ip(192,168,8,131);
     // set_microros_wifi_transports(
     //     "GRUM",

@@ -25,6 +25,7 @@ setup(
     },
     entry_points={
         'console_scripts': [
+            'gpio_match_start = henry.gpio_start:main',
         ],
     },
 )
