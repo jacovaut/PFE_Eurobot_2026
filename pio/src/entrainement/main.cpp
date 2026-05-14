@@ -34,7 +34,6 @@
 #include "deadwheels.h"
 #include <stdint.h>
 #include <micro_ros_platformio.h>
-#include <WiFi.h>
 
 /* ---------------------- ROS INCLUDES ---------------------- */
 #include <rcl/rcl.h>
@@ -92,21 +91,10 @@ bool sync_time_with_agent(size_t attempts = 10, int timeout_ms = 1000)
     for (size_t attempt = 1; attempt <= attempts; ++attempt) {
         rcl_ret_t rc = rmw_uros_sync_session(timeout_ms);
         if (rc == RMW_RET_OK && rmw_uros_epoch_synchronized()) {
-            Serial.printf(
-                "micro-ROS time synchronized: epoch_ms=%lld\n",
-                static_cast<long long>(rmw_uros_epoch_millis()));
             return true;
         }
-
-        Serial.printf(
-            "micro-ROS time sync failed (%u/%u), rc=%d, synced=%d\n",
-            static_cast<unsigned>(attempt),
-            static_cast<unsigned>(attempts),
-            static_cast<int>(rc),
-            rmw_uros_epoch_synchronized() ? 1 : 0);
         delay(500);
     }
-
     return false;
 }
 /* ------------------------------------------------------------- */
@@ -199,16 +187,15 @@ void setup() {
     
     allocator = rcl_get_default_allocator();
     
-    Serial.begin(115200);
-    // set_microros_serial_transports(Serial);
-    IPAddress agent_ip(192,168,8,131);
-
-    set_microros_wifi_transports(
-        "GRUM",
-        "GELE>GMEC",
-        agent_ip,
-        8888
-    );
+    set_microros_serial_transports(Serial);
+    // Serial.begin(115200);  // handled by set_microros_serial_transports
+    // IPAddress agent_ip(192,168,8,131);
+    // set_microros_wifi_transports(
+    //     "GRUM",
+    //     "GELE>GMEC",
+    //     agent_ip,
+    //     8888
+    // );
     
     // Wait for agent
     while (rmw_uros_ping_agent(1000, 1) != RMW_RET_OK) {
