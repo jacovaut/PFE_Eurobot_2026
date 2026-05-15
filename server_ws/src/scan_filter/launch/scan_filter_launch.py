@@ -36,7 +36,7 @@ def generate_launch_description():
             package='scan_filter',
             executable='scan_boundary_filter',
             name='scan_boundary_filter_node',
-            output='screen',
+            output='log',
             parameters=[{
                 'input_topic':  LaunchConfiguration('input_topic'),
                 'output_topic': LaunchConfiguration('output_topic'),

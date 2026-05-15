@@ -50,7 +50,7 @@ def generate_launch_description():
         package='local_camera',
         executable='scan_pointcloud_node',
         name='scan_pointcloud_node',
-        output='screen',
+        output='log',
         parameters=[{
             'scan_topic': LaunchConfiguration('scan_topic'),
             'pointcloud_topic': LaunchConfiguration('pointcloud_topic'),

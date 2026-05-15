@@ -24,7 +24,7 @@ def generate_launch_description():
             parameters=[{
                 'robot_description': robot_description
             }],
-            output='screen'
+            output='log'
         ),
 
         Node(
@@ -32,7 +32,7 @@ def generate_launch_description():
             executable='joint_state_publisher',
             name='joint_state_publisher',
             arguments=[urdf_file],
-            output='screen'
+            output='log'
         ),
 
         # Node(

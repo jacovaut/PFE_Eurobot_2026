@@ -82,7 +82,7 @@ def generate_launch_description():
             package='camera_localization',
             executable='global_localization_node',
             name='global_localization_node',                                                                                                                                  
-            output='screen',
+            output='log',
             parameters=[camera_map_config, {'team_color': team_color}],
         ),
 
@@ -90,7 +90,7 @@ def generate_launch_description():
             package='camera_localization',
             executable='camera_map_visualizer_node.py',
             name='camera_map_visualizer_node',
-            output='screen',
+            output='log',
             emulate_tty=True,
             prefix='python3 -u -X faulthandler',
             condition=IfCondition(launch_map_visualizer),
@@ -110,7 +110,7 @@ def generate_launch_description():
             package='strategy',
             executable='cluster_analyze_node',
             name='cluster_analyze_node',
-            output='screen',
+            output='log',
             condition=IfCondition(use_cluster_pipeline),
             parameters=[{
                 'team_color': team_color,

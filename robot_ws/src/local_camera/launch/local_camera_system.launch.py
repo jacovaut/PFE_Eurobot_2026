@@ -94,25 +94,25 @@ def generate_launch_description():
             parameters=[{
                 'robot_description': robot_description
             }],
-            output='screen'
+            output='log'
         ),
         Node(
             package='joint_state_publisher',
             executable='joint_state_publisher',
             name='joint_state_publisher',
-            output='screen',
+            output='log',
         ),
         Node(
             package='local_camera',
             executable='dock_action_server',
             name='dock_action_server',
-            output='screen',
+            output='log',
         ),
         Node(
             package='local_camera',
             executable='ros_node',
             name='merged_local_pickup_node',
-            output='screen',
+            output='log',
             parameters=[{
                 'udp_port': 5005,
                 'team_color': LaunchConfiguration('team_color'),

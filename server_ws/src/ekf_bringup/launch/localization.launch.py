@@ -54,7 +54,7 @@ def generate_launch_description():
             package='deadwheel_odometry',
             executable='ticks_listener',
             name='ticks_listener',
-            output='screen',
+            output='log',
             parameters=[{
                 'initial_x': start_x,
                 'initial_y': start_y,
@@ -70,7 +70,7 @@ def generate_launch_description():
             package='robot_localization',
             executable='ekf_node',
             name='ekf_local_node',
-            output='screen',
+            output='log',
             parameters=[ekf1_config],
             remappings=[
                 ('/odometry/filtered', '/odometry/local'),
@@ -82,7 +82,7 @@ def generate_launch_description():
             package='robot_localization',
             executable='ekf_node',
             name='ekf_global_node',
-            output='screen',
+            output='log',
             parameters=[ekf2_config],
             remappings=[
                 ('/odometry/filtered', '/odometry/global'),
@@ -93,7 +93,7 @@ def generate_launch_description():
             package='ekf_bringup',
             executable='initial_pose_bridge',
             name='initial_pose_bridge',
-            output='screen',
+            output='log',
             parameters=[{
                 'input_topic': '/initialpose',
                 'set_pose_topic': '/ekf_global_node/set_pose',

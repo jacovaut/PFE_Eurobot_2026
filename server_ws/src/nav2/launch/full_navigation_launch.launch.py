@@ -135,7 +135,7 @@ def generate_launch_description():
                 package='nav2_map_server',
                 executable='map_server',
                 name='map_server',
-                output='screen',
+                output='log',
                 arguments=['--ros-args', '--log-level', log_level],
                 parameters=[
                     configured_params,
@@ -146,14 +146,14 @@ def generate_launch_description():
                 package='nav2_lifecycle_manager',
                 executable='lifecycle_manager',
                 name='lifecycle_manager_map_server',
-                output='screen',
+                output='log',
                 arguments=['--ros-args', '--log-level', log_level],
                 parameters=[{'autostart': autostart}, {'node_names': ['map_server']}],
             ),
             Node(
                 package='nav2_controller',
                 executable='controller_server',
-                output='screen',
+                output='log',
                 respawn=use_respawn,
                 respawn_delay=2.0,
                 parameters=[configured_params],
@@ -164,7 +164,7 @@ def generate_launch_description():
                 package='nav2_smoother',
                 executable='smoother_server',
                 name='smoother_server',
-                output='screen',
+                output='log',
                 respawn=use_respawn,
                 respawn_delay=2.0,
                 parameters=[configured_params],
@@ -175,7 +175,7 @@ def generate_launch_description():
                 package='nav2_planner',
                 executable='planner_server',
                 name='planner_server',
-                output='screen',
+                output='log',
                 respawn=use_respawn,
                 respawn_delay=2.0,
                 parameters=[configured_params],
@@ -186,7 +186,7 @@ def generate_launch_description():
                 package='nav2_behaviors',
                 executable='behavior_server',
                 name='behavior_server',
-                output='screen',
+                output='log',
                 respawn=use_respawn,
                 respawn_delay=2.0,
                 parameters=[configured_params],
@@ -197,7 +197,7 @@ def generate_launch_description():
                 package='nav2_bt_navigator',
                 executable='bt_navigator',
                 name='bt_navigator',
-                output='screen',
+                output='log',
                 respawn=use_respawn,
                 respawn_delay=2.0,
                 parameters=[configured_params],
@@ -208,7 +208,7 @@ def generate_launch_description():
                 package='nav2_waypoint_follower',
                 executable='waypoint_follower',
                 name='waypoint_follower',
-                output='screen',
+                output='log',
                 respawn=use_respawn,
                 respawn_delay=2.0,
                 parameters=[configured_params],
@@ -219,7 +219,7 @@ def generate_launch_description():
                 package='nav2_velocity_smoother',
                 executable='velocity_smoother',
                 name='velocity_smoother',
-                output='screen',
+                output='log',
                 respawn=use_respawn,
                 respawn_delay=2.0,
                 parameters=[configured_params],
@@ -230,7 +230,7 @@ def generate_launch_description():
                 package='nav2_collision_monitor',
                 executable='collision_monitor',
                 name='collision_monitor',
-                output='screen',
+                output='log',
                 respawn=use_respawn,
                 respawn_delay=2.0,
                 parameters=[configured_params],
@@ -241,7 +241,7 @@ def generate_launch_description():
                 package='nav2_lifecycle_manager',
                 executable='lifecycle_manager',
                 name='lifecycle_manager_navigation',
-                output='screen',
+                output='log',
                 arguments=['--ros-args', '--log-level', log_level],
                 parameters=[{'autostart': autostart}, {'node_names': lifecycle_nodes}],
             ),
@@ -341,36 +341,11 @@ def generate_launch_description():
         ],
     )
 
-    match_node = Node(
-        package='match',
-        executable='match_node',
-        name='match_node',
-        output='screen',
-        parameters=[{'autostart': False, 'duration_s': 98.0, 'force_running': True}],
-    )
-
-    cmd_vel_match_gate = Node(
-        package='match',
-        executable='cmd_vel_match_gate',
-        name='cmd_vel_match_gate',
-        output='screen',
-        parameters=[{
-            'input_topic': '/cmd_vel_match_input',
-            'output_topic': '/cmd_vel_smoothed',
-            'match_running_topic': '/match/running',
-            'zero_publish_hz': 20.0,
-            'lidar_stop_enabled': True,
-            'scan_topic': '/scan',
-            'lidar_stop_distance_m': 0.40,
-            'lidar_clear_distance_m': 0.45,
-        }],
-    )
-
     enemy_reactive_avoidance = Node(
         package='camera_localization',
         executable='enemy_reactive_avoidance_node.py',
         name='enemy_reactive_avoidance',
-        output='screen',
+        output='log',
         parameters=[{
             'reactive_distance_m': 0.50,
             'reactive_speed_m_s': 0.25,
@@ -397,8 +372,6 @@ def generate_launch_description():
     ld.add_action(declare_log_level_cmd)
     ld.add_action(declare_map_file_cmd)
     # Add the actions to launch all of the navigation nodes
-    ld.add_action(match_node)
-    ld.add_action(cmd_vel_match_gate)
     ld.add_action(enemy_reactive_avoidance)
     ld.add_action(load_nodes)
     ld.add_action(load_composable_nodes)
