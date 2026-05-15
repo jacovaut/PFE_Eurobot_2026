@@ -1,0 +1,17 @@
+[Unit]
+Description=Henry ROS2 system launch inside Docker
+After=start_container.service uarts.service uros.service
+Requires=start_container.service
+
+[Service]
+Type=simple
+User=pi
+ExecStart=docker exec ros-container bash -c \
+    "source /opt/ros/jazzy/setup.bash && \
+     source /home/piros/PFE_Eurobot_2026/robot_ws/install/setup.bash && \
+     ros2 launch henry henry_system.launch.py enable_lidar:=true"
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

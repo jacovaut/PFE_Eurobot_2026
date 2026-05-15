@@ -1,0 +1,13 @@
+[Unit]
+Description=Configure UARTs via dtoverlay
+DefaultDependencies=no
+Before=start_container.service henry_launch.service
+After=sysinit.target
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash /home/pi/uarts.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

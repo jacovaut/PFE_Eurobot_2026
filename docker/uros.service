@@ -1,0 +1,20 @@
+[Unit]
+Description=micro-ROS agent serial /dev/ttyAMA2
+After=start_container.service uarts.service
+Requires=start_container.service
+ConditionPathExists=/dev/ttyAMA2
+
+[Service]
+Type=simple
+User=pi
+ExecStart=docker exec ros-container bash -c \
+    "source /opt/ros/jazzy/setup.bash && \
+     source /home/piros/PFE_Eurobot_2026/robot_ws/install/setup.bash && \
+     ros2 run micro_ros_agent micro_ros_agent serial --dev /dev/ttyAMA2"
+Restart=on-failure
+RestartSec=10
+StartLimitIntervalSec=60
+StartLimitBurst=3
+
+[Install]
+WantedBy=multi-user.target
