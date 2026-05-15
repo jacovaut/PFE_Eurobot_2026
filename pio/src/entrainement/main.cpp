@@ -99,7 +99,7 @@ bool sync_time_with_agent(size_t attempts = 10, int timeout_ms = 1000)
 }
 /* ------------------------------------------------------------- */
 
-deadwheels Deadwheel(35, 32, 2, 19, 36, 34); // A0, B0, A1, B1, A2, B2
+deadwheels Deadwheel(35, 32, 36, 34, 2, 19); // A0, B0, A1, B1, A2, B2
 
 struct CmdVel {
   float vx;
