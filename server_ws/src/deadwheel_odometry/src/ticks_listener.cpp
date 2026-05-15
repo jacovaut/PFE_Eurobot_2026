@@ -234,7 +234,7 @@ class TicksListener : public rclcpp::Node
         double leftDist = LEFT_DEADWHEEL_SIGN * static_cast<double>(dLTicks) * DEADWHEEL_CIRCUMFERENCE / ENCODER_TICKS_PER_REVOLUTION[1];
         double dxr = 0.5 * (rightDist + leftDist);
         double dangle = (rightDist - leftDist) / DEADWHEEL_DISTANCE;
-        double dyr = (SIDE_DEADWHEEL_SIGN * static_cast<double>(dSTicks) * SDEADWHEEL_CIRCUMFERENCE / ENCODER_TICKS_PER_REVOLUTION[2]) - OFFSET * dangle;
+        double dyr = (SIDE_DEADWHEEL_SIGN * static_cast<double>(dSTicks) * SDEADWHEEL_CIRCUMFERENCE / ENCODER_TICKS_PER_REVOLUTION[2]) + OFFSET * dangle;
         double avgangle = theta__ + dangle/2; 
 
         //calculs des déplacements selon le world
